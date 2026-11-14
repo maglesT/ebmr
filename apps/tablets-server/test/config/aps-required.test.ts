@@ -5,6 +5,8 @@
  * its rows are never changed.
  */
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes } from '@ebmr/api-contract';
 import { withCommand } from '@ebmr/kernel';
@@ -151,5 +153,64 @@ describe('an APS required by an approved change (ST-29; tablets 1910)', () => {
     // QA signs the provider's content: the approval goes through and withdraws both lines.
     await approve(listed);
     expect([(await fitness(a)).fit, (await fitness(b)).fit]).toEqual(['NOT_QUALIFIED', 'NOT_QUALIFIED']);
+  }, 300_000);
+
+  it('[ST-29][DI-37] a change record approved under the 1910 content keeps its signed content and hash under the 1914 provider, with and without listed units', async () => {
+    // The 1910 function as that migration wrote it (kernel 1195 plus the in-kernel aps_lines), under another name,
+    // registered as the provider while QA signs: the state of an installation before 1914.
+    const sql = readFileSync(fileURLToPath(new URL('../../sql/1910_aps_required_by_change.sql', import.meta.url)), 'utf8');
+    const m = /create or replace function platform\.change_record_content\(p_id text\)[\s\S]*?\n\$\$;/.exec(sql);
+    expect(m, 'the 1910 provider text').not.toBeNull();
+    const old = m![0].replace('create or replace function platform.change_record_content(', 'create function plant.change_record_content_1910_test(');
+    const asOwner = async (stmts: string[]): Promise<void> => {
+      const c = await server.db.admin.connect();
+      try {
+        await c.query('set role ebmr_owner');
+        for (const s of stmts) await c.query(s);
+      } finally {
+        await c.query('reset role');
+        c.release();
+      }
+    };
+    const register = (fn: string): string => `select esig.register_content_provider('config_change_record', '${fn}(text)', 'Configuration change record (test)')`;
+    const [b, a] = [await qualifiedLine(), await qualifiedLine()];
+    const listed = `CR-APS-${tag()}`;
+    const plain = `CR-NOAPS-${tag()}`;
+    const before: Record<string, { content: unknown; hash: string; signed: string }> = {};
+    await asOwner([old, register('plant.change_record_content_1910_test')]);
+    try {
+      await raise(listed, [b, a]);
+      await raise(plain);
+      for (const n of [listed, plain]) {
+        await approve(n);
+        const r = (await server.db.admin.query<{ content: unknown; hash: string; signed: string }>(
+          `select plant.change_record_content_1910_test($1) -> 'content' as content,
+                  esig.content_hash_of('config_change_record', $1, plant.change_record_content_1910_test($1)) as hash,
+                  (select s.content_hash from esig.signature s where s.aggregate_type = 'config_change_record' and s.aggregate_id = $1) as signed`,
+          [n],
+        )).rows[0]!;
+        expect(r.signed, n).toBe(r.hash);
+        before[n] = r;
+      }
+    } finally {
+      await asOwner([register('plant.change_record_content'), 'drop function plant.change_record_content_1910_test(text)']);
+    }
+    expect((before[listed]!.content as Record<string, unknown>)['aps_lines']).toEqual([b, a].sort());
+    expect(before[plain]!.content).not.toHaveProperty('aps_lines');
+
+    // After 1914, through the registered provider: the same content and the same hash, and the integrity job finds nothing.
+    for (const n of [listed, plain]) {
+      const r = (await server.db.admin.query<{ content: unknown; hash: string; problems: string[] }>(
+        `select esig.provide('config_change_record', $1) -> 'content' as content,
+                esig.content_hash_of('config_change_record', $1, esig.provide('config_change_record', $1)) as hash,
+                array(select v.problem from esig.verify_signatures() v join esig.signature s on s.id = v.signature_id
+                       where s.aggregate_type = 'config_change_record' and s.aggregate_id = $1) as problems`,
+        [n],
+      )).rows[0]!;
+      expect(r.content, n).toEqual(before[n]!.content);
+      expect(r.hash, n).toBe(before[n]!.hash);
+      expect(r.hash, n).toBe(before[n]!.signed);
+      expect(r.problems, n).toEqual([]);
+    }
   }, 300_000);
 });
