@@ -53,6 +53,42 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
 - **Merging:** no merge queue. Merge each PR yourself on green, after a lead audit (ping the lead). Merge main in only
   on a conflict. Report each merge in 2 lines.
 
+### Session 21 handover (14 November 2026, about 22:00): the next session continues here
+
+Session 21 was session_01PybpFuJqP4hQevvyU4YWWS. The lead is session_01PybpFrP72XuwyG8S3H3NJS. Session 18's handover is on
+#271's branch, inj/i6-entry-hidden-db. Read it for #261, #271 and the INV-23/INV-36/INV-44 design.
+
+**State:**
+- #261 and #271 wait for #270, the gate fix. The steps are unchanged; see session 18's handover.
+- **INV-36** is built on the branch `inj/i6-inv36-sterile-filter`, based on main (worktree /home/user/wt-inv36).
+  - It adds injectables 3060, `E.STERILE_FILTER`, the library rule LIB-STERILE-FILTER, and the INJ-STERILE-FILTER v1
+    role and marks.
+  - The 5 `[INV-36]` end-to-end tests fail first and then pass. The mutation group is `inj-sterile-filter`.
+  - Lead: open the PR only after #270 has merged, based on main. State the timer ruling in the PR body as a lead ruling
+    the owner may veto: only data entries count for "after the step's other entries". Then send "ready for audit" on a
+    green gate that ran the inj-sterile-filter mutation.
+
+**INV-23 lead rulings (14 November, about 21:55):**
+- **(b)** Add one MARKET_REQUIRED_BLOCKS entry per market (IN, US, EU): INJ-FILL needs INJ-EM present and INJ-EM-COUNTS
+  after it.
+  - The database re-checks the rule at master APPROVE. Use a BEFORE INSERT trigger on platform.state_history for
+    mbr_version APPROVE, modelled on recipe.library_edition_at_approval_check (recipe-core 1871:63, trigger a4b at :81).
+  - Read the order with recipe.flow_tree (0307:148).
+- **(c)** The start check runs when the filling step's EQUIPMENT field of kind LINE is recorded, keyed on the role and
+  the field kind, not on a block code. Line uses come from plant.line_uses (1912:89).
+  - Refuse when the line has no APS interval (no default), or when the last good_aps from plant.line_batch_uses(code)
+    (1912:163) plus the interval is at or before the command's time. Each message paraphrases its clause.
+  - A lapse during the fill does not refuse later entries. At the INJ-FILL sign-off, if the validity ended before the
+    sign-off, raise an ACTION exception that requires a deviation (the existing exception path).
+  - The interval is set per line by the firm, with no default, insert-only with history, QA approval and audit. Use
+    plant.facility_rule (tablets 1210) or the pattern of recipe.bright_stock_max_hold (0871:46), whichever needs less
+    new code.
+  - Migration: tablets-server 1915 if it is free.
+  - Tests: `[INV-23]` for each refusal and for the sign-off exception, each fail-first, plus a database bypass case.
+  - In the PR body, record (c)'s check point and the sign-off exception as lead rulings the owner may veto. Open the PR
+    only after #270 has merged.
+- The write-ups (no build) are as in session 18's handover, including all of INV-44 and the trace-gate note.
+
 ### Session 17 handover (14 November 2026, about 12:30): session 18 continues here
 
 Session 17 was session_01PybpFuhBnYXh9yvdSzZcJc. The lead is session_01PybpFrP72XuwyG8S3H3NJS: report there with
