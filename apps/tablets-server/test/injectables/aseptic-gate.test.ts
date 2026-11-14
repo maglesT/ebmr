@@ -5,7 +5,8 @@
  * its own, the counts of the EM plates after incubation (INJ-EM-COUNTS). The finished lot is posted on the processing
  * batch as the edition's definer posts it (as the release gate's own tests do), so the gate is evaluated on that record.
  * A second master of the same product holds the nitrogen overlay gas filter's post-use integrity test (INJ-GAS-FILTER,
- * ST-28), so a batch without that test is shown not certifiable.
+ * ST-28), so a batch without that test is shown not certifiable. A third master binds the filling to the filling room,
+ * made a controlled area, so only an operator authorised for that area signs it there (PR-15, kernel 1190).
  *
  * Arranged outside the routes, as the vial chain (vial-chain.test.ts): the product, the licence, the plant units the
  * filling names (test arrangement of master data), the ERP order and the numbering rule.
@@ -16,15 +17,15 @@ import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { routes } from '@ebmr/api-contract';
-import { withCommand } from '@ebmr/kernel';
+import { identity, withCommand, type ActorContext } from '@ebmr/kernel';
 import { library, type flow } from '@ebmr/recipe-core/pure';
-import { openServiceSession } from '@ebmr/test-kit';
+import { openServiceSession, passwordActor } from '@ebmr/test-kit';
 import { postOrder } from '../../../../packages/recipe-core/test/lifecycle/gmp-support.ts';
 import { cell, reason, type World } from '../../../../packages/recipe-core/test/lifecycle/support.ts';
 import { INJECTABLE_SEEDS } from '../../../../packages/recipe-core/src/library/seed/injectables.ts';
 import { INJECTABLE_ASEPTIC_SEEDS } from '../../../../packages/recipe-core/src/library/seed/injectables-aseptic.ts';
-import { startSigningServer, valueOf } from '../esig/support.ts';
-import type { ExecServer, RunDriver } from '../execution/support.ts';
+import { actorOfBrowser, personaIn, refusalOf, startSigningServer, valueOf } from '../esig/support.ts';
+import { RunDriver, type ExecServer } from '../execution/support.ts';
 import { actorOf, gmpContent, gmpLifecycleWorld } from '../support/gmp-world.ts';
 import { confirmErpPending } from '../support/signed-acts.ts';
 import { driverOf, issueBatch, libraryEntry, phaseOf, signAs, stage, type BatchRef, type Json } from '../substance/support.ts';
@@ -38,6 +39,8 @@ const PRODUCT = { code: `INJAG-${TAG}`, name: 'Demoinj aseptic 10 mg/2 mL vials'
 const REASON = 'Injectables I-6.2 aseptic gate';
 const FILL_LINE = `VIAL-LINE-${TAG}`;
 const FILL_ROOM = `ROOM-C-${TAG}`;
+/** A seeded shop-floor kiosk this file does not otherwise use, registered to the filling room for the PR-15 test. */
+const FILL_KIOSK = 'KIOSK-PRINT-1';
 
 const seed = (code: string) => {
   const item = [...INJECTABLE_SEEDS, ...INJECTABLE_ASEPTIC_SEEDS].find((s) => s.definition.code === code);
@@ -91,10 +94,34 @@ const overlay: flow.MbrContent = gmpContent((m) => {
   m['blockDefinitions'] = [GAS.definition];
 });
 
+/**
+ * A third processing master of the product (PR-15): the aseptic filling in a stage bound to the filling room, so its
+ * data is accepted only from a terminal of that room (DI-20). Its own family, of a batch size of its own.
+ */
+const SUITE_SIZE = 'BS-20K';
+const suite: flow.MbrContent = gmpContent((m) => {
+  const header = m['header'] as Json;
+  header['family'] = `INJ-SUITE-${TAG}`;
+  header['edition'] = 'injectables';
+  header['recordKind'] = 'PROCESSING';
+  header['title'] = `${PRODUCT.name}: aseptic filling in the filling suite`;
+  header['batchSizes'] = [{ id: SUITE_SIZE, quantity: { value: '12.000', unit: 'kg' } }];
+  header['product'] = { code: PRODUCT.code, name: PRODUCT.name, strength: PRODUCT.strength, dosageForm: 'Injection' };
+  delete header['unitMassMg'];
+  const body = (m['procedure'] as Json)['body'] as Json;
+  const like = (body['children'] as Json[])[0] as Json;
+  const filling = stage(like, 'S-FILL', 'Aseptic filling', [phaseOf(FILL.definition, 'p-fill', FILL.exampleUse)]);
+  filling['binding'] = { ...(like['binding'] as Json), rooms: [FILL_ROOM] };
+  body['children'] = [filling];
+  for (const k of ['parameters', 'calculations', 'yieldCheckpoints', 'timeConstraints', 'goldenCases', 'intermediates', 'riskReductions', 'inputs']) m[k] = [];
+  m['blockDefinitions'] = [FILL.definition];
+});
+
 let gmp: ExecServer;
 let world: World;
 let proc: { familyId: string; versionId: string };
 let procGas: { familyId: string; versionId: string };
+let procSuite: { familyId: string; versionId: string };
 let n = 0;
 
 /** The plant units the filling names (test arrangement of master data, triggers off): qualified, of the formulation's classes. */
@@ -290,5 +317,76 @@ describe('Injectables I-6.2: the release gate waits for the EM counts and for th
     const view = await releaseView(lotId);
     expect(view.state).toBe('NOT_READY');
     expect(view.items['G1.REVIEW_1']).toMatchObject({ status: 'RED' });
+  });
+});
+
+describe('Injectables I-6: area authorisation in the filling suite (PR-15, kernel 1190)', () => {
+  const why = <T extends ActorContext>(ctx: T): T => ({ ...ctx, reasonCode: 'TEST_SETUP', reasonText: 'filling suite area authorisation', correlationId: randomUUID() });
+
+  /**
+   * The filling room made a controlled area with a kiosk registered to it (test arrangement), the master whose filling
+   * stage is bound to that room, and the room's authorisation type.
+   */
+  async function arrangeSuite(): Promise<{ coordinator: () => Promise<ActorContext>; code: string }> {
+    await world.run(await actorOf(gmp, 'steward'), async (c) => {
+      await c.query('select plant.define_area($1::jsonb)', [JSON.stringify({ code: FILL_ROOM, kind: 'ROOM', name: 'Grade C filling room' })]);
+      await c.query("select plant.set_area_rule($1, true, null, 'Aseptic filling suite: authorised staff only')", [FILL_ROOM]);
+    }, reason('filling suite made a controlled area'));
+    procSuite = await world.approvedVersion(suite);
+    await world.authorise({ versionId: procSuite.versionId, market: 'IN', kind: 'CURRENT', cells: [cell(SITE, LINE, SUITE_SIZE)], regulatoryBasis: 'IN: registration on file (invented injectable)' });
+    // A seeded kiosk registered to the filling room (test arrangement of master data, triggers off): commands from it run there.
+    const c = await gmp.db.admin.connect();
+    try {
+      await c.query('begin');
+      await c.query('set local session_replication_role = replica');
+      await c.query('update iam.device set room_code = $1 where code = $2', [FILL_ROOM, FILL_KIOSK]);
+      await c.query('commit');
+    } finally {
+      c.release();
+    }
+    // The training coordinator: no persona holds the role, so qa1's account is granted it through the kernel's access
+    // workflow (requested by the administrator, approved by the process owner).
+    const qa = personaIn(gmp, 'qa1');
+    const admin = why(await passwordActor(gmp.db, gmp.seed.bootstrap.admin, gmp.seed.bootstrap.admin.fingerprint));
+    const owner = why(await passwordActor(gmp.db, gmp.seed.bootstrap.owner, gmp.seed.bootstrap.owner.fingerprint));
+    const grantId = await withCommand(gmp.db.app, admin, (x) => identity.requestRoleGrant(x, { accountId: qa.accountId, roleCode: 'TRAINING_COORDINATOR', reason: 'test set-up: filling suite area authorisation' }));
+    await withCommand(gmp.db.app, owner, (x) => identity.decideRoleGrant(x, grantId, true, 'test set-up: filling suite area authorisation'));
+    // qa1 works at a shared kiosk: a fresh tap per command (INV-40).
+    const qaBrowser = await gmp.asPersona('qa1');
+    const coordinator = async (): Promise<ActorContext> => {
+      vi.advanceTimersByTime(7_000);
+      return why({ ...(await actorOfBrowser(gmp, qaBrowser, 'qa1')), roleCode: 'TRAINING_COORDINATOR' });
+    };
+    const code = await withCommand(gmp.db.app, await coordinator(), async (x) => String((await x.query<{ r: string }>('select iam.create_area_authorisation_type($1, $2) as r', [FILL_ROOM, 'Aseptic filling suite'])).rows[0]?.r));
+    return { coordinator, code };
+  }
+
+  it('[PR-15] a user without area authorisation cannot sign the aseptic filling (INJ-FILL) of an injectables batch in the filling suite; once authorised the same operator signs', async () => {
+    const { coordinator, code } = await arrangeSuite();
+    const authorise = async (): Promise<string> =>
+      withCommand(gmp.db.app, await coordinator(), async (x) =>
+        String((await x.query<{ r: string }>("select iam.record_qualification($1, $2, clock_timestamp() - interval '1 hour', null) as r", [personaIn(gmp, 'operator1').personId, code])).rows[0]?.r));
+    const b = await issued(suite, procSuite.familyId, SUITE_SIZE);
+    const others = Object.fromEntries(await Promise.all((['verifier1', 'supervisor1'] as const).map(async (k) => [k, await gmp.asPersona(k)] as const)));
+    const d = new RunDriver(gmp, b.batchId, { operator1: await gmp.asPersona('operator1', FILL_KIOSK), ...others });
+    d.beforeTap = () => vi.advanceTimersByTime(7_000);
+    // Without an authorisation for the filling suite the operator cannot even start the filling there.
+    const start = await d.command('operator1', { type: 'START_STEP', stepKey: 'p-fill@' });
+    expect(refusalOf(start)).toMatchObject({ status: 422, code: 'EBMR-PLANT-180' });
+    // Authorised by the training coordinator: the filling is started and recorded.
+    const qid = await authorise();
+    await record(d, 'p-fill@', FILL);
+    // The authorisation withdrawn: the signature is refused and nothing is signed.
+    await withCommand(gmp.db.app, await coordinator(), (x) => x.query('select iam.withdraw_qualification($1, $2)', [qid, 'Aseptic qualification under review']));
+    const before = d.signatures;
+    const refused = await d.sign('operator1', { type: 'SIGN_PERFORMED', stepKey: 'p-fill@' });
+    expect(refused.result.ok).toBe(false);
+    expect(JSON.stringify(refused.result.ok ? null : refused.result.error)).toMatch(/EBMR-PLANT-180/);
+    expect(d.signatures).toBe(before);
+    expect((await d.stepView('operator1', 'p-fill@')).step.status).toBe('IN_PROGRESS');
+    // Authorised again: the same operator signs the filling.
+    await authorise();
+    await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: 'p-fill@' });
+    expect((await d.stepView('operator1', 'p-fill@')).step.status).toBe('AWAITING_VERIFICATION');
   });
 });

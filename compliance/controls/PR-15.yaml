@@ -26,6 +26,7 @@ tests:
   - "apps/tablets-server/test/alarms/area-authorisation-matrix.test.ts > area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason"
   - "apps/tablets-server/test/alarms/area-authorisation-signature.test.ts > area authorisation at the step (PR-15) > [PR-15] a user without area authorisation cannot sign a step in the controlled area"
   - "apps/tablets-server/test/execution/refusals-and-room-views.test.ts > a QA act on an exception, seen by an operator (R10 #8) > [DI-17][PR-15] the disposition of an exception is never the operator's primary action: it names who may give it; QA sees it as the primary action"
+  - "apps/tablets-server/test/injectables/aseptic-gate.test.ts > Injectables I-6: area authorisation in the filling suite (PR-15, kernel 1190) > [PR-15] a user without area authorisation cannot sign the aseptic filling (INJ-FILL) of an injectables batch in the filling suite; once authorised the same operator signs"
   - "apps/tablets-web/test/office/screen-gaps.test.tsx > plant alarms, equipment data, rooms and reagents > [PR-15] a QA reviewer is offered neither a room rule nor an adjacency"
   - "apps/tablets-web/test/office/screen-gaps.test.tsx > plant alarms, equipment data, rooms and reagents > [PR-15][PR-25][PR-35] the master-data steward saves a room's rules and records an adjacency; a refusal is shown in the database's words"
   - "apps/tablets-web/test/plant-status/area-authorisations.test.tsx > area authorisations (PR-15) > [PR-15] recording oneself is refused by the server and the refusal is shown"
@@ -44,10 +45,7 @@ clauses:
     tests:
       - "packages/recipe-core/test/plant-rules/room-rules.test.ts > area authorisation at the step signature (PR-15, kernel 1190) > [PR-15] a user without area authorisation cannot sign a step in the controlled area"
       - "apps/tablets-server/test/alarms/area-authorisation-signature.test.ts > area authorisation at the step (PR-15) > [PR-15] a user without area authorisation cannot sign a step in the controlled area"
-deferred_scope:
-  - scope: "The clause's own area: the refusal shown in the Injectables filling suite. Area authorisation is generic and is proven now on a Tablets controlled area (a potent-product suite)."
-    phase: 5
-    reason: "The filling suite is an Injectables area, built with that edition after Phase 7 (decision 0010); Phase 6 plan D-P6b-5 and owner question 6 (default: the filling-suite test comes with Injectables)."
+      - "apps/tablets-server/test/injectables/aseptic-gate.test.ts > Injectables I-6: area authorisation in the filling suite (PR-15, kernel 1190) > [PR-15] a user without area authorisation cannot sign the aseptic filling (INJ-FILL) of an injectables batch in the filling suite; once authorised the same operator signs"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
