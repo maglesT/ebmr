@@ -121,12 +121,12 @@ the capsules edition; the injectables plan and I-1 to I-4; the dynamic library S
     unique-violation error (review pass residual; not needed now).
   - Owner question pending: the Tablets v1.0.0 tag.
 - **Demo:** fresh install after the I-6 merges (lead ruling on #245).
-- **Next (I-6):** (1) the review-pass PR (`docs/build-plan/injectables/review-pass.md`): `inj/i6-review-db` (tablets
-  migration 1914, the `plant.change_record_content` provider for the APS lines, and the [DI-20] 64-bit endpoint codes)
-  plus `inj/i6-review-e2e-stalls` (the renderer watchdog, and the Demotab 12 and reserve-lot races). (2) The
-  expected-answer database re-check PR, on the lead's conditions: 1862's body carried forward with a diff showing
-  nothing removed, an engine/database parity test on every seeded expected answer including hidden fields, and SQL
-  mutation coverage.
+- **Next (I-6):** (1) the review-pass PR (`docs/build-plan/injectables/review-pass.md`): the [DI-20] 64-bit endpoint
+  codes, the renderer watchdog, and the Demotab 12 and reserve-lot races. (2) The kernel content-extension point
+  (`esig.content_extension`) so the plant module adds the APS lines to a change record's signed content without
+  changing the provider row (lead ruling on the DI-48 drill, 14 November 2026). (3) The expected-answer database
+  re-check PR, on the lead's conditions: 1862's body carried forward with a diff showing nothing removed, an
+  engine/database parity test on every seeded expected answer including hidden fields, and SQL mutation coverage.
 
 - Residual of SITE-995 (lead, 11 November): an intermediate lot cannot be retested to a new date (its material code is
   the product code, which has no ERP material retest interval).

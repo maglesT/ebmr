@@ -32,7 +32,18 @@ and the enrolment test registers first and then expects `EBMR-EQD-032` from `enr
 only on the guard. New test `[DI-20] a second registration under an enrolled endpoint's code is refused by the registry
 and leaves its enrolment as it was; test endpoint codes carry 64 random bits`, added to DI-20's list.
 
-## 2. Kernel `platform.change_record_content` reading `plant.aps_required_line` (built)
+## 2. Kernel `platform.change_record_content` reading `plant.aps_required_line` (moved to its own PR)
+
+**Lead ruling, 14 November 2026.** The first build (tablets 1914, below) re-registered the `config_change_record`
+provider row, and the DI-48 upgrade drill refuses an upgrade that changes an earlier catalogue row. Loosening the drill
+was rejected. 1914 left this PR. The next PR builds a kernel extension point instead:
+- `esig.content_extension`, with database guards and its own SQL mutation group;
+- the provider row unchanged;
+- the extensions' output merged in a fixed order (by extension key);
+- the pre-1914 hash test kept, and a test that the APS lines reach the signed content;
+- the drill passing unchanged.
+
+The text below records the first build, kept on branch `inj/i6-content-extension`.
 
 **Finding.** Tablets 1910 replaced the kernel's provider function (kernel 1195) with a copy that reads the plant module's
 table. This gives two problems. First, the kernel's database object depends on an edition table, which is the layering
@@ -124,7 +135,7 @@ leaves them out.
 - A parity test shows the engine and the database agree on every seeded expected answer, hidden-field cases included.
 - The SQL mutation group covers the new branch.
 
-## Item 2 addendum: signatures given before 1914
+## Item 2 addendum: signatures given before 1914 (with item 2, in its own PR)
 
 Test `[ST-29][DI-37] a change record approved under the 1910 content keeps its signed content and hash under the 1914
 provider, with and without listed units`. It registers 1910's own function text (read from that migration) as the
