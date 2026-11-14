@@ -45,7 +45,7 @@ describe('profiles on the QC screen (slice 7p)', () => {
   });
 
   it('[IN-33] a point\'s result is approved through the ceremony, named with its point', async () => {
-    const r = { resultId: RID, testCode: 'DISSOLUTION', point: '4 h', purpose: 'RELEASE', value: '58', unit: '%', lowerLimit: '45', upperLimit: '70', verdict: 'PASS', state: 'RECORDED' };
+    const r = { resultId: RID, testCode: 'DISSOLUTION', methodReference: 'STP-TEST-01', point: '4 h', purpose: 'RELEASE', value: '58', unit: '%', lowerLimit: '45', upperLimit: '70', verdict: 'PASS', state: 'RECORDED' };
     const ui = renderOffice(lotPath, { role: 'QC_ANALYST', fixtures: { 'quality.lotResults': { results: [r] } } });
     const row = await screen.findByTestId('result-DISSOLUTION-4 h-RELEASE');
     await userEvent.click(within(row).getByRole('button', { name: 'Approve DISSOLUTION at 4 h' }));

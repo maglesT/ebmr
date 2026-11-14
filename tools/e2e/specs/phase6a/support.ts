@@ -37,6 +37,7 @@ import { SERVER_MAIN, serverEnv, spawnNode, waitForHttp, WEB_DIST, type RunningP
 import { ADMIN_URL, dropDatabase, openDatabase, openPersonaSession, urlFor, type DatabaseHandle, type SiteSeed } from '@ebmr/test-kit';
 import { pickTerminal, VIEWPORTS, type E2eWorld } from '../../fixtures/index.ts';
 import { because, E2E_CHANGE_RECORD, endSessions, ensureChangeRecord } from '../phase6/support.ts';
+import { watchPages } from '../../fixtures/renderer-watchdog.ts';
 
 type Json = Record<string, unknown>;
 
@@ -111,6 +112,7 @@ export async function analyticsCopy(e2e: E2eWorld): Promise<AnalyticsCopy> {
 /** An office browser context on the copy's server that has picked a demo terminal; the sign-in screen follows. */
 export async function officeOn(browser: Browser, origin: string, terminal: string): Promise<Page> {
   const context = await browser.newContext({ viewport: VIEWPORTS.office, locale: 'en-IN', timezoneId: 'Asia/Kolkata' });
+  watchPages(context);
   const page = await context.newPage();
   await pickTerminal(page, origin, terminal);
   return page;

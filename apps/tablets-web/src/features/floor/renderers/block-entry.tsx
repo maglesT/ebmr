@@ -348,6 +348,38 @@ function NamedEntryInput({ view, name, label, schema, draft, onChange, disabled 
   return <floor.ChoiceGroup label={label} description={description} options={options} value={typeof draft === 'string' && draft !== '' ? draft : null} onChange={onChange} isDisabled={disabled} />;
 }
 
+/**
+ * Retest of 13 November 2026 (bug 5): a block entry that names an open plant use (useId: G-09@2's EQUIPMENT_USE, TB-10's
+ * PRESS_SETUP) offers the batch's open uses the person started (the step's plant read, batches.stepPlant) to pick, and
+ * never asks for the use's internal identifier, which no screen shows. The database binds the entry to the use as before
+ * (recipe-core 0521: open, of this batch and unit, started by the entry's person).
+ */
+function OpenUseInput({ view, label, value, onPick, disabled }: { view: StepScreenView; label: string; value: string | null; onPick: (u: { useId: string; equipmentCode: string }) => void; disabled: boolean }) {
+  const q = useApiQuery(routes.batches.stepPlant, { params: { batchId: view.run.runId, stepKey: view.step.stepKey } });
+  const uses = q.data?.uses.filter((u) => u.mine) ?? [];
+  if (q.isPending) return <p className={wcls('muted')}>{`${label}: loading the open uses of this batch…`}</p>;
+  if (uses.length === 0) {
+    return (
+      <p className={wcls('muted')} data-testid="no-open-use">
+        {`${label}: no unit is in use for this batch by you. Start the unit's use with its button under "Plant for this step" (or on the Plant screen), then choose it here.`}
+      </p>
+    );
+  }
+  return (
+    <floor.ChoiceGroup
+      label={label}
+      description="The open uses of units for this batch that you started"
+      options={uses.map((u) => ({ value: u.useId, label: `${u.equipmentCode}, ${u.kind === 'PROCESS' ? 'in use' : 'booked'} since ${u.startedAt.text} until ${u.plannedEnd.text}` }))}
+      value={value}
+      onChange={(id) => {
+        const u = uses.find((x) => x.useId === id);
+        if (u) onPick(u);
+      }}
+      isDisabled={disabled}
+    />
+  );
+}
+
 // ---------------------------------------------------------------------------------------------
 // The form
 
@@ -468,6 +500,23 @@ export function BlockEntryForm({ def, view, chosen: passed = {} }: BlockEntryFor
                 <p key={name} data-testid={`chosen-${name}`}>
                   {memberTitle(name)}: {chosenText(chosen[name])}
                 </p>
+              ) : name === 'useId' && member.type === 'string' ? (
+                <OpenUseInput
+                  key={name}
+                  view={view}
+                  label={memberTitle(name)}
+                  value={typeof drafts[name] === 'string' && drafts[name] !== '' ? drafts[name] : null}
+                  disabled={locked}
+                  onPick={(u) =>
+                    setDrafts((s) => ({
+                      ...s,
+                      useId: u.useId,
+                      // The unit the use is of, where the entry names it and no plant act chose it already.
+                      ...(def.schema.fields['equipmentCode'] && !('equipmentCode' in chosen) ? { equipmentCode: u.equipmentCode } : {}),
+                      ...(def.schema.fields['press'] && !('press' in chosen) ? { press: u.equipmentCode } : {}),
+                    }))
+                  }
+                />
               ) : namesEntry(member) ? (
                 <NamedEntryInput key={name} view={view} name={name} label={memberTitle(name)} schema={member} draft={drafts[name]} onChange={(d) => setDrafts((s) => ({ ...s, [name]: d }))} disabled={locked} />
               ) : (

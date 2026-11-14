@@ -223,7 +223,7 @@ describe('a unit in use that no step of the batch names (demo report 13 November
     // Ending is a floor act (STEP.EXECUTE): the supervisor who signs a stage off is refused in the database's words.
     expect(refusalOf(await act('supervisor1', P.endEquipmentUse, { params: { useId: use.useId }, body: {} }))?.code).toBe('EBMR-IAM-040');
     expect(refusalOf(await (b['operator2'] as TestBrowser).call(P.endEquipmentUse, { params: { useId: use.useId }, body: {} }))).toMatchObject({ status: 428, code: 'TAP_REQUIRED' });
-    // Owner decision of 13 November 2026: the Plant screen's end states a reason (recipe-core 1922); a blank one is refused.
+    // Owner decision of 13 November 2026: the Plant screen's end states a reason (recipe-core 1926); a blank one is refused.
     expect((await act('operator2', P.endEquipmentUse, { params: { useId: use.useId }, body: { reason: '   ' } })).ok).toBe(false);
     const reason = 'Left open on the Plant screen; the batch no longer uses the press';
     const ended = valueOf(await act('operator2', P.endEquipmentUse, { params: { useId: use.useId }, body: { reason } }));

@@ -42,7 +42,7 @@ const quality: RouteResponse<typeof routes.execution.lotQuality> = {
     { basis: 'ANHYDROUS_WATER', assay: '99.0', water: '0.5', lod: null, solvents: null, asIs: '98.505', certificateRef: 'COA-RAB-0001', reason: null, by: 'Meera Iyer', recordedAt: at('01-OCT-2026 09:00'), current: false },
   ],
 };
-const result = (resultId: string, testCode: string, value: string): LotResultView => ({ resultId, testCode, purpose: 'RETEST', value, unit: '%', lowerLimit: null, upperLimit: null, verdict: 'PASS', state: 'APPROVED' });
+const result = (resultId: string, testCode: string, value: string): LotResultView => ({ resultId, testCode, methodReference: 'STP-TEST-01', purpose: 'RETEST', value, unit: '%', lowerLimit: null, upperLimit: null, verdict: 'PASS', state: 'APPROVED' });
 const NEW_ASSAY = '6d1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d01';
 const NEW_WATER = '6d1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d02';
 
@@ -97,5 +97,30 @@ describe('R13: the potency of a lot', () => {
     const p = await within(form).findByTestId('potency-preview');
     expect(p.textContent).toContain('preview: the weighing step recalculates');
     expect(within(p).getByTestId('potency-preview-lot-RAB-API-0001').textContent).toBe('Lot RAB-API-0001: as-is potency 98.8036 % → Rabeprazole sodium (MAT-RAB) 3.037 kg; Microcrystalline cellulose (MAT-MCC) 4.464 kg');
+  });
+
+  it('[PR-19] the quantity and the reserve button appear only once the chosen batch\'s preview has arrived, so the preview never moves them under a press (E2E Demotab 6: the Quantity label took the press)', async () => {
+    const listed = example('batches-list').batches[0];
+    if (!listed) throw new Error('no batch example');
+    const batches = { batches: [{ ...listed, batchNumber: 'RAB26004', status: 'ISSUED' as const }] };
+    let answer: (v: unknown) => void = () => undefined;
+    const held = new Promise((resolve) => {
+      answer = resolve;
+    });
+    renderOffice(lotPath, {
+      role: 'WAREHOUSE_LABELLING',
+      fixtures: { 'quality.lots': { lots: [base] }, 'quality.lotResults': { results: [] }, 'quality.lotHandling': { lotId: base.lotId, destruction: null, witness: null, reservations: [], locationExceptions: [] }, 'batches.list': batches, 'batches.potencyPreview': () => held, 'execution.lotQuality': quality },
+    });
+    const form = await screen.findByTestId('reserve-lot');
+    await userEvent.click(await within(form).findByRole('radio', { name: /^RAB26004/ }));
+    expect(await within(form).findByText('Loading…')).toBeTruthy();
+    expect(within(form).queryByRole('textbox', { name: /^Quantity/ })).toBeNull();
+    expect(within(form).queryByRole('button', { name: 'Reserve the lot' })).toBeNull();
+    answer(example('batches-potency-preview'));
+    const button = await within(form).findByRole('button', { name: 'Reserve the lot' });
+    // The preview is already above the controls when they appear: nothing is inserted above them afterwards.
+    expect(within(form).getByTestId('potency-preview').compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(form).getByTestId('potency-preview').compareDocumentPosition(within(form).getByRole('textbox', { name: /^Quantity/ })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(form).queryByText('Loading…')).toBeNull();
   });
 });

@@ -135,12 +135,12 @@ export async function closeKiosks(): Promise<void> {
   for (const p of kiosks.splice(0)) await p.context().close().catch(() => undefined);
 }
 
-/** The reason an operator gives for ending a use once the batch has finished (recipe-core 1922). */
+/** The reason an operator gives for ending a use once the batch has finished (recipe-core 1926). */
 export const FINISHED_END_REASON = 'The batch has finished (its last stage is signed off); the use ends after it';
 
 /**
  * A plant act or other command button on a kiosk: pressed, then the fresh badge tap of the person signed in. An "End the
- * use of ..." act of a batch that has finished asks for the reason first (recipe-core 1922, owner decision of 13
+ * use of ..." act of a batch that has finished asks for the reason first (recipe-core 1926, owner decision of 13
  * November 2026): the operator types it in the panel's field before pressing the button.
  */
 export async function act(page: Page, button: Locator, who: SeededPersona): Promise<void> {

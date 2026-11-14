@@ -526,8 +526,8 @@ export async function runLibraryStep(
 
 /**
  * A step blocked by an exception that needs a deviation (a value outside its limit): the supervisor, on an office page
- * (`office`, signed in), opens the step and raises a deviation for the batch from the exception's "Link a deviation"
- * dialog (G2: a deviation exists only for a batch), then links it to the exception, which then no longer blocks.
+ * (`office`, signed in), opens the step and, from the exception's "Link a deviation" dialog, raises a deviation for the
+ * batch and links it to the exception with one Send (G2; owner retest item 8), so the exception no longer blocks.
  * Returns the deviation's reference (DEV-...). On an office terminal no badge is asked; the kiosk's own dialog cannot
  * raise one (its raise call carries no badge attribution on a shared terminal, logged with the lead).
  */
@@ -540,20 +540,21 @@ export async function linkNewDeviation(
   await office.goto(`${at.base}/runs/${at.runId}/steps/${encodeURIComponent(at.stepKey)}`);
   const exception = card(office).locator('[data-testid^="exception-"]').filter({ has: office.getByRole('button', { name: 'Link a deviation' }) }).first();
   if (d.exception) await expect(exception).toContainText(d.exception);
+  // The exception by its own id: once linked it offers no "Link a deviation" any more.
+  const linkedException = card(office).getByTestId((await exception.getAttribute('data-testid')) ?? '');
   await exception.getByRole('button', { name: 'Link a deviation' }).click();
   const dialog = office.getByRole('dialog', { name: /^Link a deviation to/ });
   const raise = dialog.getByRole('region', { name: 'No deviation yet? Raise one for this batch' });
   await choose(raise.getByRole('radio', { name: d.classification, exact: true }));
   await raise.getByRole('textbox', { name: 'Risk rationale' }).fill(d.rationale);
-  await raise.getByRole('button', { name: 'Raise and link to this batch' }).click();
-  const raised = dialog.getByTestId('deviation-raised');
-  await explained(expect(raised).toBeVisible(), dialog);
-  const ref = /DEV-[A-Z0-9-]+/.exec((await raised.textContent()) ?? '')?.[0];
-  if (!ref) throw new Error(`no deviation reference in: ${(await raised.textContent()) ?? ''}`);
-  await expect(dialog.getByRole('textbox', { name: 'Deviation number' })).toHaveValue(ref);
+  // Owner retest item 8: the one Send raises the deviation, links it to the batch and attaches it to the exception.
+  await expect(raise).toContainText('Send raises the deviation');
   await dialog.getByRole('button', { name: 'Send' }).click();
   await explained(expect(dialog.getByText(/Saved/)).toBeVisible(), dialog);
   await dialog.getByRole('button', { name: 'Close' }).click();
+  await expect(linkedException).toContainText(/Deviation DEV-[A-Z0-9-]+/);
+  const ref = /DEV-[A-Z0-9-]+/.exec((await linkedException.textContent()) ?? '')?.[0];
+  if (!ref) throw new Error(`no deviation reference in: ${(await linkedException.textContent()) ?? ''}`);
   await expect(card(office)).toContainText(`Deviation ${ref}`);
   return ref;
 }

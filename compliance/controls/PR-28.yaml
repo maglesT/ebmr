@@ -21,16 +21,16 @@ behaviour: |-
   - [T] Masters may define microbial controls, such as aqueous granulation hold limits and water-system status. Rooms and times used stay traceable so EM data can be retrieved.
 catalog_test: A failed autoclave cycle prevents issue of the load's items. An open EM excursion appears on the QP screen.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/library/seed-injectables.test.ts > a failed parts sterilisation holds the aseptic filling that uses the load (PR-28) > [PR-28] a failed autoclave cycle (answered not passed, or its temperature below the minimum) prevents use of the load's items: the load cannot be signed and the filling cannot start; once QA has dispositioned the exception the load completes and the filling runs"
 clauses:
   - clause: "A failed autoclave cycle prevents issue of the load's items."
-    deferred:
-      phase: 5
-      reason: "Autoclave loads and sterilisation cycles are Injectables edition functions (Phase 5, after Phase 7 per decision 0010); the Tablets edition has no sterile items."
+    tests:
+      - "packages/recipe-core/test/library/seed-injectables.test.ts > a failed parts sterilisation holds the aseptic filling that uses the load (PR-28) > [PR-28] a failed autoclave cycle (answered not passed, or its temperature below the minimum) prevents use of the load's items: the load cannot be signed and the filling cannot start; once QA has dispositioned the exception the load completes and the filling runs"
   - clause: "An open EM excursion appears on the QP screen."
     deferred:
-      phase: 5
-      reason: "Environmental monitoring of clean areas (EM excursions) belongs to the Injectables edition (Phase 5, after Phase 7 per decision 0010); the Tablets edition's room conditions (IN-39) are tested on their own."
+      phase: 8
+      reason: "Owner question, decision 0031 (docs/decisions/0031-pr26-pr28-owner-questions.md): the clause is not built as worded; deferred until the owner answers."
 expert_decision:
   status: PENDING
   pack_version: "0.9"

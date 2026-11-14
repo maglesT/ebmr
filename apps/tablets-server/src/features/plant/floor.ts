@@ -97,7 +97,7 @@ export function plantFloorHandlers(app: AppContext) {
       };
     },
     endAreaOccupancy: async (ctx: Ctx<'endAreaOccupancy'>): Promise<OccupancyView> => {
-      // recipe-core 1922: the reason, when given, is stored and audited; a finished batch's room needs one.
+      // recipe-core 1926: the reason, when given, is stored and audited; a finished batch's room needs one.
       await write(app, ctx, 'select plant.end_area_occupancy($1, $2::text) as r', [ctx.params.occupancyId, ctx.body.reason ?? null]);
       return occupancyView(app, pool, ctx.params.occupancyId);
     },
@@ -135,7 +135,7 @@ export function plantFloorHandlers(app: AppContext) {
       };
     },
     endEquipmentUse: async (ctx: Ctx<'endEquipmentUse'>): Promise<PlantUseView> => {
-      // recipe-core 1922: the reason, when given, is stored and audited; a finished batch's use needs one.
+      // recipe-core 1926: the reason, when given, is stored and audited; a finished batch's use needs one.
       await write(app, ctx, 'select plant.end_equipment_use($1, $2::text) as r', [ctx.params.useId, ctx.body.reason ?? null]);
       return useView(app, pool, ctx.params.useId);
     },

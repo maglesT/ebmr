@@ -22,8 +22,10 @@ import type { Finding, GateResult, RuleFinding, ValidationContext, ValidationRep
  * FLOW-LOOPS refuses a loop inside a loop on the same endpoint (D12). A report of an earlier version checked neither.
  * 1.3.0: MKT-REQUIRED-BLOCKS (a master carries the blocks its market set makes mandatory, from a table; first entry
  * ST-06: an EU-market master follows its filling step with the assessment of its alarms; lead ruling, I-6 B2).
+ * 1.4.0: GMP-EQUIPMENT-STATUS-UNITS (an equipment status step from G-09@2 checks at least one unit its stage binds;
+ * demo finding r13 bug 1, 13 November 2026). A report of an earlier version did not check it.
  */
-export const VALIDATOR_VERSION = '1.3.0';
+export const VALIDATOR_VERSION = '1.4.0';
 
 /** Rules registered per edition. Editions add theirs with `withEditionRules`; generic rules always run. */
 export class RuleRegistry {

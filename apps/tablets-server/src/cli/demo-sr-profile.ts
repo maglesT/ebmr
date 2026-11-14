@@ -183,7 +183,7 @@ async function run(app: DemoApp, opts: SrProfileOptions, processingOrder: string
     return app.dbAs<string>(who, 'select plant.record_instrument_use($1, $2::uuid, clock_timestamp() + make_interval(hours => 12)) as r', [code, b.batchId]);
   };
   const unitUse = (who: DemoBrowser, code: string, b: DemoBatch) => app.dbAs<string>(who, 'select plant.start_equipment_use($1, $2, clock_timestamp() + make_interval(hours => 12)) as r', [code, b.batchId]);
-  // recipe-core 1922 (owner decision of 13 November 2026): the use of a finished batch ends only with the reason.
+  // recipe-core 1926 (owner decision of 13 November 2026): the use of a finished batch ends only with the reason.
   const end = async (who: DemoBrowser, uses: string[], occupancies: string[], reason: string | null = null): Promise<void> => {
     for (const u of uses) await app.dbAs(who, 'select plant.end_equipment_use($1, $2) as r', [u, reason]);
     for (const o of occupancies) await app.dbAs(who, 'select plant.end_area_occupancy($1, $2) as r', [o, reason]);

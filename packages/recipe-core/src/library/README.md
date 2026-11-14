@@ -52,6 +52,7 @@ responsibility (decision 0026 point 3).
 | Inputs from outside the step (formula line, batch size, lot assay, earlier step's value): known kind, unit; a lot assay names a lot or weighing field; a use names the line and the step | LIB-INPUT-*, LIB-USE-BOM-LINE, LIB-USE-STEP-VALUE | DI-33 |
 | Conditional fields: shown when an earlier yes/no or choice field has one of its answers; a calculation reads one only under the same condition; a repeat never waits on one | LIB-SHOW-WHEN, LIB-CALC-CONDITIONAL, LIB-REPEAT-UNTIL | DI-33, INV-20 |
 | A media-fill reading (role APS_READING) marks exactly one NUMBER field, in whole units (decimals 0), as the count of contaminated units (`contaminatedCount`); the mark is refused on a block without the role (the database reads the count by it, tablets 1912) | LIB-APS-READING | ST-33 |
+| A gas overlay's filter test (role GAS_FILTER_INTEGRITY) marks exactly one critical NUMBER field with a limit slot as its post-use result (`postUseIntegrity`), refused on a block without the role; an applied overlay is marked `gasOverlayApplied` on a choice field (one of its options) or a yes/no field (`true`) | LIB-GAS-FILTER, LIB-GAS-OVERLAY | ST-28 |
 | The content hash pinned at formulation approval matches the library version (`definitionHash`) | LIB-USE-HASH | PR-05, DI-10 |
 
 ## The generic handler (`block-version.ts`, slice S2)
@@ -69,8 +70,9 @@ existing engine runs it with no code of its own:
   written for the first listed size) and the batch size is that size (`scaling.ts`); lot assay and earlier-step inputs
   are read from the phase's targets (`view.target(id)`).
 - Each value with a limit is evaluated against the formulation's tiered limit and a breach raises
-  `LIB_LIMIT_BREACH` with the consequences the engine gives that tier (PR-08). A yes/no other than expected raises `LIB_UNEXPECTED_ANSWER`; a
-  not-allowed choice `LIB_NOT_ALLOWED_CHOICE`.
+  `LIB_LIMIT_BREACH` with the consequences the engine gives that tier (PR-08). A yes/no other than expected raises `LIB_UNEXPECTED_ANSWER` (with
+  `unexpectedCritical`, as a critical exception: QA only, the step and those after it wait for a deviation, release
+  blocked; IN-48); a not-allowed choice `LIB_NOT_ALLOWED_CHOICE`.
 - Repeats: ONCE and COUNT sections refuse an extra entry. In an UNTIL_PASS loop, a value that does not pass is a repeat,
   not a breach, and the step cannot be signed until it passes. The last allowed repeat without a pass raises
   `LIB_REPEAT_LIMIT_REACHED`, which holds the following steps until a deviation is linked. A PER_INTERVAL round recorded

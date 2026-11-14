@@ -61,6 +61,24 @@ const numberIdentity = {
  * site-wide or for one product, for processing or packaging batches, from a date, with the person's reason. The site and
  * its zone are the session's; the database checks the right (BATCH_NUMBER.RULE_DEFINE) and every rule of the format.
  */
+/**
+ * Owner decision of 13 November 2026 (retest item 9c; IN-18, INV-27): serials a numbering rule skipped and never gave,
+ * with the reason the database recorded (site-services 1924, from continuity.sequence_bump): SERVER_RESTART (the rest of
+ * a block reserved before a server start is retired, since it may have been given before a rollback), LEDGER_AHEAD,
+ * RESTORE_EVENT or IDENTIFIERS_SECURED. Display and audit only; the numbers are never given again. `firstNumber` and
+ * `lastNumber` are the numbers those serials render to at the time of the skip (null when the format needs a parent).
+ */
+export const RetiredSerialRangeView = z.strictObject({
+  ruleCode: z.string(),
+  firstSerial: z.string(),
+  lastSerial: z.string(),
+  firstNumber: z.string().nullable(),
+  lastNumber: z.string().nullable(),
+  reason: z.enum(['SERVER_RESTART', 'LEDGER_AHEAD', 'RESTORE_EVENT', 'IDENTIFIERS_SECURED']),
+  recordedAt: Instant,
+});
+export type RetiredSerialRangeView = z.infer<typeof RetiredSerialRangeView>;
+
 export const BatchNumberRuleView = z.strictObject({
   ruleId: Uuid,
   ruleCode: z.string(),
@@ -88,6 +106,23 @@ export const PackagingParentView = z.strictObject({
 });
 export type PackagingParentView = z.infer<typeof PackagingParentView>;
 
+/** An effective MBR that matches an ERP order (family and version, the approved batch size it names). */
+export const PlanningMatchView = z.strictObject({
+  familyId: Uuid,
+  familyCode: z.string(),
+  versionId: Uuid,
+  versionNumber: z.string(),
+  batchSizeId: z.string(),
+  markets: z.array(z.string()),
+  /** PROCESSING, PACKAGING or REPROCESSING: a PACKAGING match plans a packaging order of one of `parents`. */
+  recordKind: z.string(),
+  /** A packaging family's pack type (D-P4-13), or null. */
+  packType: z.string().nullable(),
+  /** For a packaging match: the processing batches it may pack (newest first); otherwise empty. */
+  parents: z.array(PackagingParentView),
+});
+export type PlanningMatchView = z.infer<typeof PlanningMatchView>;
+
 export const PlanningOrderView = z.strictObject({
   orderNo: z.string(),
   productCode: z.string(),
@@ -96,24 +131,14 @@ export const PlanningOrderView = z.strictObject({
   batchSize: DecimalString,
   batchSizeUnit: z.string(),
   bom: z.array(z.strictObject({ materialCode: z.string(), quantity: DecimalString, unit: z.string() })),
-  /** The matching effective MBR (family and version, the approved batch size it names), or null with `noMatch`. */
-  match: z
-    .strictObject({
-      familyId: Uuid,
-      familyCode: z.string(),
-      versionId: Uuid,
-      versionNumber: z.string(),
-      batchSizeId: z.string(),
-      markets: z.array(z.string()),
-      /** PROCESSING, PACKAGING or REPROCESSING: a PACKAGING match plans a packaging order of one of `parents`. */
-      recordKind: z.string(),
-      /** A packaging family's pack type (D-P4-13), or null. */
-      packType: z.string().nullable(),
-      /** For a packaging match: the processing batches it may pack (newest first); otherwise empty. */
-      parents: z.array(PackagingParentView),
-    })
-    .nullable(),
-  /** Why no MBR matches (no effective version, no approved batch size of that quantity, BOM differs). */
+  /** The one matching effective MBR, or null with `noMatch` (none matches, or several do and the planner chooses). */
+  match: PlanningMatchView.nullable(),
+  /** Every matching effective MBR, by family code (recipe-core 1921): the read never chooses between several. */
+  matches: z.array(PlanningMatchView),
+  /**
+   * Why no MBR is the match: none matches (no effective version, no approved batch size of that quantity, BOM differs),
+   * or several do (named) and the planner chooses one of `matches`.
+   */
   noMatch: z.string().nullable(),
   /** GMP batches already planned or issued for the order. */
   batches: z.array(z.strictObject({ batchId: Uuid, batchNumber: z.string(), status: z.string() })),
@@ -242,7 +267,7 @@ export const planning = {
     auth: 'SESSION',
     mutating: false,
     summary: 'The batch-number allocation register of the session\'s site: every number given, registered or recovered, with its status (voided numbers stay listed and are never given again)',
-    response: z.strictObject({ numbers: z.array(BatchNumberView) }),
+    response: z.strictObject({ numbers: z.array(BatchNumberView), retired: z.array(RetiredSerialRangeView).optional() }),
   }),
   registerExternalBatchNumber: defineRoute({
     id: 'planning.registerExternalBatchNumber',

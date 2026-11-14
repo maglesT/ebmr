@@ -14,9 +14,11 @@ import { routes, type ApiClient, type ErpCatalogue } from '@ebmr/api-contract';
 import type { SeededPersona, SiteSeed } from '@ebmr/test-kit';
 import { expect, pickTerminal, VIEWPORTS, type E2eWorld } from './index.ts';
 import { pageApi, valueOf } from './test-package.ts';
+import { watchPages } from './renderer-watchdog.ts';
 
 export async function gmpKiosk(browser: Browser, e2e: E2eWorld, terminal: string): Promise<Page> {
   const context = await browser.newContext({ viewport: VIEWPORTS.kiosk, locale: 'en-IN', timezoneId: 'Asia/Kolkata' });
+  watchPages(context);
   const page = await context.newPage();
   await pickTerminal(page, e2e.url('GMP'), terminal);
   return page;

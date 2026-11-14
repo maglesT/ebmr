@@ -143,7 +143,17 @@ export const ClientIntent = z.discriminatedUnion('type', [
     description: z.string().min(1).max(2000),
     severity: z.enum(['ALERT', 'ACTION']),
   }),
-  z.strictObject({ type: z.literal('ATTACH_DEVIATION'), exception: z.string().min(1), deviationRef: z.string().min(1).max(128) }),
+  /**
+   * The deviation linked to an exception: an existing one by its reference, or (owner retest of 13 November 2026, item 8;
+   * GMP without the Deviations link) `raise`: a deviation raised, linked to the batch and attached to the exception in the
+   * same command, so none is left raised and unattached. Exactly one of the two (the server refuses both or neither).
+   */
+  z.strictObject({
+    type: z.literal('ATTACH_DEVIATION'),
+    exception: z.string().min(1),
+    deviationRef: z.string().min(1).max(128).optional(),
+    raise: z.strictObject({ classification: z.enum(['MINOR', 'MAJOR', 'CRITICAL']), riskRationale: z.string().trim().min(10).max(2000) }).optional(),
+  }),
   z.strictObject({ type: z.literal('HOLD_BATCH'), holdType: z.enum(['SUPERVISOR', 'QA']), reason: z.string().min(1).max(2000) }),
   z.strictObject({ type: z.literal('RELEASE_HOLD'), hold: z.string().min(1), reason: z.string().min(1).max(2000) }),
   // Phase 3 slice 6 (DI-24, DI-29): the void of an attempt that has no result yet, with the person's own reason; the

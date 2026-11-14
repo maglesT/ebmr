@@ -38,6 +38,10 @@ export const BLOCK_ROLES = [
   // this role whose `contaminatedCount` field is above zero withdraws the filling line's qualification (ST-33; tablets
   // 1912), so a firm's own QA-approved reading block counts without software (decision 0026).
   'APS_READING',
+  // The post-use integrity test of a gas overlay's filter (Schedule M Part II 6.11.2.7; EU GMP Annex 1 8.88): a batch
+  // whose record marks an overlay applied is released only with a passing result of a library block with this role
+  // (ST-28; injectables 3040), so a firm's own QA-approved test block counts without software.
+  'GAS_FILTER_INTEGRITY',
 ] as const;
 export type BlockRole = (typeof BLOCK_ROLES)[number];
 

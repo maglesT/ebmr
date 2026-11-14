@@ -32,6 +32,7 @@ catalog_test: On a manual-open lyophiliser, attempt a second load without a new 
 implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables-lyo.test.ts > the Injectables catalogue (slice I-3, lyophilisation) > [ST-58][ST-59][ST-66] for the EU market, its own block records the trays checked, the Grade A transfer means, sterile utensils, the vent filter sterilised and its integrity by the formulation's method, and per load the lyophiliser's sterilisation cycle, the leak test against the firm's maximum and the load's sterility samples; a failed check is an exception"
+  - "packages/recipe-core/test/validator/required-blocks.test.ts > the blocks a clause asks where the master uses its technology (I-6 B5) > [ST-58][PR-03] a master for the EU market that lyophilises (INJ-LYO) without the EU lyophilisation record (INJ-LYO-EU: leak test of each cycle, vent filter integrity) after it is refused (A1 8.124); with it after it passes, before it is refused; a master for India and the US needs none"
 clauses:
   - clause: "On a manual-open lyophiliser, attempt a second load without a new SIP → hard block."
     not_required:
@@ -39,6 +40,7 @@ clauses:
       reason: "SIP-per-load block; interval tied to APS"
   - clause: "Start leak rate above maximum → cycle flagged and release blocked."
     tests:
+      - "packages/recipe-core/test/validator/required-blocks.test.ts > the blocks a clause asks where the master uses its technology (I-6 B5) > [ST-58][PR-03] a master for the EU market that lyophilises (INJ-LYO) without the EU lyophilisation record (INJ-LYO-EU: leak test of each cycle, vent filter integrity) after it is refused (A1 8.124); with it after it passes, before it is refused; a master for India and the US needs none"
       - "packages/recipe-core/test/library/seed-injectables-lyo.test.ts > the Injectables catalogue (slice I-3, lyophilisation) > [ST-58][ST-59][ST-66] for the EU market, its own block records the trays checked, the Grade A transfer means, sterile utensils, the vent filter sterilised and its integrity by the formulation's method, and per load the lyophiliser's sterilisation cycle, the leak test against the firm's maximum and the load's sterility samples; a failed check is an exception"
 expert_decision:
   status: MODIFY

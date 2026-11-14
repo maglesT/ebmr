@@ -187,7 +187,7 @@ async function run(app: DemoApp, opts: ReleasePathOptions): Promise<ReleasePathS
   // 3. The batch.
   log('release path: a GB-T-02 batch for IN, US and EU, run to its release for packing');
   // The review batch (step 3) still occupies DISP-1: its operator ends that use before the room is cleaned. That batch
-  // has finished, so the end states why (recipe-core 1922, EBMR-PLANT-065; owner decision of 13 November 2026).
+  // has finished, so the end states why (recipe-core 1926, EBMR-PLANT-065; owner decision of 13 November 2026).
   const leftOpen = (await db.admin.query<{ id: string }>("select o.id from plant.area_occupancy_status o join plant.area a on a.id = o.area_id where a.code = 'DISP-1' and o.ended_at is null")).rows;
   if (leftOpen.length > 0) {
     const leaver = await app.browser('operator2', 'KIOSK-DISP-1');
@@ -226,7 +226,7 @@ async function run(app: DemoApp, opts: ReleasePathOptions): Promise<ReleasePathS
     return app.dbAs<string>(who, 'select plant.record_instrument_use($1, $2::uuid, clock_timestamp() + make_interval(hours => 12)) as r', [code, b.batchId]);
   };
   const unitUse = (who: DemoBrowser, code: string, b: DemoBatch) => app.dbAs<string>(who, 'select plant.start_equipment_use($1, $2, clock_timestamp() + make_interval(hours => 12)) as r', [code, b.batchId]);
-  // recipe-core 1922 (owner decision of 13 November 2026): the use of a finished batch ends only with the reason.
+  // recipe-core 1926 (owner decision of 13 November 2026): the use of a finished batch ends only with the reason.
   const end = async (who: DemoBrowser, uses: string[], occupancies: string[], reason: string | null = null): Promise<void> => {
     for (const u of uses) await app.dbAs(who, 'select plant.end_equipment_use($1, $2) as r', [u, reason]);
     for (const o of occupancies) await app.dbAs(who, 'select plant.end_area_occupancy($1, $2) as r', [o, reason]);
@@ -479,7 +479,7 @@ export async function approveVersion(app: DemoApp, versionId: string, spec: Spec
   ], { reasonCode: 'NEW_PRODUCT', reasonText: `Numbering of ${spec.productCode ?? GBT02_PRODUCT.productCode} (${n.kind.toLowerCase()})` });
 }
 
-/** The reason a loader gives when it ends a use after the batch's last stage is signed off (recipe-core 1922). */
+/** The reason a loader gives when it ends a use after the batch's last stage is signed off (recipe-core 1926). */
 export const FINISHED_REASON = 'The batch has finished (its last stage is signed off); the use ends after it';
 
 export interface FloorKit {

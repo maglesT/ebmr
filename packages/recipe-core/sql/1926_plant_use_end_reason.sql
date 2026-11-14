@@ -3,6 +3,8 @@
 --
 -- Handbook: modules/recipe-core.md
 --
+-- Numbered 1926 (first pushed as 1922, then renumbered above 1921, 1923, 1924 and 1925 of other branches merged to main,
+-- so an upgraded installation applies it in order; the SQL is unchanged).
 --
 -- A use left open on the Plant screen for a batch whose master binds no step to the unit or room held it for every later
 -- batch. The Plant screen now lists those uses and ends them; the owner ruled that such an end states why. Rule taken

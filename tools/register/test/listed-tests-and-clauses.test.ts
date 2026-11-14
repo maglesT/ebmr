@@ -12,9 +12,9 @@ import { describe, expect, it } from 'vitest';
 import { CONTROLS_DIR, loadControls, ROOT, type ControlRecord } from '../src/register.ts';
 import { appendListedTests, compareEntries, firstDuplicate, firstUnsorted, sortListedTests, testsToAdd } from '../src/sync.ts';
 import { declaredIn, declaredTests, entryOf, fileOfEntry, names, reportedPath, type DeclaredTest } from '../src/test-index.ts';
-import { buildTrace, controlTags, readPlaywrightResults, readVitestResults, writeMatrix, type TestResult } from '../src/trace.ts';
+import { buildTrace, controlTags, deferralStarted, readPlaywrightResults, readVitestResults, writeMatrix, type TestResult } from '../src/trace.ts';
 import { rowsOf } from '../src/not-required.ts';
-import { clauseErrors, validateRegister, words } from '../src/validate.ts';
+import { clauseErrors, OWNER_QUESTION_PHASE, validateRegister, words } from '../src/validate.ts';
 
 const control = (id: string): ControlRecord => {
   const c = loadControls().find((x) => x.id === id);
@@ -463,6 +463,31 @@ describe('catalog-test clauses (review F14)', () => {
     expect(clauseErrors({ ...pr01, clauses: [{ clause: clauses[0]?.clause ?? '', tests: ['not/listed.test.ts > x'] }, clauses[1] ?? { clause: '' }] }).join()).toContain('names a test that is not in its tests list');
     const di33 = control('DI-33');
     expect(clauseErrors({ ...di33, deferred_scope: [{ scope: 'reprocessing and recovery', phase: 2, reason: 'not later at all' }] }).join()).toContain('not after the control\'s target phase 2');
+  });
+
+  it('[meta] phase 8 (owner question, decision 0031) is accepted only with a reason that cites an existing docs/decisions record, for a clause and for a deferred scope; the matrix shows it as an owner question', () => {
+    const pr01 = pr01Deferred();
+    const [first, second] = pr01.clauses ?? [];
+    const at8 = (reason: string): ControlRecord => ({ ...pr01, clauses: [first ?? { clause: '' }, { clause: second?.clause ?? '', deferred: { phase: 8, reason } }] });
+    expect(clauseErrors(at8('Owner question, decision 0031 (docs/decisions/0031-pr26-pr28-owner-questions.md).'))).toEqual([]);
+    expect(clauseErrors(at8('Waiting for the owner to decide this one later.')).join()).toContain('cites no decision record');
+    expect(clauseErrors(at8('Owner question, docs/decisions/9999-no-such-record.md.')).join()).toContain('does not exist');
+    // A phase-7 deferral needs no decision record (the rule is phase 8's only).
+    expect(clauseErrors({ ...pr01, target_phase: 4, clauses: [first ?? { clause: '' }, { clause: second?.clause ?? '', deferred: { phase: 7, reason: 'A later build phase, no owner question.' } }] })).toEqual([]);
+    const di33 = control('DI-33');
+    expect(clauseErrors({ ...di33, build_status: 'SPECIFIED', deferred_scope: [{ scope: 'reprocessing and recovery', phase: 8, reason: 'For the owner, with no record.' }] }).join()).toContain('cites no decision record');
+    // The real controls: PR-26 and PR-28 clause 2 are owner questions in the trace matrix, not a started deferral.
+    for (const id of ['PR-26', 'PR-28']) {
+      const c = control(id);
+      expect(c.clauses?.[1]?.deferred?.phase, id).toBe(OWNER_QUESTION_PHASE);
+      expect(clauseErrors(c), id).toEqual([]);
+      expect(deferralStarted(OWNER_QUESTION_PHASE, 7, ['tablets', 'injectables']), id).toBe(false);
+      const report = buildTrace([c], [], 7, { editions: ['tablets', 'injectables'] });
+      expect(report.errors.join(), id).not.toContain('which has started');
+      const file = join(mkdtempSync(join(tmpdir(), 'ebmr-matrix-')), 'm.md');
+      writeMatrix(report, 7, file);
+      expect(readFileSync(file, 'utf8'), id).toMatch(new RegExp(`^\\| ${id} \\| 2\\. .*\\| DEFERRED \\(owner question, phase 8\\) \\| phase 8: Owner question, decision 0031`, 'm'));
+    }
   });
 
   it('[meta] one passing test that carries the tag is no longer proof: a due control fails on a clause with no passing test and no deferral (review F14)', () => {

@@ -11,7 +11,7 @@
  * the database's own views (recipe.packaging_orders, recipe.packaging_order_bulk): every reason shown is the database's.
  * The bulk issue itself is POST /api/batches/:batchId/bulk (recipe.issue_packaging_bulk).
  */
-import { routes, type BatchNumberRuleView, type BatchNumberView, type PackagingBulkView, type PackagingOrderView, type PlanningOrderView } from '@ebmr/api-contract';
+import { routes, type BatchNumberRuleView, type BatchNumberView, type PackagingBulkView, type PackagingOrderView, type PlanningOrderView, type RetiredSerialRangeView } from '@ebmr/api-contract';
 import type { ActorContext, commands } from '@ebmr/kernel';
 import type { FastifyInstance } from 'fastify';
 import type pg from 'pg';
@@ -57,6 +57,19 @@ async function batchNumbers(db: Db, where: { site?: string; allocationId?: strin
     voidReasonCode: r['void_reason_code'] ?? null,
     voidReasonText: r['void_reason_text'] ?? null,
   }));
+}
+
+/**
+ * Owner decision of 13 November 2026 (retest item 9c; IN-18, INV-27): the serials each numbering rule of the site skipped,
+ * with the reason the database recorded (site.batch_number_retired_ranges, site-services 1924). Display and audit only.
+ */
+async function retiredRanges(app: AppContext, db: Db, site: string): Promise<RetiredSerialRangeView[]> {
+  const { rows } = await db.query<{ rule_code: string; first_serial: string; last_serial: string; first_number: string | null; last_number: string | null; reason: RetiredSerialRangeView['reason']; at_us: string }>(
+    `select r.rule_code, r.first_serial::text, r.last_serial::text, r.first_number, r.last_number, r.reason, ${usOf('r.recorded_at')} as at_us
+       from site.batch_number_retired_ranges($1) r`,
+    [site],
+  );
+  return rows.map((r) => ({ ruleCode: r.rule_code, firstSerial: r.first_serial, lastSerial: r.last_serial, firstNumber: r.first_number, lastNumber: r.last_number, reason: r.reason, recordedAt: app.formatInstant(r.at_us) }));
 }
 
 async function batchNumber(db: Db, allocationId: string): Promise<BatchNumberView> {
@@ -112,7 +125,10 @@ function batchNumberHandlers(app: AppContext): Handlers<NumberRoutes> {
     parent_batch_number: b.parentBatchNumber ?? null,
   });
   return {
-    batchNumbers: async ({ requireSession }) => ({ numbers: await batchNumbers(pool, { site: requireSession().siteCode }) }),
+    batchNumbers: async ({ requireSession }) => {
+      const site = requireSession().siteCode;
+      return { numbers: await batchNumbers(pool, { site }), retired: await retiredRanges(app, pool, site) };
+    },
     registerExternalBatchNumber: async (ctx) => {
       const s = ctx.requireSession();
       const b = ctx.body;

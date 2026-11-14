@@ -189,7 +189,7 @@ export class GoldenBatch {
 
   /**
    * Ends the batch's uses and occupancies of `codes` (operator1). Once the batch has finished (its last stage signed off)
-   * the operator states why, as the database requires then (recipe-core 1922, EBMR-PLANT-065; owner decision of
+   * the operator states why, as the database requires then (recipe-core 1926, EBMR-PLANT-065; owner decision of
    * 13 November 2026); while it runs, the end carries no reason, as on the step screen.
    */
   async release(codes: string[], operator = 'operator1'): Promise<void> {

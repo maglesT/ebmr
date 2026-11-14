@@ -425,7 +425,7 @@ function PlantUseForm() {
  * had no screen to end it, so it stayed in use and every later batch was refused (EBMR-PLANT-061). Every process unit and
  * every room or line still in use is listed, whatever the state of its batch (finished, stuck or abandoned included), and a
  * person offered the floor's acts ends it here with the reason (owner decision of 13 November 2026: always asked here;
- * stored on the end and in the audit trail, recipe-core 1922). The act is the step screen's own end (the person's own
+ * stored on the end and in the audit trail, recipe-core 1926). The act is the step screen's own end (the person's own
  * command, a fresh badge tap on a kiosk; the database checks STEP.EXECUTE and ends the use once).
  */
 function EndReasonField({ value, onChange }: { value: string; onChange: (v: string) => void }) {

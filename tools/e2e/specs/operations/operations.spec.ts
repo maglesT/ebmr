@@ -22,6 +22,7 @@ import { REPO_ROOT, SERVER_MAIN, spawnNode, waitForHttp, WEB_DIST, type RunningP
 import { asAdmin, createGmpDatabase, dropDatabase, editionMigrationSources, openDatabase, type SiteSeed } from '@ebmr/test-kit';
 import { axe, cspViolations, expect, test, VIEWPORTS } from '../../fixtures/index.ts';
 import { administration, endSessions, registerAdapter, setMirrorMode } from '../phase6/support.ts';
+import { watchPages } from '../../fixtures/renderer-watchdog.ts';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -55,6 +56,7 @@ const CSP_LISTENER = `
 
 async function officePage(browser: Browser): Promise<Page> {
   const context = await browser.newContext({ viewport: VIEWPORTS.office, locale: 'en-IN', timezoneId: 'Asia/Kolkata' });
+  watchPages(context);
   await context.addInitScript(CSP_LISTENER);
   return context.newPage();
 }

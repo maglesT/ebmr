@@ -29,7 +29,7 @@ import { wcls } from '../classes.ts';
 import { plantEntryParams, plantEntryRoute } from '../family.ts';
 
 /**
- * Recipe-core 1922 (owner decision of 13 November 2026 on demo report bug 4): once the batch has finished, ending one of
+ * Recipe-core 1926 (owner decision of 13 November 2026 on demo report bug 4): once the batch has finished, ending one of
  * its uses is no longer part of its run and states why; the step screen then asks for the reason (none while it runs).
  */
 const FINISHED = new Set(['EXECUTION_COMPLETE', 'ABORTED', 'CANCELLED']);
@@ -153,6 +153,12 @@ function AreaPanel({ v, view }: { v: StepPlantView; view: StepScreenView }) {
 // ---------------------------------------------------------------------------------------------
 // G-09@2: the units the step checks
 
+/** A unit as the choice shows it: its room, whether that is another room than the stage's, and whether it can be used now. */
+function unitLabel(u: StepPlantView['equipment'][number]['units'][number]): string {
+  const room = u.areaCode ? ` (${u.areaCode}${u.inStageRoom ? '' : ', another room'})` : ' (no room)';
+  return `${u.code} ${u.name}${room}${u.problems.length > 0 ? ': cannot be used now' : ''}`;
+}
+
 function EquipmentPanel({ v, view }: { v: StepPlantView; view: StepScreenView }) {
   if (v.equipment.length === 0) return <p className={wcls('muted')}>This step checks no unit of the stage.</p>;
   return (
@@ -210,8 +216,14 @@ function UnitRef({ v, e, view }: { v: StepPlantView; e: StepPlantView['equipment
         </div>
       ))}
       {e.units.length === 0 ? <p className={wcls('muted')}>{`No unit of class ${e.classCode} is in the plant list.`}</p> : null}
+      {/* Retest of 13 November 2026 (bug 5): why units of other rooms are offered, or why none can be used and what to do. */}
+      {e.note ? (
+        <p role="status" data-testid={`unit-note-${e.ref}`}>
+          {e.note}
+        </p>
+      ) : null}
       {e.units.length > 1 ? (
-        <floor.ChoiceGroup label={`Unit for ${e.ref}`} options={e.units.map((u) => ({ value: u.code, label: `${u.code} ${u.name}${u.areaCode ? ` (${u.areaCode})` : ''}` }))} value={unit} onChange={setPicked} isDisabled={busy} />
+        <floor.ChoiceGroup label={`Unit for ${e.ref}`} options={e.units.map((u) => ({ value: u.code, label: unitLabel(u) }))} value={unit} onChange={setPicked} isDisabled={busy} />
       ) : null}
       {chosen ? (
         <>
@@ -219,6 +231,7 @@ function UnitRef({ v, e, view }: { v: StepPlantView; e: StepPlantView['equipment
             {chosen.code} {chosen.name}: {chosen.fitness ?? 'fitness unknown'}
             {chosen.lastCheck ? `; last check ${chosen.lastCheck.result} at ${chosen.lastCheck.at.text}${chosen.lastCheck.mine ? ' (yours)' : ''}` : '; not checked for this batch'}
           </p>
+          {chosen.problems.length > 0 ? <p data-testid={`unit-problems-${chosen.code}`}>{`${chosen.code} cannot be used now: ${chosen.problems.join('; ')}.`}</p> : null}
           {instrument ? (
             <>
               <Field name={`checkReference-${e.ref}`} label="Check reference (weights, procedure)" value={reference} onChange={setReference} />

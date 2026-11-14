@@ -45,7 +45,9 @@ export function describeIntent(intent: ClientIntent, view?: StepScreenView): str
     case 'RAISE_EXCEPTION':
       return `Exception (${intent.severity === 'ACTION' ? 'action' : 'alert'}): ${intent.description}`;
     case 'ATTACH_DEVIATION':
-      return `Link deviation ${intent.deviationRef} to exception ${intent.exception}`;
+      return intent.raise
+        ? `Raise a ${intent.raise.classification.toLowerCase()} deviation for this batch and link it to exception ${intent.exception}`
+        : `Link deviation ${intent.deviationRef ?? ''} to exception ${intent.exception}`;
     case 'HOLD_BATCH':
       return `Hold the batch (${intent.holdType === 'QA' ? 'QA' : 'supervisor'}): ${intent.reason}`;
     case 'RELEASE_HOLD':

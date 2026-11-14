@@ -205,7 +205,7 @@ describe('editions in the trace gate (decision 0010)', () => {
   });
 
   it('[meta] phase.yaml lists the editions: absent means both, an empty list or an unknown edition is refused', () => {
-    expect(gateEditions()).toEqual(['tablets']);
+    expect(gateEditions()).toEqual(['tablets', 'injectables']);
     expect(gateEditions(phaseFile('current_phase: 4\n'))).toEqual(['tablets', 'injectables']);
     expect(gateEditions(phaseFile('current_phase: 4\neditions: [tablets, injectables]\n'))).toEqual(['tablets', 'injectables']);
     expect(() => gateEditions(phaseFile('current_phase: 4\neditions: []\n'))).toThrow(/non-empty/);

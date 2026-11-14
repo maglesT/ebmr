@@ -21,6 +21,7 @@ import type { SeededPersona } from '@ebmr/test-kit';
 import { axe, expect, pickTerminal, pin, signIn, test, type E2eWorld } from '../../fixtures/index.ts';
 import { gmpKiosk, officeSign } from '../../fixtures/slice6.ts';
 import { choose } from '../journey/support.ts';
+import { watchPages } from '../../fixtures/renderer-watchdog.ts';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -127,6 +128,7 @@ async function performAndVerify(page: Page, op: SeededPersona, verifier: SeededP
 
 async function office(e2eBrowser: Parameters<typeof gmpKiosk>[0], e2e: E2eWorld, who: { loginName: string; password: string }): Promise<Page> {
   const context = await e2eBrowser.newContext({ viewport: { width: 1440, height: 900 }, locale: 'en-IN', timezoneId: 'Asia/Kolkata' });
+  watchPages(context);
   const page = await context.newPage();
   await pickTerminal(page, e2e.url('GMP'), PC);
   await signIn.office(page, who as SeededPersona);

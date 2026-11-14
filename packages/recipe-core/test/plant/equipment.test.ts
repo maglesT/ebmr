@@ -62,7 +62,7 @@ describe('cleanliness and the use guard of PROCESS equipment', () => {
     expect(await w.startUse(press.code, 'B-2', product)).toMatch(/^[0-9a-f-]{36}$/);
   });
 
-  // Owner decision of 13 November 2026 on demo report bug 4: ending a use records the person's reason (recipe-core 1922).
+  // Owner decision of 13 November 2026 on demo report bug 4: ending a use records the person's reason (recipe-core 1926).
   it('[DI-22][IN-25][INV-12] a use ended with a reason keeps it on its end row and in the audit trail; a blank reason is refused; the use of a finished or aborted batch is ended only with a reason; the application cannot write the reason around the command', async () => {
     const press = await w.press();
     const product = await w.product();

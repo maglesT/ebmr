@@ -514,7 +514,11 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
         const d = breach(config.limits?.[f.limitSlot], text(v), f.unit, `${where}: ${f.label}`, item);
         if (d) exceptions.push(d);
       } else if (f.type === 'YES_NO' && f.expected !== undefined && v !== f.expected) {
-        exceptions.push({ type: 'LIB_UNEXPECTED_ANSWER', title: `${where}: ${f.label} was answered ${v ? 'yes' : 'no'}; ${f.expected ? 'yes' : 'no'} is expected`, controls: ['PR-29'], severity: 'ACTION', category: 'OUT_OF_LIMIT', item, blocks: 'STEP', until: 'DEVIATION', deviationRequired: true });
+        const title = `${where}: ${f.label} was answered ${v ? 'yes' : 'no'}; ${f.expected ? 'yes' : 'no'} is expected`;
+        // A critical answer has a registered-tier breach's consequences (exceptions.ts tierDraft): QA only, this step and
+        // the steps after it wait for a deviation, release blocked.
+        if (f.unexpectedCritical === true) exceptions.push({ type: 'LIB_UNEXPECTED_ANSWER', title: `${title}: a critical exception that only QA dispositions`, controls: ['PR-29'], severity: 'CRITICAL', category: 'OUT_OF_LIMIT', item, blocks: 'STEP_AND_DOWNSTREAM', until: 'DEVIATION', deviationRequired: true, qaOnly: true, releaseBlocking: true });
+        else exceptions.push({ type: 'LIB_UNEXPECTED_ANSWER', title, controls: ['PR-29'], severity: 'ACTION', category: 'OUT_OF_LIMIT', item, blocks: 'STEP', until: 'DEVIATION', deviationRequired: true });
       } else if (f.type === 'CHOICE' && (f.notAllowed ?? []).includes(text(v))) {
         exceptions.push({ type: 'LIB_NOT_ALLOWED_CHOICE', title: `${where}: ${f.label} is "${text(v)}", which is not allowed`, controls: ['PR-29'], severity: 'ACTION', category: 'OUT_OF_LIMIT', item, blocks: 'STEP', until: 'DEVIATION', deviationRequired: true });
       } else if (f.type === 'TEST_RESULT') {

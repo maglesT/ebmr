@@ -141,7 +141,7 @@ describe('starting in a room needs a passed clearance of the required type (INV-
   });
 });
 
-describe('the end of a room\'s use records a reason (owner decision of 13 November 2026 on demo report bug 4; recipe-core 1922)', () => {
+describe('the end of a room\'s use records a reason (owner decision of 13 November 2026 on demo report bug 4; recipe-core 1926)', () => {
   it('[DI-22][IN-21][PR-34] a room\'s use ended with a reason keeps it on its end row and in the audit trail; a blank reason is refused; the use of a finished or cancelled batch is ended only with a reason, and the room stays in use until then', async () => {
     const room = await w.room();
     const a = await w.product();

@@ -13,7 +13,7 @@ import type { GoldenWorld } from './world.ts';
 
 type Json = Record<string, unknown>;
 
-async function one<T>(w: GoldenWorld, sql: string, params: unknown[]): Promise<T> {
+async function one<T>(w: Pick<GoldenWorld, 'server'>, sql: string, params: unknown[]): Promise<T> {
   const { rows } = await w.server.db.admin.query<{ r: T }>(sql, params);
   return rows[0]?.r as T;
 }
@@ -61,7 +61,7 @@ export interface LotFacts {
   grel: Record<string, string[]>;
 }
 
-export async function lotFacts(w: GoldenWorld, lotId: string, batchNumbers: readonly string[]): Promise<LotFacts> {
+export async function lotFacts(w: Pick<GoldenWorld, 'server'>, lotId: string, batchNumbers: readonly string[]): Promise<LotFacts> {
   const placeholders = (s: string): string => batchNumbers.reduce((t, b, i) => t.split(b).join(`<batch-${String(i + 1)}>`), s);
   const lot = await one<Json>(w, "select jsonb_build_object('state', site.lot_state(l.id), 'quantity', trim_scale(l.received_quantity)::text || ' ' || l.unit) as r from site.material_lot l where l.id = $1", [lotId]);
   const markets = await one<string[]>(w, "select to_jsonb(recipe.market_set('LOT', $1)) as r", [lotId]);

@@ -196,3 +196,30 @@ describe('the potency calculation of TB-01', () => {
     expect((await screen.findByTestId('potency-changed')).textContent).toMatch(/Potency changed since the calculation \(RAB-API-0001\): recalculate/);
   });
 });
+
+describe('the lots reserved for a GMP weighing (owner retest 13 November 2026, item 7)', () => {
+  it('[INV-13][INV-14] before the first weighing the form names the reserved lots of each line, and says that stores must reserve a lot for a line without one', async () => {
+    const view = gmpView('G-07@1', 'p-disp-api@', (v) => {
+      v.entryForms = structuredClone(example('step-g07-weighing').entryForms);
+      v.reservations = [
+        { bomLine: 'BOM-API', material: 'Metformin hydrochloride (MAT-MET)', lots: [{ lotCode: 'MET-0001', remaining: '40.000', unit: 'kg' }, { lotCode: 'MET-0002', remaining: '12.5', unit: 'kg' }] },
+        { bomLine: 'BOM-MGS', material: 'Magnesium stearate (MAT-MGS)', lots: [] },
+      ];
+    });
+    render(view);
+    const reserved = await screen.findByTestId('lot-reservations-BOM-API');
+    expect(reserved.textContent).toBe('Metformin hydrochloride (MAT-MET): reserved for this batch: MET-0001 (40.000 kg left), MET-0002 (12.5 kg left). Weigh from these lots.');
+    const none = screen.getByTestId('lot-reservations-BOM-MGS');
+    expect(none.getAttribute('data-reserved')).toBe('no');
+    expect(none.textContent).toMatch(/Magnesium stearate \(MAT-MGS\): no lot is reserved for this batch, so a weighing is refused\. Ask stores .* to reserve a lot/);
+  });
+
+  it('[INV-13] a step without the list (a sandbox test run) shows no reservation notice', async () => {
+    const view = gmpView('G-07@1', 'p-disp-api@', (v) => {
+      v.entryForms = structuredClone(example('step-g07-weighing').entryForms);
+    });
+    render(view);
+    await screen.findByTestId('form-CONTAINER_WEIGHING');
+    expect(screen.queryByTestId('lot-reservations')).toBeNull();
+  });
+});

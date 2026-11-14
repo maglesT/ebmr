@@ -141,8 +141,8 @@ const PF_STEP_PLANT = {
   lineClearances: [],
   occupancies: [{ ...PF_OCCUPANCY, areaCode: 'COMP-1', stage: 'S-COMP', mine: true }],
   equipment: [
-    { ref: 'BAL', kind: 'INSTRUMENT' as const, classCode: 'EQC-BAL', units: [{ code: 'BAL-C1', name: 'Balance 6 kg', areaCode: 'COMP-1', fitness: 'QUALIFIED', lastCheck: { result: 'PASS' as const, at: PF_AT, mine: true } }] },
-    { ref: 'PRESS', kind: 'PROCESS' as const, classCode: 'EQC-PRESS', units: [{ code: 'PRESS-01', name: 'Rotary press 27 stations', areaCode: 'COMP-1', fitness: 'QUALIFIED', lastCheck: null }] },
+    { ref: 'BAL', kind: 'INSTRUMENT' as const, classCode: 'EQC-BAL', units: [{ code: 'BAL-C1', name: 'Balance 6 kg', areaCode: 'COMP-1', inStageRoom: true, fitness: 'QUALIFIED', problems: [], lastCheck: { result: 'PASS' as const, at: PF_AT, mine: true } }], note: null },
+    { ref: 'PRESS', kind: 'PROCESS' as const, classCode: 'EQC-PRESS', units: [{ code: 'PRESS-01', name: 'Rotary press 27 stations', areaCode: 'COMP-1', inStageRoom: true, fitness: 'QUALIFIED', problems: [], lastCheck: null }], note: null },
   ],
   uses: [{ ...PF_USE, equipmentCode: 'PRESS-01', mine: true }, { ...PF_USE, useId: '7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c03', kind: 'INSTRUMENT' as const, equipmentCode: 'BAL-C1', mine: true }],
   tooling: {

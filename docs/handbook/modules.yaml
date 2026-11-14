@@ -320,7 +320,7 @@ modules:
     page: modules/site-services.md
     package: packages/site-services
     migrations:
-      packages/site-services/sql: ['^0600_', '^0690_', '^0700_', '^1731_']
+      packages/site-services/sql: ['^0600_', '^0690_', '^0700_', '^1731_', '^1924_']
       packages/recipe-core/sql: ['^1790_']
     src: [packages/site-services/src/batch-numbers]
     tests: ['packages/site-services/test/batch-number-register.test.ts']
@@ -462,7 +462,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^040\d_', '^0460_', '^052[1-3]_', '^0691_', '^0890_', '^0912_', '^188[67]_', '^1922_']
+      packages/recipe-core/sql: ['^040\d_', '^0460_', '^052[1-3]_', '^0691_', '^0890_', '^0912_', '^188[67]_', '^1926_']
     src: [packages/recipe-core/src/plant]
     tests:
       - 'packages/recipe-core/test/plant/**'
@@ -582,7 +582,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^064\d_', '^0690_', '^1535_', '^1740_', '^1875_', '^1877_', '^1893_']
+      packages/recipe-core/sql: ['^064\d_', '^0690_', '^1535_', '^1740_', '^1875_', '^1877_', '^1893_', '^1921_', '^1923_']
     src: [packages/recipe-core/src/formula]
     tests:
       - 'packages/recipe-core/test/mutation/formulas.test.ts'
