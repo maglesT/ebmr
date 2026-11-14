@@ -135,6 +135,24 @@ leaves them out.
 - A parity test shows the engine and the database agree on every seeded expected answer, hidden-field cases included.
 - The SQL mutation group covers the new branch.
 
+## Item 3 follow-up: a value in a field its condition hides (recipe-core 1925)
+
+**Gap.** The engine refuses an entry that gives a value to a field its condition (`showWhen`) hides (LIB-ENTRY-HIDDEN,
+"leave it empty"). 1924 judges answers only in fields the entry shows and 1862 refuses a hidden calculated value, but no
+database check refused a recorded value in a hidden field. A write through the application role could store, for
+example, a rework quantity with rework answered "no".
+
+**Built (lead's ruling, 14 November 2026: same pattern as item 3).**
+- `recipe.library_hidden_problem` and the trigger `zzh_library_entry_hidden` (after update on `recipe.execution_state`):
+  an entry the row adds or changes, of a library step, that stores a value in a field of its section whose condition is
+  not met in the stored data is refused (EBMR-LIB-025, the message names the field and LIB-ENTRY-HIDDEN). Calculated
+  fields stay with 1862 (`computed`); timers are their own entries. No earlier function is replaced.
+- Parity: `packages/recipe-core/test/library/entry-hidden-db.test.ts` records every seeded condition through the engine,
+  met and not met; the engine's rows are accepted, the engine refuses the hidden value, and the database refuses the
+  engine's row with the value put back.
+- Bypass: the trigger itself, through the application role (`apps/tablets-server/test/mutation/library-blocks.test.ts`).
+- SQL mutation group `library-entry-hidden`.
+
 ## Item 2 addendum: signatures given before 1914 (with item 2, in its own PR)
 
 Test `[ST-29][DI-37] a change record approved under the 1910 content keeps its signed content and hash under the 1914

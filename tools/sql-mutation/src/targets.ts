@@ -511,6 +511,13 @@ export const TARGETS: Target[] = [
             r('library/expected-answer-db.test.ts')],
     threshold: 90,
   },
+  // ---- Follow-up to injectables review pass item 3 (recipe-core 1925): a value in a field its condition hides -------
+  {
+    group: 'library-entry-hidden',
+    functions: ['recipe.library_hidden_problem', 'recipe.library_hidden_check'],
+    tests: [s('mutation/library-blocks.test.ts'), r('library/entry-hidden-db.test.ts')],
+    threshold: 90,
+  },
   // ---- Site services: the batch-number register (sql 0600; not in the Phase 1 run) ---------------------------------
   {
     group: 'batch-number-register',

@@ -245,6 +245,16 @@ const KDEF: Json = {
         { id: 'rel', label: 'Released', type: 'TEST_RESULT', unit: '%', replicatesSlot: 'v', perPoint: true, required: false, statistics: [{ statistic: 'MEAN', limitSlot: 'relMean' }] },
       ],
     },
+    // recipe-core 1925: a field with a condition (LIB-ENTRY-HIDDEN).
+    {
+      id: 'rework',
+      title: 'Rework',
+      fields: [
+        { id: 'redo', label: 'Rework', type: 'YES_NO', required: false },
+        { id: 'redoQty', label: 'Rework quantity', type: 'NUMBER', unit: 'g', showWhen: { field: 'redo', equals: true } },
+        { id: 'redoNote', label: 'Rework note', type: 'TEXT', required: false, showWhen: { field: 'redo', equals: true } },
+      ],
+    },
   ],
   signatures: [],
 };
@@ -914,6 +924,52 @@ describe('expected answers and allowed choices in the database (recipe-core 1924
       }
       // A row adding an exception of another type only is not checked.
       expect(await t.update({ steps: STEPS, entries: {}, exceptions: { X1: { ...answer('LIB_UNEXPECTED_ANSWER', 'p-lib.ok'), type: 'LATE_ENTRY' } } })).toBe('');
+    });
+  });
+});
+
+describe('a value in a field its condition hides is refused in the database (recipe-core 1925)', () => {
+  it('[PR-03][PR-29] the trigger itself refuses a library entry that stores a value in a field its condition hides (EBMR-LIB-025, LIB-ENTRY-HIDDEN), its condition answered otherwise or not at all, also as JSON null and in a changed entry; a shown field, a hidden field left empty and a row that adds or changes no entry are not refused', async () => {
+    await inCommand(gmp, 'author', async (c) => {
+      const t = await batchState(c, { steps: STEPS, entries: {}, exceptions: {} }, 'zzh_library_entry_hidden');
+      const hidden = /^This row stores redoQty = .* in entry E1 at step p-lib, a field that applies only when redo is true \(LIB-ENTRY-HIDDEN\): .*\[EBMR-LIB-025\]$/;
+      expect(await t.update({ steps: STEPS, entries: { E1: entry('rework', { redo: false, redoQty: '2' }) }, exceptions: {} })).toMatch(hidden);
+      expect(await t.update({ steps: STEPS, entries: { E1: entry('rework', { redoQty: '2' }) }, exceptions: {} })).toMatch(hidden);
+      expect(await t.update({ steps: STEPS, entries: { E1: entry('rework', { redo: 'true', redoQty: '2' }) }, exceptions: {} })).toMatch(hidden);
+      expect(await t.update({ steps: STEPS, entries: { E1: entry('rework', { redo: false, redoQty: null }) }, exceptions: {} })).toMatch(hidden);
+      // The second hidden field is named on its own.
+      expect(await t.update({ steps: STEPS, entries: { E1: entry('rework', { redo: false, redoNote: 'x' }) }, exceptions: {} })).toMatch(/^This row stores redoNote = "x" in entry E1 .*\(LIB-ENTRY-HIDDEN\).*\[EBMR-LIB-025\]$/);
+      // Shown, or hidden and left empty: accepted.
+      expect(await t.update({ steps: STEPS, entries: { E1: entry('rework', { redo: true, redoQty: '2', redoNote: 'x' }) }, exceptions: {} })).toBe('');
+      expect(await t.update({ steps: STEPS, entries: { E1: entry('rework', { redo: true, redoQty: '2', redoNote: 'x' }), E2: entry('rework', { redo: false }) }, exceptions: {} })).toBe('');
+      // An entry changed afterwards to hold a hidden value is refused (E2 now stores redoQty with rework "no").
+      expect(await t.update({ steps: STEPS, entries: { E1: entry('rework', { redo: true, redoQty: '2', redoNote: 'x' }), E2: entry('rework', { redo: false, redoQty: '2' }) }, exceptions: {} })).toMatch(/^This row stores redoQty = "2" in entry E2 .*\[EBMR-LIB-025\]$/);
+      // A row that adds or changes no entry is not checked; a step whose block is not a library block is not judged.
+      expect(await t.update({ steps: STEPS, entries: { E1: entry('rework', { redo: true, redoQty: '2', redoNote: 'x' }), E2: entry('rework', { redo: false }) }, exceptions: {}, note: 'later' })).toBe('');
+      expect(await t.update({ steps: STEPS, entries: { E1: entry('rework', { redo: true, redoQty: '2', redoNote: 'x' }), E2: entry('rework', { redo: false }), E3: entry('rework', { redo: false, redoQty: '2' }, 'p-plain@') }, exceptions: {} })).toBe('');
+    });
+  });
+
+  it('[PR-03][PR-29] recipe.library_hidden_problem: an entry of another section, a section the block does not hold, data that is not an object, a calculated field the condition hides (1862 judges it) and an entry the previous state already held are not judged here', async () => {
+    await inCommand(gmp, 'author', async (c) => {
+      const p = async (old: Json, next: Json): Promise<string | null> => {
+        const { rows } = await c.query<{ p: string | null }>('select recipe.library_hidden_problem($1::jsonb, $2::jsonb, $3::jsonb) as p', [
+          JSON.stringify(CONTENT),
+          JSON.stringify({ steps: STEPS, entries: {}, exceptions: {}, ...old }),
+          JSON.stringify({ steps: STEPS, entries: {}, exceptions: {}, ...next }),
+        ]);
+        return rows[0]?.p ?? null;
+      };
+      const bad = entry('rework', { redo: false, redoQty: '2' });
+      expect(await p({}, { entries: { E1: bad } })).toMatch(/^stores redoQty = "2" in entry E1 at step p-lib, a field that applies only when redo is true \(LIB-ENTRY-HIDDEN\)$/);
+      expect(await p({ entries: { E1: bad } }, { entries: { E1: bad } })).toBeNull();
+      expect(await p({}, { entries: { E1: entry('run', { w: '5', calc: false, redoQty: '2' }) } })).toBeNull();
+      expect(await p({}, { entries: { E1: entry('nosuch', { redo: false, redoQty: '2' }) } })).toBeNull();
+      expect(await p({}, { entries: { E1: { ...bad, data: ['redoQty'] } } })).toBeNull();
+      expect(await p({}, { entries: { E1: entry('run', { w: '5', calc: false, loss: '5' }) } })).toBeNull();
+      expect(await p({}, { entries: { E1: bad, E0: entry('rework', { redo: true, redoQty: '1' }) } })).toMatch(/in entry E1 /);
+      // Entries that are not an object member are no entries.
+      expect(await p({}, { entries: [bad] })).toBeNull();
     });
   });
 });
