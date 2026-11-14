@@ -53,6 +53,77 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
 - **Merging:** no merge queue. Merge each PR yourself on green, after a lead audit (ping the lead). Merge main in only
   on a conflict. Report each merge in 2 lines.
 
+### Session 18 handover (14 November 2026, about 21:45): session 20 continues here
+
+Session 18 was session_01PybpFtF5nn8h2jNvTwZAGfT. The lead is session_01PybpFrP72XuwyG8S3H3NJS: report with send_message.
+Merge loop is **decision 0032**: a PR merges on its gate (the tests its change selects), green on a head that contains main,
+after the lead's audit PASS. Squash with the full expectedHeadSha and plain trailers (`Co-Authored-By: Claude
+<noreply@anthropic.com>` and the session URL, no model name). At most 2 PRs open.
+
+**Merged in session 18:** #260 (DI-48 drill: an optional `sampleSeed` on `runUpgradeDrill`; the unit-change test uses seed
+`di48-unit-8`), squash 44f3ec0.
+
+**Open:**
+1. **#261**, the expected-answer re-check, renumbered **recipe-core 1927**. Main took 1925 (#249) and 1926 (#256), and the
+   migration-order check refuses a branch adding a lower number.
+   - The lead's code audit is done and passed.
+   - It waits for **#270** (session 19's gate fix: `tools/ci/changes.sh` fetched with depth 1, so the gate skipped the
+     SQL mutation job).
+   - Once #270 merges, merge main into #261. When its gate is green (the mutation job included), send the lead
+     "#261 ready for audit".
+2. **#271**, the hidden-field follow-up, **recipe-core 1928** (EBMR-LIB-025, LIB-ENTRY-HIDDEN). It is stacked on #261.
+   - After #261's squash merge, merge main into it 3-way, using #261's old head as the base. The diff then becomes only
+     the follow-up.
+   - Then send "#271 ready for audit" on a green gate.
+
+**Next (lead rulings, 14 November):** prove INV-23 and INV-36 to their binding clauses; INV-44 is a write-up.
+- **Mapping:** the lead approved it. It was done by three read-only agents; their summaries are in the lead's thread.
+  - Binding sources are Schedule M and 21 CFR 211. Annex 1 and the FDA guidance are "should".
+- **INV-36 PR.** A release item, E.STERILE_FILTER, in a new injectables migration, modelled on 3040's E.GAS_FILTER.
+  Binding clause: Schedule M Part II 6.11.2.7 (verified before use, confirmed immediately after use, results in the
+  batch record). Every market.
+  - The block: INJ-STERILE-FILTER (`packages/recipe-core/src/library/seed/injectables-aseptic.ts`) gets, as a v1 edit in
+    place (lead OK; add it to the fresh-install residual list in PROGRESS):
+    - the role `STERILE_FILTER_INTEGRITY`;
+    - the marks `preUseIntegrity` (preBubblePoint, preDiffusion) and `postUseIntegrity` (postBubblePoint,
+      postDiffusion).
+  - The library rules: widen `checkGasOverlay` in `check-definition.ts`, which today refuses `postUseIntegrity` outside
+    GAS_FILTER_INTEGRITY. Add the role to `LIBRARY_ROLES` (model.ts) and `flow/blocks.ts`.
+  - The item reads:
+    - **NA** with no step that has the role;
+    - **RED** when such a step is not COMPLETED, or when it has no passing pre-use or no passing post-use result (a
+      result is passing when its marked field is within its limit, read with `recipe.limit_reading`);
+    - **RED** also when the post-use result is recorded before the step's other entries (recordedSeq), which is
+      "immediately after use".
+  - Then CREATE OR REPLACE `injectables.grel_edition_items`.
+  - Tests: fail-first, plus one `[INV-36]` end-to-end test on real PostgreSQL.
+- **INV-23 PR.**
+  - (b) A `MARKET_REQUIRED_BLOCKS` entry for every market: INJ-FILL needs INJ-EM (PRESENT) and INJ-EM-COUNTS after it.
+    The same rule is re-checked in the database at QA approval. Source: Schedule M 4.8; 211.42(c)(10)(iv).
+  - (c) A firm-set APS interval per filling line, with **no default**. The database refuses an INJ-FILL start when the
+    line's last passing APS plus the interval ends before the batch's planned fill end. With no interval set, it refuses
+    and the message names the missing setting (lead ruling). Golden and demo seeds set an explicit interval in their
+    fixtures. Source: Schedule M Part II 5.5; 211.113(b).
+  - One `[INV-23]` end-to-end test drives (b) to (f) with each refusal. (d) is iam.area_authorisation_problem; (e) is
+    the record-completeness gate; (f) is G2.DEVIATIONS.
+  - Write-ups, no build (lead):
+    - INV-23 (a), the area state machine;
+    - INV-23 (d), APS participation per line;
+    - INV-23 (f), locking `release.open_investigation_path` (left to the firm: 211.192 binds investigation, not
+      closure);
+    - INV-36: the housing, the redundant train and the serial train (Annex 1 8.87, 8.91, 8.92; ST-52's redundant
+      clause is not_required, owner 5 November);
+    - all of INV-44 (Annex 1 9.41, 9.47 should only; ST-32's catalogue clause is not_required).
+  - In the INV-23 PR, record the narrowing as a lead ruling the owner may veto. Update the outline's INV notes or
+    control-decisions.md, whichever the register reads, so the trace gate expects no `[INV-44]` test.
+
+**Local notes:**
+- The CI script stops the clusters when it ends: `sudo pg_ctlcluster 16 main start`.
+- Keep worktrees outside the repository (for example /home/user/wt-x): `eslint .` lints a worktree under
+  `.claude/worktrees/` too and runs out of memory.
+- On this 4-core machine, the restore drill, register meta and system-facts tests time out at 30 s under the sharded
+  load and pass alone.
+
 ### Session 17 handover (14 November 2026, about 12:30): session 18 continues here
 
 Session 17 was session_01PybpFuhBnYXh9yvdSzZcJc. The lead is session_01PybpFrP72XuwyG8S3H3NJS: report there with
