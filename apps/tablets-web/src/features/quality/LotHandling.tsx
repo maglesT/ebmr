@@ -150,6 +150,10 @@ function ReserveLot({ lot }: { lot: LotSummaryView }) {
   const [until, setUntil] = useState('');
   const open = (batches.data?.batches ?? []).filter((b) => OPEN_BATCH.includes(b.status));
   const chosenBatch = open.find((b) => b.batchNumber === batch) ?? null;
+  // The same query as PotencyPreview's (one request): the controls below wait for it, so the preview never appears
+  // above them while they are pressed (E2E Demotab 6: a press landed on the Quantity label the preview pushed down).
+  const preview = useApiQuery(routes.batches.potencyPreview, { params: { batchId: chosenBatch?.runId ?? '' }, query: { lotCode: lot.lotCode } }, { enabled: chosenBatch !== null });
+  const settled = chosenBatch === null || !preview.isPending;
   const body = { batchNumber: batch ?? '', quantity: quantity.trim(), ...(until.trim() !== '' ? { expiresOn: until.trim() } : {}) };
   const parsed = routes.quality.reserveLot.body?.safeParse(body);
   return (
@@ -159,18 +163,22 @@ function ReserveLot({ lot }: { lot: LotSummaryView }) {
       {batches.isPending ? <p>Loading…</p> : open.length === 0 ? <p>No open batch to reserve for.</p> : <floor.ChoiceGroup label="Batch" options={open.map((b) => ({ value: b.batchNumber, label: `${b.batchNumber} ${b.product.code} (${b.statusText})` }))} value={batch} onChange={setBatch} />}
       {/* R13: what the batch's potency-adjusted dispensing will calculate with this lot, before it is reserved. */}
       {chosenBatch ? <PotencyPreview batchId={chosenBatch.runId} lotCode={lot.lotCode} /> : null}
-      <Field name="reserveQuantity" label={`Quantity (${lot.unit})`} value={quantity} onChange={setQuantity} inputMode="decimal" />
-      <Field name="reserveUntil" label="Reserved until (YYYY-MM-DD, optional)" description="By default 30 days, or the lot's retest or expiry when sooner." value={until} onChange={setUntil} />
-      <ActButton
-        label="Reserve the lot"
-        disabled={!batch || parsed?.success !== true || reserve.busy}
-        onPress={async () => {
-          if (parsed?.success && (await reserve.run({ params: { lotId: lot.lotId }, body: parsed.data }))) {
-            setQuantity('');
-            setUntil('');
-          }
-        }}
-      />
+      {settled ? (
+        <>
+          <Field name="reserveQuantity" label={`Quantity (${lot.unit})`} value={quantity} onChange={setQuantity} inputMode="decimal" />
+          <Field name="reserveUntil" label="Reserved until (YYYY-MM-DD, optional)" description="By default 30 days, or the lot's retest or expiry when sooner." value={until} onChange={setUntil} />
+          <ActButton
+            label="Reserve the lot"
+            disabled={!batch || parsed?.success !== true || reserve.busy}
+            onPress={async () => {
+              if (parsed?.success && (await reserve.run({ params: { lotId: lot.lotId }, body: parsed.data }))) {
+                setQuantity('');
+                setUntil('');
+              }
+            }}
+          />
+        </>
+      ) : null}
       <ActResult error={reserve.error} done={reserve.done} label="Lot reserved." />
     </div>
   );

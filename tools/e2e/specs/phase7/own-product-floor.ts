@@ -12,6 +12,7 @@ import { officeSign } from '../../fixtures/slice6.ts';
 import { choose, openStep, primary, simulator } from '../journey/support.ts';
 import { load } from './own-product-flow.ts';
 import { act, allInOrder, ANY, as, card, completed, entry, fillBlock, performAndCheck, ready, save, saveBlock, sign, startStep, type Fill } from './kiosk-batch-support.ts';
+import { watchPages } from '../../fixtures/renderer-watchdog.ts';
 
 export type Inst = 'GMP' | 'SANDBOX';
 
@@ -58,6 +59,7 @@ export async function explained(check: Promise<void>, box: Locator): Promise<voi
 /** A kiosk of the room on the floor's installation with the person signed in by the demo reader's Tap button. */
 export async function floorKiosk(f: Floor, room: string, who: SeededPersona, role?: string): Promise<Page> {
   const context = await f.browser.newContext({ viewport: { width: 1280, height: 800 }, locale: 'en-IN', timezoneId: 'Asia/Kolkata' });
+  watchPages(context);
   const page = await context.newPage();
   opened.push(page);
   page.on('pageerror', (error) => console.log(`[${kioskOf(f, room)}] page error: ${error.message.slice(0, 400)}`));
@@ -959,6 +961,7 @@ export async function inspection(f: Floor, plan: ProcessPlan): Promise<void> {
 /** An office PC of the floor's installation with the person signed in (the plant's office acts). */
 async function floorOffice(f: Floor, who: SeededPersona): Promise<Page> {
   const context = await f.browser.newContext({ viewport: { width: 1440, height: 900 }, locale: 'en-IN', timezoneId: 'Asia/Kolkata' });
+  watchPages(context);
   const page = await context.newPage();
   opened.push(page);
   await pickTerminal(page, baseOf(f), f.inst === 'GMP' ? 'PC-PLAN-04' : 'TEST-PC-01');

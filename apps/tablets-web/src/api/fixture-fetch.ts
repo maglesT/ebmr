@@ -7,7 +7,7 @@ import { allRoutes, routes, type AnyRoute, type FetchLike, type InstallationKind
 
 /** A response body, or {status, body} for another status than 200. */
 export type FixtureAnswer = unknown;
-export type FixtureHandler = (req: { params: Record<string, string>; query: Record<string, string>; body: unknown }) => FixtureAnswer;
+export type FixtureHandler = (req: { params: Record<string, string>; query: Record<string, string>; body: unknown }) => FixtureAnswer; // a promise too: the fetch awaits it
 /** Route id -> a fixed answer or a function of the request. */
 export type FixtureMap = Readonly<Record<string, unknown>>;
 
@@ -38,7 +38,8 @@ export function createFixtureFetch(fixtures: FixtureMap, opts: { installation: I
     const query = Object.fromEntries(u.searchParams.entries());
     const body: unknown = init.body ? JSON.parse(init.body) : undefined;
     const entry = fixtures[hit.route.id];
-    const answer = typeof entry === 'function' ? (entry as FixtureHandler)({ params, query, body }) : entry;
+    // A handler may answer later (a promise): a test holds a response to see the screen while it is awaited.
+    const answer: unknown = typeof entry === 'function' ? await (entry as FixtureHandler)({ params, query, body }) : entry;
     const { status, body: payload } = isAnswer(answer) ? answer : { status: 200, body: answer };
     return { status, headers, text: () => Promise.resolve(JSON.stringify(payload)) };
   };

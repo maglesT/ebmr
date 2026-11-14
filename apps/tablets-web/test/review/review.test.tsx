@@ -165,7 +165,7 @@ describe('exception register', () => {
     await waitFor(() => expect(ui.posts(`/api/review/batches/${B}/items/EX-2/open`)).toHaveLength(1));
     // Typing in a field does not move.
     const before = ui.posts(`/api/review/batches/${B}/items/EX-1/open`).length;
-    await userEvent.type(screen.getByRole('textbox', { name: 'Justification' }), 'n');
+    await userEvent.type(await screen.findByRole('textbox', { name: 'Justification' }), 'n');
     expect(ui.posts(`/api/review/batches/${B}/items/EX-1/open`)).toHaveLength(before);
   });
 
@@ -197,6 +197,26 @@ describe('exception register', () => {
       batchId: B,
       input: { items: ['EX-2'], disposition: 'ESCALATE', justification: 'Repeated gateway loss on the press', deviationRef: 'DEV-SITE-1-2026-00012' },
     });
+  });
+
+  it('offers the disposition only once the item\'s detail has arrived, so the detail never moves the choices under a press (E2E review: Accept pressed, found unchecked)', async () => {
+    let answer: (v: unknown) => void = () => undefined;
+    const held = new Promise((resolve) => {
+      answer = resolve;
+    });
+    renderOffice(path, { role: 'QA_REVIEWER', fixtures: { 'review.openItem': () => held } });
+    await screen.findByTestId('register-summary');
+    await userEvent.click(within(screen.getByTestId('item-EX-2')).getByRole('button', { name: 'EX-2' }));
+    expect(await screen.findByTestId('item-opening')).toBeTruthy();
+    expect(screen.queryByTestId('item-disposition')).toBeNull();
+    expect(screen.queryByRole('radio', { name: 'Accept' })).toBeNull();
+    answer(example('review-open-item'));
+    const box = await screen.findByTestId('item-disposition');
+    // The detail is already above the choices when they appear: nothing is inserted above them afterwards.
+    expect(screen.getByTestId('raised-record').compareDocumentPosition(box) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.queryByTestId('item-opening')).toBeNull();
+    await userEvent.click(within(box).getByRole('radio', { name: 'Accept' }));
+    expect(within(box).getByRole('radio', { name: 'Accept' })).toHaveProperty('checked', true);
   });
 
   it('accepts the non-critical items of one linked deviation together with one justification; a critical item or an item without a deviation is never offered', async () => {
