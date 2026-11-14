@@ -44,6 +44,7 @@ import type { AppContext } from '../../platform/context.ts';
 import { signaturesOf as recordSignaturesOf } from '../esig/views.ts';
 import { parseStepKey, stepRoomReason, wireOf } from './intents.ts';
 import { peopleText } from './people-text.ts';
+import { exceptionTitleAtPrecision } from './exception-deviation.ts';
 import { bomMaterialName, potencyFromCalculation, potencyOf, withPotencyTargets } from './potency-view.ts';
 import type { DisplayPermissions } from './roles.ts';
 import { notFound, type Db, type RunContext, type RunRows } from './runs.ts';
@@ -874,7 +875,8 @@ export function exceptionView(ctx: ViewContext, e: engine.ExceptionRecord): Exce
   return {
     exceptionId: e.id,
     type: e.type,
-    title: raisedBy ? e.title.split(e.raisedBy).join(raisedBy.legalName) : e.title,
+    // Owner retest item 8: a value is shown at the precision it was judged at (the stored title keeps the exact value).
+    title: exceptionTitleAtPrecision(raisedBy ? e.title.split(e.raisedBy).join(raisedBy.legalName) : e.title),
     category: e.category,
     severity: e.severity,
     tier: e.tier ?? null,
@@ -1089,6 +1091,7 @@ export async function stepScreen(ctx: ViewContext, stepKey: string): Promise<Ste
     // A phase's signable content exists once someone has worked on it (storedOnCreation); a hold point's at once.
     signable: inst && (inst.kind === 'HOLD' || !['PENDING', 'ENABLED'].includes(inst.status)) ? { aggregateType: 'batch_step', aggregateId } : null,
     ...(kinds.includes('CONTAINER_WEIGHING') && node.kind === 'phase' && node.consumes.length > 0 ? { bomRemaining: await bomRemainingOf(ctx, node.consumes, potency) } : {}),
+    ...(kinds.includes('CONTAINER_WEIGHING') && node.kind === 'phase' && node.consumes.length > 0 && ctx.app.installation === 'GMP' ? { reservations: await reservationsOf(ctx, node.consumes) } : {}),
     ...(kinds.includes('POTENCY_CALCULATION') ? { potency } : {}),
   };
 }
@@ -1131,6 +1134,36 @@ async function bomRemainingOf(ctx: ViewContext, lines: readonly string[], potenc
     out.push({ bomLine: id, material: ref ? `${ref.title} (${ref.code})` : String(code), unit: ordered.unit, basis: 'ORDER', ...remainingOf(ctx, id, ordered.unit, Dec.parse(ordered.quantity)) });
   }
   return out;
+}
+
+/**
+ * Owner retest of 13 November 2026, item 7 (GMP only): the lots of each dispensed line's material with an open reservation
+ * for this batch (not revoked, not expired, not used up) and what is left of them, summed per lot in the lot's unit. On GMP
+ * every weighed container is consumed from such a reservation (EBMR-EXE-245; INV-13, INV-14), so a line without one is
+ * shown before the first weighing. Exact decimals, computed by the database.
+ */
+async function reservationsOf(ctx: ViewContext, lines: readonly string[]): Promise<NonNullable<StepScreenView['reservations']>> {
+  const def = ctx.run.def;
+  const { rows } = await ctx.db.query<{ material_code: string; lot_code: string; unit: string; remaining: string }>(
+    `select l.material_code, l.lot_code, l.unit, sum(r.quantity - coalesce((select sum(c.quantity) from site.lot_consumption c where c.reservation_id = r.id), 0))::text as remaining
+       from site.lot_reservation r join site.material_lot l on l.id = r.lot_id
+      where r.batch_id = $1 and r.expires_at > clock_timestamp()
+        and not exists (select 1 from site.lot_reservation_revocation x where x.reservation_id = r.id)
+        and r.quantity > coalesce((select sum(c.quantity) from site.lot_consumption c where c.reservation_id = r.id), 0)
+      group by l.material_code, l.lot_code, l.unit
+      order by l.lot_code`,
+    [ctx.run.batch.id],
+  );
+  return lines.map((id) => {
+    const line = def.mbr.bom.find((x) => x.id === id);
+    const ref = line ? def.mbr.references.find((r) => r.id === line.material) : undefined;
+    const codes = new Set([ref?.code, line?.material].filter((c): c is string => typeof c === 'string'));
+    return {
+      bomLine: id,
+      material: ref ? `${ref.title} (${ref.code})` : (line?.material ?? id),
+      lots: rows.filter((r) => codes.has(r.material_code)).map((r) => ({ lotCode: r.lot_code, remaining: r.remaining, unit: r.unit })),
+    };
+  });
 }
 
 /** The required quantity, the batch's net weighed of the line in `unit` and what is left, shown to the required quantity's precision (at least three decimals). */

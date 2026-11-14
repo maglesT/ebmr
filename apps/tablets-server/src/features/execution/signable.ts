@@ -43,6 +43,7 @@ import { engine, execution, flow } from '@ebmr/recipe-core';
 import { unstorableTextIssues, type ExceptionView, type FieldView, type Refusal, type SignableAction, type SignableContentView } from '@ebmr/api-contract';
 import type { AppContext } from '../../platform/context.ts';
 import { dbNowUs } from '../../platform/db/commands.ts';
+import { forInstallation } from '../../platform/http/guidance.ts';
 import { HttpRefusal, refusal } from '../../platform/http/refusal.ts';
 import type { DryRunOutcome, SignableActionHandler, SignableContext } from '../../platform/ports.ts';
 import type { EsigSignableContext } from '../esig/content.ts';
@@ -76,11 +77,12 @@ function mismatch(expected: string | undefined, given: string): Refusal {
   };
 }
 
-function stale(state: engine.BatchState, expected: number): Error {
+/** `installation`: a GMP batch is named a batch, never a test run (owner retest of 13 November 2026, item 9b). */
+function stale(state: engine.BatchState, expected: number, installation: 'GMP' | 'SANDBOX'): Error {
   return refusal(409, {
     code: 'ENG-STALE',
     kind: 'STALE',
-    whatHappened: 'The test run changed since this screen was loaded. Nothing was signed.',
+    whatHappened: forInstallation('The test run changed since this screen was loaded. Nothing was signed.', installation),
     why: `The run is at version ${state.version}; the screen showed version ${expected}.`,
     controls: ['DI-34'],
     whatYouCanDo: ['Reload the screen and start the signing again.'],
@@ -731,7 +733,7 @@ export function engineCommandHandler(app: AppContext): SignableActionHandler<Eng
       const db = app.pools.app;
       const run = await runContext(db, runId);
       const stored = await execution.loadState(db, runId);
-      if (!stored) throw notFound('test run');
+      if (!stored) throw notFound(app.installation === 'GMP' ? 'batch' : 'test run');
       const nowUs = await dbNowUs(db);
       const parsed = parseIntent(query.intent);
       const meaning = await meaningInfo(db, parsed.meaning);
@@ -772,7 +774,7 @@ export function engineCommandHandler(app: AppContext): SignableActionHandler<Eng
       // signed row from anywhere else, recipe-core 0285 and 0300): said here, before the challenge and the PIN.
       const room = a.intent.type === 'SIGN_PERFORMED' || a.intent.type === 'VERIFY' ? stepRoomRefusal(o.run.def, stepTarget(o.tx.state, a.intent.stepKey).step, ctx.room) : null;
       if (room) throw new HttpRefusal(422, room);
-      if (o.tx.state.version !== a.expectedVersion) throw stale(o.tx.state, a.expectedVersion);
+      if (o.tx.state.version !== a.expectedVersion) throw stale(o.tx.state, a.expectedVersion, app.installation);
       const roles = await engineRoles(client, a.runId);
       const changed = await o.tx.prepare(o.subject.target, engineActor(ctx.actor.personId, roles), roles, o.meaning);
       cache.set(a.runId, { def: o.run.def, state: o.tx.state });

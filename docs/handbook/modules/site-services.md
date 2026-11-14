@@ -112,6 +112,9 @@ permissions is in the [README](../../../packages/site-services/src/batch-numbers
 - [`site.void_batch_number`](../../../packages/site-services/sql/0600_batch_number_register.sql#sym=site.void_batch_number) voids with a reason; the number is never reissued.
 - [`site.recover_batch_number`](../../../packages/site-services/sql/0600_batch_number_register.sql#sym=site.recover_batch_number) re-enters, after a completed restore, a number issued in the lost window, with
   evidence, only for a serial inside the range the restore skipped.
+- [`site.batch_number_retired_ranges`](../../../packages/site-services/sql/1924_batch_number_retired_ranges.sql#sym=site.batch_number_retired_ranges) (1924) lists, per numbering rule of a site, the serials
+  its counter skipped and never gave (a server start, a ledger ahead, a restore), from `continuity.sequence_bump`, with
+  the numbers they render to, the reason and the time; the register screen shows them. Read only.
 - [`site.batch_number_invariant_violations`](../../../packages/site-services/sql/0600_batch_number_register.sql#sym=site.batch_number_invariant_violations) is the invariant query (must return nothing).
 - [`site.site_zone_row_guard`](../../../packages/site-services/sql/0700_batch_number_site_zone.sql#sym=site.site_zone_row_guard) (0700) refuses a rule or an allocation whose zone is not the site policy `site.zone`, so
   `{YY}` and `{MM}` and the register date are always the site's own calendar.
