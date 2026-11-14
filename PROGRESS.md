@@ -87,11 +87,11 @@ finished lot of it is refused. The master-version market authorisation stays (le
 
 **Earlier state** (moved verbatim to `docs/progress/history.md` on 11 November 2026, and session 12's and I-5's
 entries on 14 November (search "PROGRESS.md session 12, moved 14 November" and "PROGRESS.md I-5, moved 14 November");
-search "PROGRESS.md condensed, 11 November"): the sandbox date-time fix (kernel 1406); the post-use inspection without a second person (tablets 1908);
-MEDHANTA slice 2, deviations through the Deviations product (tablets 1907, decision 0029); declutter D1 to D4b (decision
-record in `docs/build-plan/declutter/plan.md`); the API edition A0 to A2; the demo gaps D-0 to D-4, R-flow and R-rest;
-the capsules edition; the injectables plan and I-1 to I-4; the dynamic library S0 to S16 (decision 0026); Phases 0 to 4,
-6, 6A and 7 (Tablets v1.0.0-rc.1, 19 October) and the hosted-demo slices 7h to 7u.
+search "PROGRESS.md condensed, 11 November"): the sandbox date-time fix (kernel 1406); the post-use inspection without a
+second person (tablets 1908); MEDHANTA slice 2, deviations through the Deviations product (tablets 1907, decision 0029);
+declutter D1 to D4b (decision record in `docs/build-plan/declutter/plan.md`); the API edition A0 to A2; the demo gaps
+D-0 to D-4, R-flow and R-rest; the capsules edition; the injectables plan and I-1 to I-4; the dynamic library S0 to S16
+(decision 0026); Phases 0 to 4, 6, 6A and 7 (Tablets v1.0.0-rc.1, 19 October) and the hosted-demo slices 7h to 7u.
 
 ## Next
 
