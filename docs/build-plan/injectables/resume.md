@@ -1,4 +1,4 @@
-# Injectables: resume notes (I-6 exit; session 16 handover, 13 November 2026)
+# Injectables: resume notes (I-6 exit; session 17 handover, 14 November 2026)
 
 Read these instead of the session history. The rules in force are:
 - `plan.md` (approved v2; the block-version rule is in it);
@@ -52,6 +52,45 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
   by declutter D3. No edition-specific screens or panels.
 - **Merging:** no merge queue. Merge each PR yourself on green, after a lead audit (ping the lead). Merge main in only
   on a conflict. Report each merge in 2 lines.
+
+### Session 17 handover (14 November 2026, about 12:30): session 18 continues here
+
+Session 17 was session_01PybpFuhBnYXh9yvdSzZcJc. The lead is session_01PybpFrP72XuwyG8S3H3NJS: report there with
+send_message, and ask the lead only the lead's decisions. Every code PR merges only after the lead's audit, on a full green run
+(runner github) whose head contains main, as a squash with the full expectedHeadSha. At most 2 PRs open. Plain trailers
+only (`Co-Authored-By: Claude <noreply@anthropic.com>` and the session URL), with no model name.
+
+**Merged in session 17:** #252 (B5 fresh install), #253 (PR-15, PR-28 clause 1, the phase-8 owner-question deferrals,
+decision 0031), #254 (GB-I-01), #255 (I-6 exit: `phase.yaml` lists both editions), #258 (review pass: DI-20, the renderer
+watchdog, the Demotab 12 and reserve-lot races, PROGRESS trim).
+
+**Next, in this order (lead, 14 November 2026):**
+1. **The content-extension PR**, branch `inj/i6-content-extension-v2` (kernel 1407, tablets 1914). It may already be
+   open: check the open PRs. It meets the lead's conditions:
+   - the `config_change_record` provider row is unchanged;
+   - extensions merge in key order;
+   - the pre-1914 hash test is kept;
+   - the APS lines are shown in the signed content;
+   - insert-only guards, and the `esig-content-extension` mutation group at 100 %;
+   - the DI-48 drill passes unchanged;
+   - a fresh-install vs upgrade function-body test.
+
+   The table is `platform.content_extension` (lead approved). The PR body must say that 1910 no longer defines the
+   kernel function's final text, and that governance-change-control at 72.7 % is a pre-existing residual: the same 33
+   survivors are in `docs/build-plan/phase-6/mutation-results.md`, mutation targets are deployment work (decision 0008),
+   and no new survivors are added. Send "ready for audit" on green.
+2. **The expected-answer database re-check PR**, branch `inj/i6-expected-answer-db` at 456c79c (recipe-core 1924). The
+   lead accepted the build. The PR body notes that site-services 1924 (owner #257) is another namespace. Merge main first,
+   run the full local ci, then open it.
+3. **Its follow-up, the hidden-field fix:** the database refuses a value stored in a field its condition hides
+   (LIB-ENTRY-HIDDEN). Same pattern: a database refusal, a parity test against the engine over every seeded condition,
+   a bypass test, a mutation group. Record it in `review-pass.md` and PROGRESS Next.
+
+**Open, not ours:** the renderer-freeze root cause. The watchdog attaches the stack at the next freeze. PROGRESS lists
+the owner residuals and questions.
+
+**Local:** clusters ci3 (5436) and ci2 (5434) are used by session 17's work. Worktrees under `.claude/worktrees/` are
+excluded in `.git/info/exclude`.
 
 ### Session 15 (13 November 2026): I-6 exit, continued (session_01PybpFuMPRb1RHpjkTuiuVZ)
 
