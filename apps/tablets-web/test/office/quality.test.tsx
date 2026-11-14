@@ -85,7 +85,7 @@ describe('deviations', () => {
 describe('lots', () => {
   const lot = example('quality-lots').lots[0];
   const lotPath = `/quality/lots/${lot?.lotId ?? ''}`;
-  const failing = { resultId: '9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d', testCode: 'ASSAY', purpose: 'RELEASE', value: '93.1', unit: '%', lowerLimit: '98.0', upperLimit: '102.0', verdict: 'FAIL', state: 'RECORDED' };
+  const failing = { resultId: '9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d', testCode: 'ASSAY', methodReference: 'STP-EXZ-AS-01', purpose: 'RELEASE', value: '93.1', unit: '%', lowerLimit: '98.0', upperLimit: '102.0', verdict: 'FAIL', state: 'RECORDED' };
 
   it('QC approves a result through the ceremony and raises an OOS record linked to the lot for a failing one', async () => {
     const ui = renderOffice(lotPath, { role: 'QC_ANALYST', fixtures: { 'quality.lotResults': { results: [failing] } } });
@@ -98,6 +98,17 @@ describe('lots', () => {
     expect(ui.posts('/api/quality/deviations')[0]?.body).toMatchObject({ kind: 'OOS' });
     const raised = example('quality-deviations').deviations[0];
     await waitFor(() => expect(ui.posts(`/api/quality/deviations/${raised?.deviationId ?? ''}/links`)[0]?.body).toEqual({ subjectKind: 'LOT', subjectId: lot?.lotId }));
+  });
+
+  it('[IN-33] a result row shows the method it was made by, read-only (copied from the approved specification, never typed on this screen)', async () => {
+    // The firm's own method name of a sterility test by a validated rapid microbial method (DEMO-ONLY fixture text).
+    const sterility = { ...failing, resultId: '1b2c3d4e-5f6a-4b7c-8d9e-0a1b2c3d4e5f', testCode: 'STERILITY', methodReference: 'Validated rapid microbial method', value: '0', unit: '1', lowerLimit: null, upperLimit: '0', verdict: 'PASS', state: 'APPROVED' };
+    renderOffice(lotPath, { role: 'QC_ANALYST', fixtures: { 'quality.lotResults': { results: [sterility] } } });
+    const row = await screen.findByTestId('result-STERILITY-RELEASE');
+    expect(within(row).getByTestId(`result-method-${sterility.resultId}`).textContent).toBe('by Validated rapid microbial method');
+    // Shown, not entered: the row offers no field for the method, and the form that records a result has none either.
+    expect(within(row).queryByRole('textbox')).toBeNull();
+    expect(within(await screen.findByTestId('form-Record a result')).queryByRole('textbox', { name: /method/i })).toBeNull();
   });
 
   it('QA releases with a route (described for that choice) or rejects; QC is not offered the decision', async () => {
