@@ -270,6 +270,9 @@ describe('Injectables I-6: the sterilising filter is integrity tested before and
     const b = await issued();
     const d = await driverOf(gmp, b.batchId);
     await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-filter@' });
+    // Only data entries count (lead ruling, 14 November 2026, which the owner may veto): a timer's start and stop are not
+    // compared, since the binding clause does not fix the timer order and the nominal run stops a step's timers after its
+    // last section. Here the filtration's data entry follows the post-use result, so the item is RED.
     await recordFilter(d, ['TIMER_START', 'filter', 'preUse', 'postUse', 'filtration', 'TIMER_STOP']);
     await signed(d, 'p-filter@', 'S-FILTER@');
     const g = await gate(await lotOf(b));
