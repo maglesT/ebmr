@@ -44,6 +44,16 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 ## Where things stand
 
+**Injectables I-6 item 3: the database re-checks expected answers (14 November 2026; branch inj/i6-expected-answer-db, no
+PR yet).** recipe-core 1924: `recipe.library_answer_records` gives the LIB_UNEXPECTED_ANSWER (critical when
+`unexpectedCritical`) and LIB_NOT_ALLOWED_CHOICE records an entry's answers require, with the engine's facts; a field
+its condition hides and a loop's YES_NO endpoint are not judged, as in the engine. `library_limits_problem` and
+`library_limits_check` are carried forward from 1862 with nothing removed (`docs/build-plan/injectables/expected-answer-db-1862.diff`,
+and a test compares the bodies). Parity sweep (`packages/recipe-core/test/library/expected-answer-db.test.ts`) over the
+catalogue's 197 expected answers and 4 not-allowed choices, hidden fields included. One 1862 test changed: it held that an
+answer exception is not judged. Residual for the lead: a value stored in a field its condition hides is not refused by
+the database (the engine refuses it, LIB-ENTRY-HIDDEN).
+
 **Demo fix: an equipment status step that checks no unit (r13 bug 1, 13 November 2026; branch fix-validator-stage-equipment).**
 A stage added with the designer binds rooms but no equipment, and its G-09@2 step checked nothing; the validator passed it
 and on the floor the step could never be signed (G09-INCOMPLETE, EBMR-EXE-210). New validator rule
