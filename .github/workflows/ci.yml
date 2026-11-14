@@ -1,9 +1,16 @@
 name: CI
 
+# Decision 0032 (the faster merge loop): a pull request runs its gate, the tests its change selects (tools/ci/src/select.ts;
+# a path nothing maps runs everything); a push to main, the nightly schedule and a run by hand without e2e_groups run the
+# full suite, and the trace gate's evidence comes from those full runs. Phase exits and releases need a full green run
+# (a run by hand on the branch). The check that main is green before a merge is main-green.yml.
 on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    # Nightly full run, 02:11 India time.
+    - cron: '41 20 * * *'
   # Run by hand on a branch (Actions > CI > Run workflow, or `gh workflow run ci.yml --ref <branch> -f e2e_groups=...`).
   # With e2e_groups (comma-separated, for example "route-w,rest") only those end-to-end groups run, on the pod, and
   # nothing else: a check of the affected groups before a pull request. Empty: the full run, as on a pull request.
@@ -32,7 +39,10 @@ env:
 
 concurrency:
   group: ci-${{ github.event_name }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Each branch and pull request has its own group (the event and the ref). A newer pull-request push or run by hand
+  # cancels the older run of its group; only a push to main is never cancelled by the next merge (decision 0032: each
+  # merge gets its full run; a newer one waits, and GitHub keeps only the newest waiting).
+  cancel-in-progress: ${{ github.event_name != 'push' }}
 
 # Where the jobs run: CI_RUNNER 'ubicloud' (or the run-by-hand input runner=ubicloud) puts only the long jobs on
 # Ubicloud's managed runners (the Ubicloud GitHub app on this repository; owner): the end-to-end groups on
@@ -140,6 +150,7 @@ jobs:
 
   tests:
     name: Tests (shard ${{ matrix.shard }} of 8)
+    needs: [changes]
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.e2e_groups == '' }}
     runs-on: ubuntu-24.04
     # The whole suite (about 2,700 tests, mostly against PostgreSQL) took 55 minutes on one 2-core runner at the end
@@ -172,7 +183,9 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm vitest run --shard=${{ matrix.shard }}/8 ${{ runner.environment == 'self-hosted' && '--maxWorkers=4' || '' }} --reporter=default --reporter=blob --outputFile.blob=.vitest-blobs/blob-${{ matrix.shard }}.json
+      # The full run: every test. A pull request's gate: the selected test directories (decision 0032; an empty shard
+      # still writes its blob, so the report job always merges eight).
+      - run: pnpm vitest run --shard=${{ matrix.shard }}/8 --passWithNoTests ${{ needs.changes.outputs.unit_all != 'true' && needs.changes.outputs.unit_paths || '' }} ${{ runner.environment == 'self-hosted' && '--maxWorkers=4' || '' }} --reporter=default --reporter=blob --outputFile.blob=.vitest-blobs/blob-${{ matrix.shard }}.json
       - name: Stop PostgreSQL
         if: always()
         run: bash tools/ci/start-postgres.sh stop
@@ -190,7 +203,10 @@ jobs:
   # a test clock. The other jobs never preload the clock library; their golden tests do not run (runIf EBMR_FAKETIME_FILE).
   golden:
     name: Golden batches (golden clock cluster)
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.e2e_groups == '' }}
+    needs: [changes]
+    # A pull request's gate runs them when the tablets server's tests are selected (the engine, recipe-core, edition SQL
+    # or anything they depend on changed); the full run always (decision 0032).
+    if: ${{ (github.event_name != 'workflow_dispatch' || inputs.e2e_groups == '') && needs.changes.outputs.golden == 'true' }}
     runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'pod' && 'ebmr-pod' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-8-ubuntu-2204' || 'ubuntu-24.04' }}
     # GB-T-01 about 20 minutes on the runner, GB-T-02 about 5, GB-T-03 (slice 6j-b) about 8, GB-I-01 (injectables) about 1.5.
     timeout-minutes: 60
@@ -233,7 +249,7 @@ jobs:
   # static checks and every test shard passed and the trace accepts the merged report.
   report:
     name: Typecheck, lint, boundaries, register, web build, tests, traceability
-    needs: [checks, tests, golden]
+    needs: [changes, checks, tests, golden]
     # Runs when a shard failed (to merge and summarise what did run) but not when the run was cancelled, for example by
     # a newer push to the same branch: there is nothing to report then; nor on a run of chosen end-to-end groups only.
     if: ${{ !cancelled() && (github.event_name != 'workflow_dispatch' || inputs.e2e_groups == '') }}
@@ -281,18 +297,27 @@ jobs:
             console.log(`${r.numFailedTests} failed, ${r.numPassedTests} passed, ${r.numTotalTests} total`);
           '
       - name: The static checks, every shard and the golden batches passed
-        run: test "${{ needs.checks.result }}" = success && test "${{ needs.tests.result }}" = success && test "${{ needs.golden.result }}" = success
+        # The golden batches may be left out only by a pull request's gate that did not select them (decision 0032).
+        run: test "${{ needs.checks.result }}" = success && test "${{ needs.tests.result }}" = success && { test "${{ needs.golden.result }}" = success || { test "${{ needs.changes.outputs.mode }}" = gate && test "${{ needs.changes.outputs.golden }}" = false && test "${{ needs.golden.result }}" = skipped; }; }
       # The Vitest report alone: listed end-to-end tests are checked against a run in the traceability job below.
       - name: Golden-batch report of the golden job
+        if: ${{ needs.golden.result == 'success' }}
         uses: actions/download-artifact@v4
         with:
           name: vitest-golden
           path: .reports
       # The golden job ran on another pod runner: its report names files from that runner's folder (see the merge above).
-      - run: sed -i -E "s#/workspace/runners/[^/\"]+/_work/ebmr/ebmr#${GITHUB_WORKSPACE}#g" .reports/vitest-golden.json
+      - if: ${{ needs.golden.result == 'success' }}
+        run: sed -i -E "s#/workspace/runners/[^/\"]+/_work/ebmr/ebmr#${GITHUB_WORKSPACE}#g" .reports/vitest-golden.json
       # Stamped after the rewrite above, which changes its bytes (same run, same commit as the golden job).
-      - run: pnpm -s validation:stamp .reports/vitest-golden.json
-      - run: pnpm trace --require-golden
+      - if: ${{ needs.golden.result == 'success' }}
+        run: pnpm -s validation:stamp .reports/vitest-golden.json
+      # The full run traces every control, the golden batches required; a pull request's gate only what it ran
+      # (register trace --partial, decision 0032). The evidence is the full run's.
+      - if: ${{ needs.changes.outputs.mode == 'full' }}
+        run: pnpm trace --require-golden
+      - if: ${{ needs.changes.outputs.mode == 'gate' }}
+        run: pnpm trace --partial
       - name: OpenAPI document of the frozen contract
         run: pnpm openapi
       - name: Upload traceability matrix and OpenAPI
@@ -320,19 +345,52 @@ jobs:
   changes:
     name: Code or docs only
     runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-2-ubuntu-2204' || 'ubuntu-24.04' }}
-    timeout-minutes: 5
+    timeout-minutes: 10
     outputs:
       code: ${{ steps.diff.outputs.code }}
+      mode: ${{ steps.plan.outputs.mode }}
+      unit_all: ${{ steps.plan.outputs.unit_all }}
+      unit_paths: ${{ steps.plan.outputs.unit_paths }}
+      golden: ${{ steps.plan.outputs.golden }}
+      groups: ${{ steps.plan.outputs.groups }}
+      all_groups: ${{ steps.plan.outputs.all_groups }}
+      sql_functions: ${{ steps.plan.outputs.sql_functions }}
     steps:
+      # The whole history (blobs on demand), so the selection can diff from the merge base with main.
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
+          filter: blob:none
       - id: diff
         env:
           EVENT: ${{ github.event_name }}
           BASE: ${{ github.event.pull_request.base.sha }}
           HEAD: ${{ github.event.pull_request.head.sha }}
         run: bash tools/ci/changes.sh
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Decision 0032: a full run (push to main, nightly, by hand) tests everything; a pull request its gate, selected
+      # by tools/ci/src/select.ts from the files it changes against its merge base with main, so a merge of main into
+      # the branch adds nothing and only the same gate runs again.
+      - id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          echo "all_groups=$(pnpm -s exec tsx tools/ci/src/groups-cli.ts)" >> "$GITHUB_OUTPUT"
+          if [ "$EVENT" = pull_request ]; then
+            echo "mode=gate" >> "$GITHUB_OUTPUT"
+            pnpm -s exec tsx tools/ci/src/select.ts --base "$BASE" --head "$HEAD" --github-output "$GITHUB_OUTPUT"
+          else
+            echo "mode=full" >> "$GITHUB_OUTPUT"
+            { echo unit_all=true; echo unit_paths=; echo golden=true; echo groups=; echo sql_functions=; } >> "$GITHUB_OUTPUT"
+          fi
 
   e2e-plan:
     name: End-to-end groups to run
@@ -343,13 +401,20 @@ jobs:
     outputs:
       groups: ${{ steps.plan.outputs.groups }}
     steps:
+      # The groups: those chosen by hand; else on a pull request the gate's (select.ts; none when it selects none); else
+      # every group. The list of groups is tools/e2e/groups.ts, which the changes job reads.
       - id: plan
         env:
-          ALL: route-w route-d route-s route-b gmp-batches own-demotab own-p3 p3-demo library-wg-fc library-dc library-rabe-ec library-caps library-softgel library-inj-vial library-inj-amp library-inj-gmp library-inj-aseptic library-inj-routes library-inj-cartridge library-bilayer library-inj-powder library-inj-lyo library-inj-inspection rest
+          ALL: ${{ needs.changes.outputs.all_groups }}
           CHOSEN: ${{ github.event_name == 'workflow_dispatch' && inputs.e2e_groups || '' }}
+          GATE: ${{ needs.changes.outputs.mode == 'gate' && needs.changes.outputs.groups || '' }}
         run: |
           set -euo pipefail
           want=$(echo "$CHOSEN" | tr ',' ' ' | xargs)
+          if [ -z "$want" ] && [ -n "$GATE" ]; then
+            want=$(echo "$GATE" | tr -d '[]"' | tr ',' ' ' | xargs)
+            if [ -z "$want" ]; then echo "groups=[]" >> "$GITHUB_OUTPUT"; echo "end-to-end groups: none (the gate selects none)"; exit 0; fi
+          fi
           [ -n "$want" ] || want="$ALL"
           json=""
           for g in $want; do
@@ -362,6 +427,7 @@ jobs:
   e2e:
     name: End-to-end (Playwright, chromium, ${{ matrix.group }})
     needs: [e2e-plan]
+    if: ${{ needs.e2e-plan.outputs.groups != '[]' }}
     runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'pod' && 'ebmr-pod' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-4-ubuntu-2204' || 'ubuntu-24.04' }}
     # 45: the set-up builds the release path through real signed acts (Phase 4 slice 7b), about 10 minutes more.
     # In groups since slice 7k (P7K-5): one job passed 74 tests and still reached 75 minutes. Each group runs the global
@@ -421,7 +487,7 @@ jobs:
   e2e-report:
     name: End-to-end reports merged
     needs: [e2e-plan, e2e]
-    if: ${{ !cancelled() && needs.e2e-plan.result == 'success' }}
+    if: ${{ !cancelled() && needs.e2e-plan.result == 'success' && needs.e2e-plan.outputs.groups != '[]' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -460,7 +526,7 @@ jobs:
   # end-to-end test tagged with a control is in its list. The Playwright report is required here.
   traceability:
     name: Traceability with the end-to-end results
-    needs: [checks, report, e2e-report]
+    needs: [changes, checks, report, e2e-report]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -486,11 +552,84 @@ jobs:
       # The reports were written on other pod runners (the Playwright report's rootDir, the Vitest files): their
       # folders become this job's workspace, as in the report job (a no-op on GitHub-hosted runners).
       - run: sed -i -E "s#/workspace/runners/[^/\"]+/_work/ebmr/ebmr#${GITHUB_WORKSPACE}#g" .reports/*.json
-      - run: pnpm trace:e2e
+      # The full run: every control against the whole run (golden and end-to-end reports required). A pull request's
+      # gate: only what its selection ran (decision 0032).
+      - if: ${{ needs.changes.outputs.mode == 'full' }}
+        run: pnpm trace:e2e
+      - if: ${{ needs.changes.outputs.mode == 'gate' }}
+        run: pnpm trace:gate
       - name: Upload the traceability matrix with the end-to-end results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: trace-matrix-e2e
           path: .reports/trace-matrix.md
+          if-no-files-found: ignore
+
+  # Decision 0032: a pull request that changes a migration runs the SQL mutation harness on the guard functions it
+  # defines that a mutation target holds (tools/ci/src/select.ts), each in the groups that hold it. It fails on a new
+  # surviving mutant, not on a group's threshold (thresholds stay deployment work, decision 0008): a head survivor is old
+  # debt only when the same mutation survives (or is reviewed equivalent) at the merge base, which is run only when the
+  # head has survivors, one function at a time (a function new in this pull request has no base run, so its survivors
+  # are all new). The full SQL mutation run stays mutation.yml's (weekly and by hand).
+  sql-mutation:
+    name: SQL mutation of the changed guards
+    needs: [changes]
+    if: ${{ needs.changes.outputs.mode == 'gate' && needs.changes.outputs.sql_functions != '' }}
+    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-8-ubuntu-2204' || 'ubuntu-24.04' }}
+    timeout-minutes: 120
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ebmr_dev
+          POSTGRES_PASSWORD: ebmr_dev
+          POSTGRES_DB: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U ebmr_dev"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      EBMR_PG_ADMIN_URL: postgres://ebmr_dev:ebmr_dev@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          filter: blob:none
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Mutants of the changed guards at the head
+        run: pnpm mutation:sql --functions "${{ needs.changes.outputs.sql_functions }}" --workers 2 --own-cluster --no-threshold --out .reports/sql-mutation/gate/head
+      - name: The same functions at the merge base, when the head has survivors
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          FUNCTIONS: ${{ needs.changes.outputs.sql_functions }}
+        run: |
+          set -euo pipefail
+          out="$GITHUB_WORKSPACE/.reports/sql-mutation/gate"
+          if ! node -e 'process.exit(require(process.argv[1]).some((r) => r.status === "SURVIVED") ? 0 : 1)' "$out/head/report.json"; then
+            echo "no survivor at the head"; exit 0
+          fi
+          git fetch --no-tags origin "$BASE"
+          mb=$(git merge-base "$BASE" HEAD)
+          git worktree add --detach "$RUNNER_TEMP/base" "$mb"
+          cd "$RUNNER_TEMP/base"
+          pnpm install --frozen-lockfile
+          for f in $(echo "$FUNCTIONS" | tr ',' ' '); do
+            # A function the base does not have (or whose base run fails) leaves no report: its survivors count as new.
+            pnpm mutation:sql --functions "$f" --workers 2 --own-cluster --no-threshold --out "$out/base/$f" || echo "::warning::no base run for $f"
+          done
+      - name: No new surviving mutant
+        run: pnpm -s exec tsx tools/sql-mutation/src/new-survivors.ts --head .reports/sql-mutation/gate/head/report.json $(for f in .reports/sql-mutation/gate/base/*/report.json; do [ -f "$f" ] && printf -- '--base %s ' "$f"; done)
+      - name: Keep the mutation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sql-mutation-gate
+          path: .reports/sql-mutation/gate
+          include-hidden-files: true
           if-no-files-found: ignore
