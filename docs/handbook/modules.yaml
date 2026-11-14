@@ -56,7 +56,7 @@ modules:
     page: modules/kernel.md
     package: packages/kernel
     migrations:
-      packages/kernel/sql: ['^02\d\d_', '^0910_', '^0930_', '^0950_', '^1020_', '^1112_', '^1203_', '^1205_', '^1206_', '^1321_']
+      packages/kernel/sql: ['^02\d\d_', '^0910_', '^0930_', '^0950_', '^1020_', '^1112_', '^1203_', '^1205_', '^1206_', '^1321_', '^1407_']
     src: [packages/kernel/src/esig]
     tests: ['packages/kernel/test/esig/**']
 
@@ -1047,7 +1047,7 @@ modules:
     page: modules/tablets-server.md
     package: apps/tablets-server
     migrations:
-      apps/tablets-server/sql: ['^1270_', '^191[0-3]_']
+      apps/tablets-server/sql: ['^1270_', '^191[0-4]_']
     server: [apps/tablets-server/src/features/config-change]
     contract: [packages/api-contract/src/ns/config.ts]
     screens: [apps/tablets-web/src/features/config]
