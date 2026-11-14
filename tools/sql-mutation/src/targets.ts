@@ -1021,6 +1021,15 @@ export const TARGETS: Target[] = [
     tests: [s('injectables/vial-chain.test.ts')],
     threshold: 90,
   },
+  // ---- Injectables I-6 B5: an applied nitrogen overlay needs its gas filter's passing post-use result for release (ST-28;
+  // editions/injectables/sql 3040, which also redefines injectables.grel_edition_items, kept in inj-release-items;
+  // it reads marks and a role, not block codes). ----
+  {
+    group: 'inj-gas-filter',
+    functions: ['injectables.grel_gas_filter'],
+    tests: [s('injectables/gas-filter-gate.test.ts')],
+    threshold: 90,
+  },
   // ---- Injectables lean item 6: a library block with the role PACK_EXAMINATION completes a packaging record (recipe-core
   // 1892; editions/injectables/sql 3020 redefines injectables.grel_pack_examination, which stays in inj-release-items). ----
   {

@@ -48,6 +48,7 @@ implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables-routes.test.ts > the Injectables catalogue (slice I-4, other containers and routes) > [ST-77][IN-51] blow-fill-seal records the machine in its room and the polymer lot, the seals at each round (the fill weights are IPC-INJ-FILL-WEIGHT's), and registers the filled units; for the EU market its own block judges the extrusion and mould temperatures and the batch's wall thickness; a value outside is an exception"
   - "packages/recipe-core/test/library/seed-injectables-routes.test.ts > what the approved MODIFY decisions keep, in the I-4 blocks (slice I-6.3) > [ST-77] a blow-fill-seal machine whose qualification QA withdrew (after a mould change, until its assessment closes) cannot be used: the step refuses it"
+  - "packages/recipe-core/test/validator/required-blocks.test.ts > the blocks a clause asks where the master uses its technology (I-6 B5) > [ST-77][PR-03] a master for the EU market that fills by blow-fill-seal (INJ-BFS) without the EU record of its settings and batch wall-thickness test (INJ-BFS-EU) after it is refused (A1 8.115(vi), 8.116); with it after it passes, before it is refused; a master for India and the US needs none"
 clauses:
   - clause: "A 10-min mould-temperature excursion → units from that window segregated."
     not_required:
@@ -56,6 +57,11 @@ clauses:
   - clause: "A modified mould without closed CCI assessment → batch start blocked."
     tests:
       - "packages/recipe-core/test/library/seed-injectables-routes.test.ts > what the approved MODIFY decisions keep, in the I-4 blocks (slice I-6.3) > [ST-77] a blow-fill-seal machine whose qualification QA withdrew (after a mould change, until its assessment closes) cannot be used: the step refuses it"
+notes: |-
+  EU market (I-6 B5, MKT-REQUIRED-BLOCKS): EU GMP Annex 1 8.115(vi) asks that the critical BFS process parameters are
+  defined and recorded during production, and 8.116 a batch-specific check of the container wall thickness at critical
+  points. A master for the EU that fills by INJ-BFS therefore needs INJ-BFS-EU after it on every path, or the validator
+  refuses it; the test is the [ST-77][PR-03] entry in required-blocks.test.ts. Neither catalog clause above covers this.
 expert_decision:
   status: MODIFY
   pack_version: "0.9"
