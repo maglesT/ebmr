@@ -15,6 +15,7 @@ import { fileURLToPath } from 'node:url';
 import { AxeBuilder } from '@axe-core/playwright';
 import type { Page } from '@playwright/test';
 import { badge, expect, pickTerminal, pin, signIn, test, VIEWPORTS } from '../../fixtures/index.ts';
+import { watchPages } from '../../fixtures/renderer-watchdog.ts';
 
 const FEATURES = fileURLToPath(new URL('../../../../apps/tablets-web/src/features/', import.meta.url));
 const EXAMPLE_ID = '6b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e';
@@ -161,6 +162,7 @@ test.describe('accessibility audit (slice 7d)', () => {
   test('the floor screens at a GMP kiosk: axe without serious or critical finding, every target at least 44 x 44 CSS px', { tag: '@kiosk' }, async ({ browser, e2e, persona }) => {
     test.setTimeout(600_000);
     const context = await browser.newContext({ viewport: VIEWPORTS.kiosk, locale: 'en-IN', timezoneId: 'Asia/Kolkata' });
+    watchPages(context);
     try {
       const page = await context.newPage();
       await pickTerminal(page, e2e.url('GMP'), 'KIOSK-DISP-1');
