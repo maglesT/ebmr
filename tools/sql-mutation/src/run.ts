@@ -20,13 +20,14 @@
  *
  * Usage: tsx tools/sql-mutation/src/run.ts [--count] [--verify] [--baseline] [--group <name>[,<name>...]] [--only <ids>]
  *                                          [--functions <names>] [--workers <n>] [--out <dir>] [--resume] [--own-cluster]
- *                                          [--audit-equivalents]
+ *                                          [--audit-equivalents] [--no-threshold]
  *   --count        mutant counts per group (no database);
  *   --functions    only the mutants of these functions (schema.name, comma-separated), in the groups that hold them:
  *                  a function a later migration re-created is run without the rest of its group;
  *   --resume       keep the results <out>/report.json already holds for the same mutants (same id, group, line,
  *                  operator, original and replacement) and run only the others; report.json is written after every
  *                  mutant, so a run stopped by a restart resumes where it stopped (same commit, same --out);
+ *   --no-threshold do not fail on a group's threshold (the pull-request gate compares survivors with the base instead);
  *   --audit-equivalents  list the entries of equivalent.json that no longer fit their mutant (no database); a run
  *                  applies an entry only when it fits (see staleEquivalent);
  * Environment: EBMR_MUTATION_TEST_TIMEOUT (ms) raises Vitest's test and hook time-outs; EBMR_MUTATION_VITEST_WORKERS caps
@@ -805,7 +806,9 @@ async function main(): Promise<void> {
   lines.push(...(survivors.length ? survivors.map((r) => `- ${r.group} ${r.function} (${r.file}:${r.line}) ${r.operator}: \`${r.original}\` -> \`${r.replacement}\``) : ['None.']));
   writeFileSync(join(outDir, 'summary.md'), `${lines.join('\n')}\n`);
   console.log(lines.join('\n'));
-  if (failed) process.exitCode = 1;
+  // --no-threshold (a pull request's gate, decision 0032): the run reports its scores but does not fail on a group's
+  // threshold; new-survivors.ts decides, against the base, whether the change added a surviving mutant.
+  if (failed && !process.argv.includes('--no-threshold')) process.exitCode = 1;
 }
 
 if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split('/').pop() ?? '')) {
