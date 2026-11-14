@@ -44,6 +44,11 @@ export type Op =
   /** Marks the master as a process simulation (media fill) that makes no product, or clears the mark (null). */
   | { kind: 'SET_NON_PRODUCT'; nonProduct: flow.NonProduct | null }
   | { kind: 'UPDATE_CALCULATION'; id: string; name?: string; expression?: string }
+  /**
+   * Demo report r13 bug 3: a golden case's given input or expected result, a decimal written as "<number> [unit]" (the
+   * unit optional), set or added under an item of the master; null removes the entry.
+   */
+  | { kind: 'SET_GOLDEN_VALUE'; caseId: string; side: 'inputs' | 'expected'; key: string; text: string | null }
   | { kind: 'UPDATE_PARAMETER_NAME'; id: string; name: string }
   | { kind: 'UPDATE_YIELD'; id: string; name?: string; result?: string; theoretical?: string }
   | { kind: 'SET_LIMIT_SOURCE'; owner: 'parameter' | 'calculation' | 'yield'; id: string; tier: limits.LimitTier; kindOfSource: limits.LimitSourceKind; reference: flow.Reference }
@@ -261,6 +266,28 @@ function applyInPlace(c: Content, op: Op): void {
       if (!x) throw new OpError(`There is no calculation ${op.id}.`);
       if (op.name !== undefined) x.name = checkName(op.name, 'The calculation name');
       if (op.expression !== undefined) x.expression = checkName(op.expression, 'The formula');
+      return;
+    }
+    // Demo report r13 bug 3: golden cases change with the calculations they test, in a DRAFT only (the server saves
+    // revisions of a DRAFT only, each with its change note; a new revision voids the evidence of the earlier one, and
+    // verification runs every golden case again; DI-04). Only a decimal value is written here.
+    case 'SET_GOLDEN_VALUE': {
+      const g = c.goldenCases.find((k) => k.id === op.caseId);
+      if (!g) throw new OpError(`There is no golden case ${op.caseId}.`);
+      const entries = g[op.side];
+      if (op.text === null) {
+        if (entries[op.key] === undefined) throw new OpError(`Golden case ${g.id} has no ${op.side === 'inputs' ? 'input' : 'expected result'} ${op.key}.`);
+        if (op.side === 'expected' && Object.keys(entries).length === 1) throw new OpError(`Golden case ${g.id} keeps at least one expected result.`);
+        g[op.side] = Object.fromEntries(Object.entries(entries).filter(([k]) => k !== op.key));
+        return;
+      }
+      const before = entries[op.key];
+      const known = c.calculations.some((k) => k.id === op.key) || c.parameters.some((k) => k.id === op.key) || c.inputs.some((k) => k.id === op.key);
+      if (before === undefined && !known) throw new OpError(`${op.key} is not a calculation, parameter or input of the master.`);
+      if (before !== undefined && !('value' in before)) throw new OpError(`${op.key} in golden case ${g.id} is not a decimal value; it is not changed here.`);
+      const m = /^\s*(-?\d+(?:\.\d+)?)(?:\s+(\S(?:.*\S)?))?\s*$/.exec(checkName(op.text, 'The value'));
+      if (!m?.[1]) throw new OpError(`Write the value as a number with its unit, for example "50.000 kg" ("${op.text.trim()}" is not one).`);
+      entries[op.key] = m[2] ? { value: m[1], unit: m[2] } : { value: m[1] };
       return;
     }
     case 'UPDATE_PARAMETER_NAME': {

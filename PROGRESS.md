@@ -45,6 +45,12 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 ## Where things stand
 
+**Demo report r13 bugs 2 and 3 (13-14 November 2026, branch fix-revise-approved-master).** "Start a new version…"
+(designer.deriveVersion, recipe.derive_version) derives a DRAFT from an APPROVED or RETIRED master; "Return to draft…"
+(designer.returnToDraft) takes a version out of verification with a reason, superseding every signature; golden cases are
+edited in a DRAFT. One version in preparation per family: server 409 DESIGNER_OPEN_VERSION and database rule (owner,
+13 November; recipe-core 1925, EBMR-RCP-436; new versions only, no row changed).
+
 **Demo fix: an equipment status step that checks no unit (r13 bug 1, 13 November 2026; branch fix-validator-stage-equipment).**
 A stage added with the designer binds rooms but no equipment, and its G-09@2 step checked nothing; the validator passed it
 and on the floor the step could never be signed (G09-INCOMPLETE, EBMR-EXE-210). New validator rule
