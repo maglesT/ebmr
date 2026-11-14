@@ -129,8 +129,15 @@ the capsules edition; the injectables plan and I-1 to I-4; the dynamic library S
   - Upgrading an existing install needs a sterile v2 rule table and a library v2 publish: B1 and B5 edit sterile.v1 and
     INJ-EM, INJ-FILL, INJ-COMPOUND and INJ-GAS-FILTER v1 in place (an existing database refuses the new sterile v1 with
     EBMR-MKT-035 and keeps the old library v1).
-- **Demo:** fresh install after the I-6 merges (lead ruling on #245). **Next (I-6):** one review pass (`docs/build-plan/injectables/resume.md`): root-cause the E2E click stall and the
-  endorseOnLicence fill timeout, and the [DI-20] OPC UA duplicate key.
+  - Kernel: `iam.register_device` should report a duplicate device code with an `EBMR-IAM-` message, not the raw
+    unique-violation error (review pass residual; not needed now).
+  - Owner questions pending: the Tablets v1.0.0 tag, and whether PR #251 is the owner's.
+- **Demo:** fresh install after the I-6 merges (lead ruling on #245).
+- **Next (I-6):** (1) the review-pass PR (`docs/build-plan/injectables/review-pass.md`): `inj/i6-review-db` (tablets
+  migration 1914, the `plant.change_record_content` provider for the APS lines, and the [DI-20] 64-bit endpoint codes)
+  plus `inj/i6-review-e2e-stalls` (the renderer watchdog and the Demotab 12 race). (2) The expected-answer database
+  re-check PR, on the lead's conditions: 1862's body carried forward with a diff showing nothing removed, an
+  engine/database parity test on every seeded expected answer including hidden fields, and SQL mutation coverage.
 
 - Residual of SITE-995 (lead, 11 November): an intermediate lot cannot be retested to a new date (its material code is
   the product code, which has no ERP material retest interval).
