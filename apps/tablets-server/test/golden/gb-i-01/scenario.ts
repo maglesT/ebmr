@@ -20,6 +20,7 @@ import { INJECTABLE_ASEPTIC_SEEDS } from '../../../../../packages/recipe-core/sr
 import { personaIn, refusalOf, tapFor, valueOf } from '../../esig/support.ts';
 import type { ExecServer, RunDriver } from '../../execution/support.ts';
 import { actorOf, gmpContent, gmpLifecycleWorld } from '../../support/gmp-world.ts';
+import { arrangeEmMediaLot, passingMediaFill, prepareMediaFill, setApsInterval } from '../../support/aps-validity.ts';
 import { confirmErpPending } from '../../support/signed-acts.ts';
 import { driverOf, issueBatch, libraryEntry, phaseOf, signAs, stage, statusOf, type BatchRef, type Json } from '../../substance/support.ts';
 import { advanceMinutes } from '../clock.ts';
@@ -193,6 +194,12 @@ export async function setUpGbi01(gmp: ExecServer): Promise<Masters> {
       reason(`GB-I-01 numbering (${kind.toLowerCase()})`),
     );
   }
+  // INV-23 (c) (tablets 1915): before the scenario, the filling line has a passing media fill (on plates of its own lot)
+  // and its APS interval, set by the steward and approved by QA, so the batch's filling names a line whose APS is valid.
+  await arrangeEmMediaLot(gmp, SITE, 'TSA-GBI01-MF');
+  const mf = await prepareMediaFill(gmp, world, { tag: 'GBI01', site: SITE, planLine: LINE, size: SIZE });
+  await passingMediaFill(gmp, mf, { line: FILL_LINE, room: FILL_ROOM }, { area: { ...EM_UNITS, mediaLot: 'TSA-GBI01-MF' } });
+  await setApsInterval(gmp, world, FILL_LINE, 180);
   const [qc, head] = await Promise.all([gmp.asPersona('qcAnalyst'), gmp.asPersona('qcApprover')]);
   const spec = valueOf(await qc.call(routes.specifications.draft, { body: {
     materialCode: PRODUCT.code, title: 'Finished product specification (DEMO-ONLY, invented)', monographReference: 'In-house monograph GBI01 (DEMO-ONLY)',

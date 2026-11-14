@@ -1047,6 +1047,15 @@ export const TARGETS: Target[] = [
     tests: [s('injectables/aseptic-em-approval.test.ts')],
     threshold: 90,
   },
+  // ---- Injectables I-6, INV-23 (c): a filling line fills an aseptic batch only while its APS is valid (tablets 1915; the
+  // firm's QA-approved interval per line, the line entry and the sign-off after a lapse). ----
+  {
+    group: 'inj-aps-interval',
+    functions: ['plant.aps_interval_approval_guard', 'plant.propose_aps_interval', 'plant.approve_aps_interval', 'plant.aps_interval_days',
+                'plant.aps_valid_until_us', 'plant.aps_interval_scope', 'plant.aps_entry_lines', 'plant.aps_interval_problem', 'plant.aps_interval_check'],
+    tests: [s('injectables/aps-interval-gate.test.ts')],
+    threshold: 90,
+  },
   // ---- Injectables lean item 6: a library block with the role PACK_EXAMINATION completes a packaging record (recipe-core
   // 1892; editions/injectables/sql 3020 redefines injectables.grel_pack_examination, which stays in inj-release-items). ----
   {

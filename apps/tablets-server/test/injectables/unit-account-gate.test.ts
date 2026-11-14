@@ -27,6 +27,7 @@ import { INJECTABLE_ASEPTIC_SEEDS } from '../../../../packages/recipe-core/src/l
 import { startSigningServer, valueOf } from '../esig/support.ts';
 import type { ExecServer, RunDriver } from '../execution/support.ts';
 import { actorOf, gmpContent, gmpLifecycleWorld } from '../support/gmp-world.ts';
+import { passingMediaFill, prepareMediaFill, setApsInterval } from '../support/aps-validity.ts';
 import { confirmErpPending } from '../support/signed-acts.ts';
 import { driverOf, issueBatch, libraryEntry, phaseOf, signAs, stage, type BatchRef, type Json } from '../substance/support.ts';
 
@@ -208,6 +209,11 @@ beforeAll(async () => {
     c.query('select site.define_batch_number_rule($1::jsonb)', [JSON.stringify({ rule_code: `INJUA-${TAG}`, site_code: SITE, product_code: PRODUCT.code, batch_kind: 'PROCESSING', format: 'U{YY}{SEQ:5}', site_zone: 'Asia/Kolkata', reason: 'Numbering SOP-QA-017 rev 3' })]),
     reason('Injectables I-6.3 numbering'),
   );
+  // INV-23 (c) (tablets 1915): the filling line has a passing media fill and its APS interval, set by the steward, approved by QA.
+  const units: Json = Object.fromEntries(Object.entries(UNITS).map(([k, v]) => [k, v[1]]));
+  const mf = await prepareMediaFill(gmp, world, { tag: TAG, site: SITE, planLine: LINE, size: SIZE });
+  await passingMediaFill(gmp, mf, units, EM_OVER);
+  await setApsInterval(gmp, world, UNITS['line']![1], 180);
 }, 900_000);
 afterAll(async () => {
   vi.useRealTimers();

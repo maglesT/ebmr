@@ -29,8 +29,12 @@ import { INJECTABLE_ASEPTIC_SEEDS } from '../../../../packages/recipe-core/src/l
 import { actorOfBrowser, personaIn, refusalOf, startSigningServer, valueOf } from '../esig/support.ts';
 import { RunDriver, type ExecServer } from '../execution/support.ts';
 import { actorOf, gmpContent, gmpLifecycleWorld } from '../support/gmp-world.ts';
+import { passingMediaFill, prepareMediaFill, setApsInterval } from '../support/aps-validity.ts';
 import { confirmErpPending } from '../support/signed-acts.ts';
 import { driverOf, issueBatch, libraryEntry, phaseOf, signAs, stage, type BatchRef, type Json } from '../substance/support.ts';
+
+// Device nonces are paced to the server's rate limit (the harness waits), so a test can take minutes.
+vi.setConfig({ testTimeout: 300_000 });
 
 const SITE = 'SITE-1';
 const LINE = 'L1';
@@ -222,7 +226,8 @@ async function releaseView(lotId: string): Promise<{ state: string; items: Recor
 
 beforeAll(async () => {
   const ledgerDir = mkdtempSync(join(tmpdir(), 'ebmr-inj-gate-'));
-  gmp = Object.assign(await startSigningServer('GMP', { stub: false, env: { EBMR_NUMBER_LEDGER_FILE: join(ledgerDir, 'numbers.ledger.jsonl') } }), { exchangeDir: ledgerDir });
+  // Paced device nonces: the media fill of INV-23 (c) adds a batch's worth of taps.
+  gmp = Object.assign(await startSigningServer('GMP', { stub: false, paceDeviceNonces: true, env: { EBMR_NUMBER_LEDGER_FILE: join(ledgerDir, 'numbers.ledger.jsonl') } }), { exchangeDir: ledgerDir });
   vi.useFakeTimers({ toFake: ['performance'] });
   const steward = await gmp.asPersona('steward');
   valueOf(await steward.call(routes.masterData.enterProduct, { body: { productCode: PRODUCT.code, strength: PRODUCT.strength, productName: PRODUCT.name, dosageForm: 'Injection', betaLactam: false, shelfLifeMonths: 24, changeReason: REASON } }));
@@ -248,6 +253,10 @@ beforeAll(async () => {
     c.query('select site.define_batch_number_rule($1::jsonb)', [JSON.stringify({ rule_code: `INJAG-${TAG}`, site_code: SITE, product_code: PRODUCT.code, batch_kind: 'PROCESSING', format: 'A{YY}{SEQ:5}', site_zone: 'Asia/Kolkata', reason: 'Numbering SOP-QA-017 rev 3' })]),
     reason('Injectables I-6.2 numbering'),
   );
+  // INV-23 (c) (tablets 1915): the filling line has a passing media fill and its APS interval, set by the steward, approved by QA.
+  const mf = await prepareMediaFill(gmp, world, { tag: TAG, site: SITE, planLine: LINE, size: SIZE });
+  await passingMediaFill(gmp, mf, { line: FILL_LINE, room: FILL_ROOM }, { area: { room: EM_ROOM, counter: COUNTER, mediaLot: MEDIA_LOT } });
+  await setApsInterval(gmp, world, FILL_LINE, 180);
 }, 900_000);
 afterAll(async () => {
   vi.useRealTimers();

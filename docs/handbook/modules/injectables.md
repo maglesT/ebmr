@@ -52,6 +52,20 @@ The edition is data on the shared kernel (library blocks, formulations, masters)
   CFR 211.42(c)(10)(iv)). The validator's rule INJ-ASEPTIC-EM refuses the same on screen. A terminally sterilised master
   is not concerned. Read by role: INJ-FILL, INJ-TERMINAL-STERILISE, INJ-EM and INJ-EM-COUNTS carry the roles.
 
+Edition-scoped, in the tablets server's migrations (`apps/tablets-server/sql`):
+
+- 1915 (INV-23 (c); revised Schedule M Part II 5.5, 21 CFR 211.113(b)): a filling line fills an aseptic batch only
+  while its media fill is valid, that is its last passing APS (a media fill read with no contaminated unit, as ST-33
+  reads it in 1912) plus the interval the firm sets for the line. The interval has no default: the steward proposes it
+  (`plant.propose_aps_interval`, whole days), QA approves it as another person (`plant.approve_aps_interval`,
+  PLANT_RULE.APPROVE); versions are insert-only and audited, and only the latest approved one is in force. The entry
+  that names a line (an EQUIPMENT field of kind LINE, not of a PACKAGING block) in a GMP batch of an injectables
+  processing master with no `TERMINAL_STERILISATION` step, other than a media fill, is refused without an interval in
+  force (EBMR-PLANT-092) or a valid APS (EBMR-PLANT-093). A lapse during the fill refuses no later entry; the step's
+  sign-off is refused (EBMR-PLANT-094) until an ACTION exception raised at the step after the lapse is dispositioned by
+  QA under its linked deviation. A test that fills such a batch arranges a passing media fill and the interval
+  (`apps/tablets-server/test/support/aps-validity.ts`).
+
 ## Pharma context: why a second edition
 
 Injectables are sterile medicines given by injection (vials, ampoules, prefilled syringes). They follow the same data

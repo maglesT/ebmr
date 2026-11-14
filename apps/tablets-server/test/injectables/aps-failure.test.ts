@@ -33,6 +33,7 @@ import { INJECTABLE_ASEPTIC_SEEDS } from '../../../../packages/recipe-core/src/l
 import { refusalOf, startSigningServer, valueOf } from '../esig/support.ts';
 import type { ExecServer, RunDriver } from '../execution/support.ts';
 import { actorOf, gmpContent, gmpLifecycleWorld } from '../support/gmp-world.ts';
+import { setApsInterval } from '../support/aps-validity.ts';
 import { confirmErpPending, signAction } from '../support/signed-acts.ts';
 import { driverOf, issueBatch, libraryEntry, phaseOf, signAs, stage, type Json } from '../substance/support.ts';
 
@@ -292,6 +293,16 @@ async function mediaFillRead(k: Key, units: Units, contaminated: string): Promis
   return b;
 }
 
+/**
+ * INV-23 (c) (tablets 1915): a product batch fills on the line only while its APS is valid, so the line gets what a firm
+ * has before it: a media fill read with no contaminated unit (India: it withdraws nothing) and its APS interval, set by
+ * the steward and approved by QA.
+ */
+async function validLine(units: Units): Promise<void> {
+  await mediaFillRead('IN', units, '0');
+  await setApsInterval(gmp, world, units.line, 180);
+}
+
 /** The filling step's set-up entry of a started batch naming the units: the command's result (refused or recorded). */
 async function setupOn(k: Key | 'PRODUCT', units: Units) {
   const b = await issued(k);
@@ -401,6 +412,8 @@ describe('a failed media fill on an EU master withdraws the filling line (ST-33;
     // repeat media fills, then requalifies the line: usable again.
     const open = valueOf(await (await gmp.asPersona('qaInvestigator')).call(routes.plant.apsFailure, { params: { code: units.line } }));
     expect(open.withdrawal).toMatchObject({ failedBatch: mf.batchNumber, lastSuccessfulAps: null, batches: [], reviewed: false });
+    // The repeat media fill on the withdrawn line (tablets 1913) passes: the line's APS is valid again (INV-23 (c)).
+    await validLine(units);
     valueOf(await review('qaInvestigator', units.line, { riskAssessmentRef: `QRM-APS-${TAG}`, repeatApsRefs: ['APS-R1', 'APS-R2', 'APS-R3'] }));
     valueOf(await requalify(units.line));
     expect(await fitness(units.line)).toEqual({ fit: 'QUALIFIED', problems: [] });
@@ -437,6 +450,7 @@ describe('a failed media fill on an EU master withdraws the filling line (ST-33;
 describe('the review of a failed media fill before the line is qualified again (ST-33; tablets 1912)', () => {
   it('[ST-33][IN-45] the withdrawal records the impact list: the batches made on the line since its last successful APS (one before it is not listed, one after it is), not the failed media fill itself', async () => {
     const units = await arrangeUnits();
+    await validLine(units);
     const before = await filled('PRODUCT', units);
     const good = await mediaFillRead('EU', units, '0');
     const after = await filled('PRODUCT', units);
@@ -460,6 +474,8 @@ describe('the review of a failed media fill before the line is qualified again (
     const t = randomUUID().slice(0, 6).toUpperCase();
     const one = await arrangeUnits({ line: `MFLINE-${t}-1` });
     const ten = await arrangeUnits({ line: `MFLINE-${t}-10` });
+    await validLine(one);
+    await validLine(ten);
     const onOne = await filled('PRODUCT', one);
     const onTen = await filled('PRODUCT', ten);
     const failed = await mediaFillRead('EU', one, '1');

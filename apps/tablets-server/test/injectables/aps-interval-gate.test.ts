@@ -78,9 +78,9 @@ const mediaFill: flow.MbrContent = gmpContent((m) => {
   const body = (m['procedure'] as Json)['body'] as Json;
   const like = (body['children'] as Json[])[0] as Json;
   body['children'] = [
-    stage(like, 'S-FILL', 'Aseptic filling with growth medium', [phaseOf(FILL.definition, 'p-fill', FILL.exampleUse as Json), phaseOf(EM.definition, 'p-em', EM.exampleUse as Json)]),
-    stage(like, 'S-READ', 'Incubation and reading', [phaseOf(READ.definition, 'p-read', READ.exampleUse as Json)]),
-    stage(like, 'S-EM', 'Environmental monitoring after incubation', [phaseOf(COUNTS.definition, 'p-counts', COUNTS.exampleUse as Json)]),
+    stage(like, 'S-FILL', 'Aseptic filling with growth medium', [phaseOf(FILL.definition, 'p-fill', FILL.exampleUse), phaseOf(EM.definition, 'p-em', EM.exampleUse)]),
+    stage(like, 'S-READ', 'Incubation and reading', [phaseOf(READ.definition, 'p-read', READ.exampleUse)]),
+    stage(like, 'S-EM', 'Environmental monitoring after incubation', [phaseOf(COUNTS.definition, 'p-counts', COUNTS.exampleUse)]),
   ];
   strip(m);
   m['blockDefinitions'] = [FILL.definition, EM.definition, READ.definition, COUNTS.definition];
@@ -92,8 +92,8 @@ const productMaster: flow.MbrContent = gmpContent((m) => {
   const body = (m['procedure'] as Json)['body'] as Json;
   const like = (body['children'] as Json[])[0] as Json;
   body['children'] = [
-    stage(like, 'S-FILL', 'Aseptic filling', [phaseOf(FILL.definition, 'p-fill', FILL.exampleUse as Json), phaseOf(EM.definition, 'p-em', EM.exampleUse as Json)]),
-    stage(like, 'S-EM', 'Environmental monitoring after incubation', [phaseOf(COUNTS.definition, 'p-counts', COUNTS.exampleUse as Json)]),
+    stage(like, 'S-FILL', 'Aseptic filling', [phaseOf(FILL.definition, 'p-fill', FILL.exampleUse), phaseOf(EM.definition, 'p-em', EM.exampleUse)]),
+    stage(like, 'S-EM', 'Environmental monitoring after incubation', [phaseOf(COUNTS.definition, 'p-counts', COUNTS.exampleUse)]),
   ];
   strip(m);
   m['blockDefinitions'] = [FILL.definition, EM.definition, COUNTS.definition];
@@ -105,8 +105,8 @@ const tsMaster: flow.MbrContent = gmpContent((m) => {
   const body = (m['procedure'] as Json)['body'] as Json;
   const like = (body['children'] as Json[])[0] as Json;
   body['children'] = [
-    stage(like, 'S-FILL', 'Filling', [phaseOf(FILL.definition, 'p-fill', FILL.exampleUse as Json)]),
-    stage(like, 'S-TS', 'Terminal sterilisation', [phaseOf(TERMINAL.definition, 'p-ts', TERMINAL.exampleUse as Json)]),
+    stage(like, 'S-FILL', 'Filling', [phaseOf(FILL.definition, 'p-fill', FILL.exampleUse)]),
+    stage(like, 'S-TS', 'Terminal sterilisation', [phaseOf(TERMINAL.definition, 'p-ts', TERMINAL.exampleUse)]),
   ];
   strip(m);
   m['blockDefinitions'] = [FILL.definition, TERMINAL.definition];
@@ -283,7 +283,7 @@ beforeAll(async () => {
   world = await gmpLifecycleWorld(gmp);
   for (const k of ['MF', 'PRODUCT', 'TS'] as const) {
     versions[k] = await world.approvedVersion(MASTERS[k]);
-    await world.authorise({ versionId: versions[k]!.versionId, market: 'IN', kind: 'CURRENT', cells: [cell(SITE, LINE, SIZE)], regulatoryBasis: 'IN: registration on file (invented injectable)' });
+    await world.authorise({ versionId: versions[k].versionId, market: 'IN', kind: 'CURRENT', cells: [cell(SITE, LINE, SIZE)], regulatoryBasis: 'IN: registration on file (invented injectable)' });
   }
   for (const [rule, product, format] of [[`INJIVM-${TAG}`, MF_PRODUCT.code, 'V{YY}{SEQ:5}'], [`INJIV-${TAG}`, PRODUCT.code, 'W{YY}{SEQ:5}'], [`INJIVT-${TAG}`, TS_PRODUCT.code, 'X{YY}{SEQ:5}']] as const) {
     await world.run(await actorOf(gmp, 'steward'), (c) =>
@@ -304,11 +304,18 @@ describe('the APS interval of a filling line (INV-23; tablets 1915)', () => {
     expect(await days(units.line)).toBeNull();
     // No number of days, none out of range, and a reason: nothing is defaulted.
     const steward = await actorOf(gmp, 'steward');
-    for (const [d, why] of [[null, 'Media fill twice a year per SOP'], [0, 'Media fill twice a year per SOP'], [3651, 'Media fill twice a year per SOP'], [180, 'short']] as const) {
+    for (const [d, why] of [[null, 'Media fill twice a year per SOP'], [0, 'Media fill twice a year per SOP'], [3651, 'Media fill twice a year per SOP'], [180, 'Nine char']] as const) {
       await expect(world.run(steward, (c) => c.query('select plant.propose_aps_interval($1, $2, $3)', [units.line, d, why]), reason(REASON))).rejects.toThrow(/EBMR-PLANT-090/);
     }
+    // A reason of ten characters is enough.
+    await world.run(steward, (c) => c.query('select plant.propose_aps_interval($1, $2, $3)', [units.line, 365, 'Ten chars.']), reason(REASON));
     const first = await proposeInterval(units.line, 180);
     expect(await days(units.line)).toBeNull();
+    // An approval written outside the command names a proposal of its own line, whoever writes it.
+    await expect(gmp.db.admin.query('insert into plant.aps_interval_approval (interval_id, equipment_id, approved_by_person, approved_by_account) select gen_random_uuid(), equipment_id, gen_random_uuid(), gen_random_uuid() from plant.aps_interval where id = $1', [first]))
+      .rejects.toThrow(/EBMR-PLANT-091 the approval names no proposed APS interval/);
+    await expect(gmp.db.admin.query('insert into plant.aps_interval_approval (interval_id, equipment_id, approved_by_person, approved_by_account) select $1, e.id, gen_random_uuid(), gen_random_uuid() from plant.equipment e where e.code = $2', [first, units.room]))
+      .rejects.toThrow(/EBMR-PLANT-091 the approval names no proposed APS interval/);
     // The proposer does not approve it, through the command or by writing the approval itself.
     await expect(world.run(steward, (c) => c.query('select plant.approve_aps_interval($1)', [first]), reason(REASON))).rejects.toThrow(/EBMR-IAM-040|EBMR-PLANT-091/);
     await expect(gmp.db.admin.query("insert into plant.aps_interval_approval (interval_id, equipment_id, approved_by_person, approved_by_account) select id, equipment_id, proposed_by_person, gen_random_uuid() from plant.aps_interval where id = $1", [first]))
@@ -320,11 +327,11 @@ describe('the APS interval of a filling line (INV-23; tablets 1915)', () => {
     const second = await proposeInterval(units.line, 90);
     expect(await days(units.line)).toBe(180);
     const third = await proposeInterval(units.line, 120);
-    await expect(approveInterval(second)).rejects.toThrow(/EBMR-PLANT-091 version 2 of the APS interval is superseded/);
+    await expect(approveInterval(second)).rejects.toThrow(/EBMR-PLANT-091 version 3 of the APS interval is superseded/);
     await approveInterval(third);
     expect(await days(units.line)).toBe(120);
     expect((await gmp.db.admin.query<{ v: number; d: number }>('select version as v, interval_days as d from plant.aps_interval i join plant.equipment e on e.id = i.equipment_id where e.code = $1 order by version', [units.line])).rows)
-      .toEqual([{ v: 1, d: 180 }, { v: 2, d: 90 }, { v: 3, d: 120 }]);
+      .toEqual([{ v: 1, d: 365 }, { v: 2, d: 180 }, { v: 3, d: 90 }, { v: 4, d: 120 }]);
     await expect(gmp.db.admin.query('update plant.aps_interval i set interval_days = 365 from plant.equipment e where e.id = i.equipment_id and e.code = $1', [units.line])).rejects.toThrow();
     await expect(gmp.db.admin.query('delete from plant.aps_interval_approval where interval_id = $1', [third])).rejects.toThrow();
     // Audited on the unit's chain.
@@ -332,7 +339,7 @@ describe('the APS interval of a filling line (INV-23; tablets 1915)', () => {
       "select count(*)::int as n from kernel.audit_event a join plant.equipment e on a.chain_key = 'plant_equipment:' || e.id::text where e.code = $1 and a.action = 'INSERT' and a.table_name in ('plant.aps_interval', 'plant.aps_interval_approval')",
       [units.line],
     );
-    expect(audited.rows[0]!.n).toBe(5);
+    expect(audited.rows[0]!.n).toBe(6);
   });
 });
 
@@ -363,12 +370,19 @@ describe('the line fills an aseptic batch only while its APS is valid (INV-23; S
     expect(errorText(lapsed)).toMatch(/EBMR-PLANT-093.*the aseptic process simulation of the filling line .* was valid until \d{4}-\d\d-\d\dT/);
   });
 
-  it('[INV-23] with a passing APS within the line\'s interval the line entry is accepted', async () => {
+  it('[INV-23] with a passing APS within the line\'s interval the line entry is accepted, and the filling step is signed with no exception', async () => {
     const units = await arrangeUnits();
     await passingMediaFill(units);
     await setInterval(units.line, 30);
-    const r = (await setupOn('PRODUCT', units)).result;
-    expect(r.ok, errorText(r)).toBe(true);
+    const s = await setupOn('PRODUCT', units);
+    expect(s.result.ok, errorText(s.result)).toBe(true);
+    for (const e of library.nominalEntries(FILL.definition, FILL.exampleUse as never).filter((x) => x.kind !== 'setup')) {
+      const { kind, ...entry } = e;
+      const data: Json = Object.fromEntries(Object.entries(entry).filter(([x]) => x !== 'equipment' && x !== 'lots'));
+      if (kind === 'tray') data['trayOut'] = `TRAY-${randomUUID().slice(0, 8)}`;
+      await s.d.ok('operator1', libraryEntry('p-fill@', kind, data));
+    }
+    await signed(s.d, 'p-fill@');
   });
 
   it('[INV-23] a lapse during the fill: the later entries are accepted; at the sign-off the step waits for an ACTION exception requiring a deviation, which blocks it until QA dispositions it under the linked deviation', async () => {
@@ -418,19 +432,21 @@ describe('the line fills an aseptic batch only while its APS is valid (INV-23; S
       await c.query('begin');
       await c.query('alter table recipe.execution_command disable trigger user');
       await c.query('alter table recipe.execution_command enable trigger ad_plant_aps_interval');
-      const write = (entry: Json) => c.query(
+      const write = (entry: Json, accepted = true) => c.query(
         `insert into recipe.execution_command
-           select batch_id, seq + 1000, kind, command_id || '-bypass-' || $2, 'RECORD_ENTRY', $3::jsonb, command_hash, actor_person, actor_account, actor_role, actor_legal_name, source,
-                  session_id, device_id, device_class, room_code, auth_event_id, now_us, true, null, state_version, state_hash, events_hash, event_count, roles, signature_ids,
+           select batch_id, seq + 1000 + (select count(*) from recipe.execution_command x where x.batch_id = $1 and x.seq > 1000), kind, command_id || '-bypass-' || $2, 'RECORD_ENTRY', $3::jsonb, command_hash, actor_person, actor_account, actor_role, actor_legal_name, source,
+                  session_id, device_id, device_class, room_code, auth_event_id, now_us, $4, case when $4 then null else '{"code": "ENG-X"}'::jsonb end, state_version, state_hash, events_hash, event_count, roles, signature_ids,
                   evidence, prev_row_hash, row_hash, correlation_id, recorded_at
              from recipe.execution_command where batch_id = $1 and command_type = 'START_STEP' and accepted order by seq desc limit 1`,
-        [s.batchId, randomUUID(), JSON.stringify({ type: 'RECORD_ENTRY', step: 'p-fill', context: [], entry })],
+        [s.batchId, randomUUID(), JSON.stringify({ type: 'RECORD_ENTRY', step: 'p-fill', context: [], entry }), accepted],
       );
       await c.query('savepoint a');
       await expect(write({ kind: 'setup', line: units.line, room: units.room })).rejects.toThrow(/EBMR-PLANT-092/);
       await c.query('rollback to savepoint a');
       // An entry of a section with no LINE field passes the guard.
       await expect(write({ kind: 'weights', note: 'x' })).resolves.toBeDefined();
+      // A refused row is written as the engine refused it: the guard reads accepted rows only.
+      await expect(write({ kind: 'setup', line: units.line, room: units.room }, false)).resolves.toBeDefined();
     } finally {
       await c.query('rollback');
       c.release();
@@ -468,5 +484,43 @@ describe('the line fills an aseptic batch only while its APS is valid (INV-23; S
     expect(await scope({})).toBe(true);
     expect(await scope({ edition: 'tablets' })).toBe(false);
     expect(await scope({ recordKind: 'PACKAGING' })).toBe(false);
+    // A batch the store does not hold as a GMP batch (a sandbox test run, here none at all) is out.
+    expect((await gmp.db.admin.query<{ s: boolean }>('select plant.aps_interval_scope($1, recipe.batch_mbr_content($2)) as s', [randomUUID(), s.batchId])).rows[0]!.s).toBe(false);
+  });
+
+  it('[INV-23] the guard on its own, at its boundaries: the validity ends at the instant itself; a sign-off waits for an exception of its own step raised at or after that instant and dispositioned under a deviation; a code the register does not hold is left to the fitness guard', async () => {
+    const units = await arrangeUnits();
+    await passingMediaFill(units);
+    await setInterval(units.line, 30);
+    const s = await setupOn('PRODUCT', units);
+    const used = BigInt((await gmp.db.admin.query<{ u: string }>('select max(used_us)::text as u from plant.line_batch_uses($1) where good_aps', [units.line])).rows[0]!.u);
+    const until = used + 30n * DAY_US;
+    const validUntil = async (at: bigint) => (await gmp.db.admin.query<{ v: string | null }>('select plant.aps_valid_until_us($1, $2)::text as v', [units.line, at.toString()])).rows[0]!.v;
+    expect(await validUntil(used)).toBe(until.toString());
+    expect(await validUntil(used - 1n)).toBeNull();
+    const problem = async (type: string, command: Json, state: Json, now: bigint) =>
+      (await gmp.db.admin.query<{ p: string | null }>('select plant.aps_interval_problem($1, recipe.batch_mbr_content($1), $2, $3::jsonb, $4::jsonb, $5) as p',
+        [s.batchId, type, JSON.stringify(command), JSON.stringify(state), now.toString()])).rows[0]!.p;
+    const entry = { type: 'RECORD_ENTRY', step: 'p-fill', context: [], entry: { kind: 'setup', line: units.line } };
+    expect(await problem('RECORD_ENTRY', entry, {}, until - 1n)).toBeNull();
+    expect(await problem('RECORD_ENTRY', entry, {}, until)).toMatch(/^EBMR-PLANT-093 .* was valid until/);
+    const sign = { type: 'SIGN_PERFORMED', step: 'p-fill', context: [] };
+    const stateWith = (line: string, exceptions: Json = {}): Json => ({
+      entries: { E1: { stepKey: 'p-fill@', kind: 'setup', data: { line }, recordedAt: { $u: (until - DAY_US).toString() } } },
+      exceptions,
+    });
+    expect(await problem('SIGN_PERFORMED', sign, stateWith(units.line), until - 1n)).toBeNull();
+    expect(await problem('SIGN_PERFORMED', sign, stateWith(units.line), until)).toMatch(/^EBMR-PLANT-094 .* was valid until .* during the filling of step p-fill@/);
+    expect(await problem('SIGN_PERFORMED', sign, stateWith('NO-SUCH-LINE'), until)).toBeNull();
+    const handled = (over: Json = {}): Json => ({
+      X1: { source: { stepKey: 'p-fill@', frames: [] }, severity: 'ACTION', deviationRequired: true, raisedAt: { $u: until.toString() }, deviation: { ref: 'DEV-1' },
+            status: 'DISPOSITIONED', disposition: { outcome: 'DEVIATION_RAISED' }, ...over },
+    });
+    expect(await problem('SIGN_PERFORMED', sign, stateWith(units.line, handled()), until + 1n)).toBeNull();
+    expect(await problem('SIGN_PERFORMED', sign, stateWith(units.line, handled({ severity: 'CRITICAL' })), until + 1n)).toBeNull();
+    for (const over of [{ raisedAt: { $u: (until - 1n).toString() } }, { source: { stepKey: 'p-em@', frames: [] } }, { severity: 'ALERT' }, { deviationRequired: false }, { deviation: null },
+                        { status: 'OPEN' }, { disposition: { outcome: 'NO_IMPACT' } }]) {
+      expect(await problem('SIGN_PERFORMED', sign, stateWith(units.line, handled(over)), until + 1n), JSON.stringify(over)).toMatch(/^EBMR-PLANT-094/);
+    }
   });
 });
