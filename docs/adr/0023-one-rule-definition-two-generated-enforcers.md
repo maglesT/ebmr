@@ -33,8 +33,8 @@ by hand.
 
 ## Decision
 
-1. **A rule is written once, as data.** A new package, `packages/rules`, imports nothing in the repository, like
-   `expr`. It holds each rule as a declarative definition, a typed tree in a small vocabulary:
+1. **A rule is written once, as data.** A new package, `packages/rules`, imports only `@ebmr/expr` (for its exact
+   decimals; a boundary rule checks it). It holds each rule as a declarative definition, a typed tree in a small vocabulary:
    - **Inputs:** paths into the block definition, the formulation's configuration and the entry (fields, sections,
      slots, limits, points).
    - **Operations:** exact decimal comparison at a stated scale; the duration between two recorded times (a timer's
