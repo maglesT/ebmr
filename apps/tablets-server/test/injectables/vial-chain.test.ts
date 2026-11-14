@@ -274,7 +274,7 @@ describe('Injectables I-1c2: one vial batch from catalogue blocks to a released 
     const edition = Object.fromEntries(items.filter((i) => i.id.startsWith('E.')).map((i) => [i.id, `${i.group} ${i.status}`]));
     expect(edition).toEqual({
       'E.RECONCILIATION_PRINTED': '4 NA', 'E.RECONCILIATION_YIELD': '4 GREEN', 'E.PACK_EXAMINATION': '9 GREEN',
-      'E.HELD_CONTAINERS': '10 GREEN', 'E.CONTAINER_RELEASE': '10 GREEN', 'E.RULE_SETS_VERIFIED': '10 NA', 'E.WHOLE_BATCH_PARENTS': '10 NA',
+      'E.GAS_FILTER': '10 NA', 'E.HELD_CONTAINERS': '10 GREEN', 'E.CONTAINER_RELEASE': '10 GREEN', 'E.RULE_SETS_VERIFIED': '10 NA', 'E.WHOLE_BATCH_PARENTS': '10 NA',
     });
   });
 

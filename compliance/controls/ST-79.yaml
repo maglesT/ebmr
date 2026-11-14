@@ -34,6 +34,7 @@ catalog_test: A closed assembly with one connector lacking sterility evidence â†
 implemented_by: {}
 tests:
   - "packages/recipe-core/test/library/seed-injectables-aseptic.test.ts > the Injectables catalogue (slice I-2, aseptic processing and EM) > [ST-79] a single-use assembly is accepted by its released lot, named where it is used and verified by a second person; for the EU market, in its own block, its integrity not checked before use is an exception"
+  - "packages/recipe-core/test/validator/required-blocks.test.ts > the blocks a clause asks where the master uses its technology (I-6 B5) > [ST-79][PR-03] a master for the EU market that uses a single-use assembly (INJ-SUS) without its check before use (INJ-SUS-INTEGRITY) before it is refused (A1 8.138); with the check before it passes, after it is refused; a master for India and the US needs none"
 clauses:
   - clause: "A closed assembly with one connector lacking sterility evidence â†’ cannot be released for use."
     not_required:

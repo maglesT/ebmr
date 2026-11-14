@@ -118,7 +118,15 @@ the capsules edition; the injectables plan and I-1 to I-4; the dynamic library S
 - Injectables I-6 (lead rulings on #245, 13 November): after the I-6 merges, the hosted demo needs a fresh install. Owner
   residual: upgrading an existing install needs a sterile v2 rule table and a library v2 publish (B1 edits sterile.v1 and
   INJ-EM, INJ-FILL and INJ-COMPOUND v1 in place; an existing database refuses the new sterile v1 with EBMR-MKT-035).
-  B5 gains a DB guard for ST-28 (an applied gas overlay without a passing post-use filter test blocks certification).
+  B5 (inj/i6-b5-eu-required): five MKT-REQUIRED-BLOCKS entries (ST-79, ST-58, ST-62, ST-78, ST-77) and the ST-28 release
+  item E.GAS_FILTER (injectables 3040): an applied gas overlay without a passing post-use filter test blocks release.
+  B5 also edits INJ-COMPOUND (the `gasOverlayApplied` mark on the nitrogen option) and INJ-GAS-FILTER (the role
+  GAS_FILTER_INTEGRITY and the `postUseIntegrity` mark) v1 in place: existing demo databases keep the old v1 and need the
+  same fresh install; the upgrade path is the same owner residual (a library v2 publish).
+  B5 also: the relation PRESENT (INJ-AVI-CHALLENGE-EU anywhere on an EU master with INJ-AVI, ST-62); E.GAS_FILTER reads
+  the marks gasOverlayApplied and postUseIntegrity and the role GAS_FILTER_INTEGRITY, not block codes.
+  Owner residuals (lead, B5): masters do not declare isolator/RABS, so the glove test and VHP are not required
+  automatically for EU; EU radiation-sterilised product: Annex 12 not yet extracted.
 
 - Residual of SITE-995 (lead, 11 November): an intermediate lot cannot be retested to a new date (its material code is
   the product code, which has no ERP material retest interval).

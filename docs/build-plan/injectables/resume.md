@@ -1,4 +1,4 @@
-# Injectables: resume notes (I-1c2 P4a merged; P3c next, then P4b, 9 November 2026)
+# Injectables: resume notes (I-6 exit; session 16 handover, 13 November 2026)
 
 Read these instead of the session history. The rules in force are:
 - `plan.md` (approved v2; the block-version rule is in it);
@@ -73,6 +73,20 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
   - Give each entry its trigger, its clause and a test by control ID. A block with no binding "must" stays optional, with
     a one-line note.
   - Check that the E2E masters still validate; today they are all India.
+  - Built (inj/i6-b5-eu-required): five entries whose condition is the trigger's technology (lead ruling, 13 November):
+    ST-79 INJ-SUS-INTEGRITY before INJ-SUS (A1 8.138), ST-58 INJ-LYO-EU after INJ-LYO (8.124), ST-62 INJ-INSPECT-LIGHT
+    before INJ-VISUAL-INSPECT (8.31), ST-78 INJ-FFS-EU after INJ-FFS (8.101(v), 8.102), ST-77 INJ-BFS-EU after INJ-BFS
+    (8.115(vi), 8.116). Not entries, with reasons in the table: STERILE-PACK-INDICATOR, ASEPTIC-TRANSFER, VHP,
+    GLOVE-TEST, RADIATION-EU. Lead ruling on the B5 report: a third relation PRESENT (the required block anywhere, a
+    parallel branch included), used for INJ-AVI-CHALLENGE-EU on an EU master with INJ-AVI (ST-62, A1 8.32); INJ-LYO-EU
+    AFTER INJ-LYO accepted.
+  - Owner residuals (lead, B5): masters do not declare isolator/RABS, so the glove test and VHP are not required
+    automatically for EU. EU radiation-sterilised product: Annex 12 not yet extracted.
+  - Built: ST-28's database guard, the release item E.GAS_FILTER (editions/injectables/sql 3040, every market): an
+    overlay recorded as applied needs a completed gas-filter test step with a passing post-use result, or the lot is
+    NOT_READY and the release is refused (EBMR-REL-020). Keyed on marks, not codes (lead ruling, as B3 (a)): the field
+    mark `gasOverlayApplied` (INJ-COMPOUND's nitrogen option 'Applied', v1 edit in place), the role GAS_FILTER_INTEGRITY
+    and its result field's mark `postUseIntegrity` (INJ-GAS-FILTER, v1 edit in place), read from the master's snapshot.
 - **B3 (lead OK):**
   - ST-29: a change record's optional, firm-set "APS required" list of lines. Approval records QUALIFICATION_WITHDRAWN on
     each line, and fitness then refuses the line until QA requalifies it. Database-enforced.
@@ -81,7 +95,46 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
   - ST-52: INJ-PUPSIT gets a waiver path (risk-assessment reference), as a v1 edit with safety evidence. The table gets an
     EU entry for INJ-PUPSIT before INJ-STERILE-FILTER. The redundant train is not_required.
 
-### Session 15 handover (13 November 2026, about 07:40): the next session continues here
+### Session 16 handover (13 November 2026, about 21:45): the next session continues here
+
+- **Merged in session 16:**
+
+  | PR | Squash commit |
+  |---|---|
+  | #244 (I-6.3) | 7fbfafb |
+  | #245 (B1) | fd06a59 |
+  | #246 (B2) | a5fa1f1 |
+  | #247 (B3) | 69d8ff1 |
+  | #248 (B4) | 9c149d9 |
+
+- **Open:** #252 (B5, `inj/i6-b5-eu-required`).
+  1. When its full CI run is green (all E2E groups, ubuntu-24.04, head contains main), send the lead "#252 ready for audit".
+  2. After the lead's OK, squash-merge it with expectedHeadSha set to the full SHA.
+  3. The squash message carries exactly the plain trailers `Co-Authored-By: Claude <noreply@anthropic.com>` and
+     `Claude-Session: <the session URL>`, and no model name.
+- **Rules for every PR:**
+  - Report to the lead (session_01PybpFrP72XuwyG8S3H3NJS): "#N ready for audit" when green, then "#N green, merged <sha>,
+    run <id>".
+  - Ask the lead only decisions that are the lead's.
+  - Minimum compliance: binding clauses only, cited and paraphrased. Never default values the firm must set.
+  - Never change `expert_decision`.
+- **Stacked merges after a squash:** re-resolve the conflicts 3-way, using the old upstream head as the base. Check that the
+  merge's diff against the branch's own head equals only the upstream's unseen commits.
+  - Grep the whole tree for conflict markers before committing. A conflict hunk can sit in a file git reports as auto-merged.
+- **Next, in order:**
+  1. **GB-I-01:** the sterility method field goes to the lead first.
+  2. **PR-15, PR-26, PR-28.**
+  3. **The phase.yaml exit PR, with a full run.** PROGRESS.md gets: the INV-23, INV-36 and INV-44 residuals; the demo fresh
+     install; the room EM logbook deferred by the owner; the B5 owner residuals (isolator/RABS, Annex 12).
+  4. **The review pass:**
+     - the items under "One review pass." below;
+     - root-cause the E2E click and fill stalls, then fix them in general. Two seen so far:
+       - the endorseOnLicence fill timeout (tools/e2e own-product-gmp-flow.ts:119-120);
+       - #248 attempt 1, library-inj-gmp, injectables-acceptance.ts:271: a click on the 'Enter a material' API radio stalled
+         until the 1h test timeout and passed on rerun.
+     - the [DI-20] OPC UA duplicate key (E2E shard 7).
+
+### Session 15 handover (13 November 2026, about 07:40)
 
 - **PRs:**
   - #242 (0030 branch + CI pin to ubuntu-24.04): a full run was in progress. Everything was green except E2E own-p3 and
@@ -161,10 +214,6 @@ injectables controls, a golden batch, the browser suite, one review pass.
     pattern.
   - B3: ST-29 (A1 9.38, SM II 5.5: a change marked "APS required" lapses APS.<line> until QA extends it); ST-33 (A1 9.46(iii),
     EU); ST-52 (A1 8.87 PUPSIT, EU, with a waiver field).
-  - B5 also (lead ruling on #245, 13 November): ST-28's remaining gap. An overlay is chosen at run time, so no master
-    table entry can require INJ-GAS-FILTER. Build a database guard on all markets: a batch that recorded a gas overlay as
-    applied and has no passing INJ-GAS-FILTER post-use result is refused certification and release, tested [ST-28]. B1
-    proves only the case where the block is present (the lot stays NOT_READY until the post-use result is in).
   - B4: IN-48 (lead's option 1).
     - `firstUseToday` on every market (SM II 6.11.2.8, A1 8.94). On "No", a validation reference (TXT); without one, a
       critical exception.
@@ -192,6 +241,8 @@ injectables controls, a golden batch, the browser suite, one review pass.
     the ST-68 gate test; INV-45 by ST-64.
   - ST-02's "CCS reference TXT where a block needs it": none needs one (lead ruling ii).
   - The demo fresh install (lead ruling on #245): the hosted demo needs a fresh install after the I-6 merges.
+    B5 adds two in-place v1 edits (INJ-COMPOUND's `gasOverlayApplied` mark; INJ-GAS-FILTER's role GAS_FILTER_INTEGRITY
+    and `postUseIntegrity` mark): an existing database keeps the old v1, so the same fresh install applies.
   - Owner residual: the upgrade path for existing installs needs a sterile v2 rule table and a library v2 publish. B1
     edits sterile.v1, INJ-EM, INJ-FILL and INJ-COMPOUND in place. An existing database keeps the old library v1
     (draftSeedCatalogue skips codes already held), and publishRuleTables refuses the new sterile v1 (EBMR-MKT-035).

@@ -95,7 +95,7 @@ jobs:
                 tablets-granulation, tablets-compression, tablets-ipc, tablets-coating, tablets-forming,
                 packaging-g21-rules, packaging-printing-and-serialisation, packaging-blister, packaging-bottle,
                 platform-scope, tablets-core-checks, release-gate, release-gate-market-items, manufacturer-release,
-                tablets-release-items, api-release-items, inj-release-items, packaging-completion-by-role, api-coa, api-intermediate-lots, us-disposition, qp-certification, market-changes, after-release-suspension,
+                tablets-release-items, api-release-items, inj-release-items, inj-gas-filter, packaging-completion-by-role, api-coa, api-intermediate-lots, us-disposition, qp-certification, market-changes, after-release-suspension,
                 after-release-decisions, shipping-interlock, record-lock-and-amendment, bulk-and-bright-stock,
                 execution-complete-forms, india-licences, india-issue-gate, india-expiry, india-h2-and-allocation,
                 records-evidence-export, records-contingency-forms, pqr-extract, inbound-adapters-and-mirrors,

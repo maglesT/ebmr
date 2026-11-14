@@ -245,7 +245,7 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
             { id: 'wfiTemp', label: 'WFI temperature at charging', type: 'NUMBER', unit: 'Cel', decimals: 1, limitSlot: 'wfiTemp' },
             { id: 'additionOrder', label: 'Materials added in the order of the formulation', type: 'YES_NO', expected: true },
             { id: 'mixing', label: 'Mixing time', type: 'TIMER', durationUnit: 'min', limitSlot: 'mixingTime' },
-            { id: 'nitrogen', label: 'Nitrogen overlay', type: 'CHOICE', options: ['Not required by the product', 'Applied'] },
+            { id: 'nitrogen', label: 'Nitrogen overlay', type: 'CHOICE', options: ['Not required by the product', 'Applied'], gasOverlayApplied: 'Applied' },
           ],
         },
         {
@@ -278,13 +278,16 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
   {
     // ST-28: the integrity of a critical gas filter is confirmed after use (SM Part II 6.11.2.7; A1 8.88 for the EU market),
     // so every market. A formulation that applies a nitrogen overlay adds this block after compounding; one without an
-    // overlay leaves it out and sets no gas-filter limit.
+    // overlay leaves it out and sets no gas-filter limit. The database reads it by its role GAS_FILTER_INTEGRITY and its
+    // result by the mark postUseIntegrity, and the overlay by INJ-COMPOUND's mark gasOverlayApplied, never by these codes
+    // (lead, B5): a batch that applied the overlay is not released without a passing result (injectables 3040).
     definition: {
       code: 'INJ-GAS-FILTER',
       version: 1,
       title: 'Nitrogen overlay gas filter integrity after use',
       category: 'CONTROL',
       edition: EDITION,
+      roles: ['GAS_FILTER_INTEGRITY'],
       description: 'ST-28. The integrity of the sterilising gas filter of the nitrogen overlay, tested after use by bubble point against its limit.',
       instructions: 'After compounding, test the integrity of the nitrogen overlay gas filter, still in its housing, and record the bubble point.',
       sections: [
@@ -292,7 +295,7 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
           id: 'gasFilter',
           title: 'Gas filter after use',
           fields: [
-            { id: 'gasFilterPost', label: 'Nitrogen filter integrity after use (bubble point)', type: 'NUMBER', unit: 'bar', decimals: 2, limitSlot: 'gasFilterPost', critical: true },
+            { id: 'gasFilterPost', label: 'Nitrogen filter integrity after use (bubble point)', type: 'NUMBER', unit: 'bar', decimals: 2, limitSlot: 'gasFilterPost', critical: true, postUseIntegrity: true },
           ],
         },
       ],

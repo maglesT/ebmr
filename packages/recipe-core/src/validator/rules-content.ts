@@ -751,9 +751,11 @@ const acceptance = defineRule('GMP-ACCEPTANCE-SCHEMES', 'ALL_APPLY schemes are c
  * Blocks a market's binding clause makes mandatory on a master, stated as data (lead ruling, I-6 B2). A block's `markets`
  * tag is metadata the engine does not read (owner Q0), so this table says when a master for a market must carry a block:
  * each step of `trigger` has a step of `required` on every path AFTER it (the required block follows) or BEFORE it (the
- * required block precedes). A block no binding clause makes mandatory stays optional and has no entry.
+ * required block precedes), or (PRESENT; lead, B5) the master has a step of `required` anywhere, a parallel branch
+ * included, where the clause fixes no order to the trigger. A block no binding clause makes mandatory stays optional and
+ * has no entry.
  */
-export const MARKET_REQUIRED_BLOCKS: readonly { market: string; trigger: string; required: string; relation: 'AFTER' | 'BEFORE'; control: string; clause: string }[] = [
+export const MARKET_REQUIRED_BLOCKS: readonly { market: string; trigger: string; required: string; relation: 'AFTER' | 'BEFORE' | 'PRESENT'; control: string; clause: string }[] = [
   // ST-06: process and equipment alarms are acknowledged and evaluated (A1 5.2); the filling step records them and the
   // assessment block after it evaluates each one. No clause of Schedule M or 21 CFR 211 asks it, so only the EU.
   { market: 'EU', trigger: 'INJ-FILL', required: 'INJ-ALARM-ASSESSMENT', relation: 'AFTER', control: 'ST-06', clause: 'EU GMP Annex 1 5.2: alarms acknowledged and evaluated' },
@@ -766,6 +768,33 @@ export const MARKET_REQUIRED_BLOCKS: readonly { market: string; trigger: string;
   // which INJ-STERILE-FILTER asks on every market; so on an EU master each filtration step has the single-batch check of
   // its filter before it. Only the EU asks it.
   { market: 'EU', trigger: 'INJ-STERILE-FILTER', required: 'INJ-FILTER-SINGLE-BATCH', relation: 'BEFORE', control: 'IN-48', clause: 'EU GMP Annex 1 8.94: a liquid sterilising filter discarded after a single batch' },
+  // I-6 B5 (lead rulings of 13 November 2026): a clause whose condition is a block of the master (the technology the
+  // trigger step uses) is an entry too; a condition known only from an answer at run time is not.
+  // ST-79: each piece of a single-use system is checked, and the check documented, before it is used (A1 8.138). INJ-SUS
+  // names the assembly where it is used, so the check (INJ-SUS-INTEGRITY) comes before it.
+  { market: 'EU', trigger: 'INJ-SUS', required: 'INJ-SUS-INTEGRITY', relation: 'BEFORE', control: 'ST-79', clause: 'EU GMP Annex 1 8.138: each single-use system checked, and the check documented, before use' },
+  // ST-58: the lyophiliser's air leakage is checked against its maximum at the start of every cycle and the vent filter's
+  // integrity result is part of batch certification (A1 8.124). INJ-LYO-EU records them per load, with each load's
+  // sterility samples (A1 10.6(iii)), which exist only once the loads are made, so it follows INJ-LYO.
+  { market: 'EU', trigger: 'INJ-LYO', required: 'INJ-LYO-EU', relation: 'AFTER', control: 'ST-58', clause: 'EU GMP Annex 1 8.124: chamber leak test at the start of every cycle, vent filter integrity result part of certification' },
+  // ST-62: manual inspection is done under suitable, controlled illumination (A1 8.31). INJ-VISUAL-INSPECT is the manual
+  // (and semi-automatic) inspection; the booth's illumination check (INJ-INSPECT-LIGHT) comes before it.
+  { market: 'EU', trigger: 'INJ-VISUAL-INSPECT', required: 'INJ-INSPECT-LIGHT', relation: 'BEFORE', control: 'ST-62', clause: 'EU GMP Annex 1 8.31: manual inspection under suitable and controlled illumination' },
+  // ST-78: form-fill-seal critical parameters, a batch-specific seal-strength test among them, are verified and recorded
+  // during production (A1 8.101(v), 8.102). INJ-FFS-EU reads the settings and tests the units the machine made, after it.
+  { market: 'EU', trigger: 'INJ-FFS', required: 'INJ-FFS-EU', relation: 'AFTER', control: 'ST-78', clause: 'EU GMP Annex 1 8.101(v), 8.102: FFS critical parameters recorded, batch-specific seal-strength test' },
+  // ST-77: blow-fill-seal critical parameters, a batch-specific wall-thickness test among them, are verified and recorded
+  // during production (A1 8.115(vi), 8.116). INJ-BFS-EU reads the settings and measures the units made, after INJ-BFS.
+  { market: 'EU', trigger: 'INJ-BFS', required: 'INJ-BFS-EU', relation: 'AFTER', control: 'ST-77', clause: 'EU GMP Annex 1 8.115(vi), 8.116: BFS critical parameters recorded, batch-specific wall-thickness test' },
+  // ST-62: an automated inspection machine is challenged with representative defects before start-up and at intervals
+  // through the batch (A1 8.32). INJ-AVI-CHALLENGE-EU records both, so it runs before and alongside INJ-AVI: the master
+  // has it anywhere, a parallel branch included (PRESENT; lead, B5).
+  { market: 'EU', trigger: 'INJ-AVI', required: 'INJ-AVI-CHALLENGE-EU', relation: 'PRESENT', control: 'ST-62', clause: 'EU GMP Annex 1 8.32: automated inspection challenged with representative defects before start-up and through the batch' },
+  // Not entries (I-6 B5): INJ-STERILE-PACK-INDICATOR (A1 8.44 allows indicators, asks none); INJ-ASEPTIC-TRANSFER (A1
+  // 8.47 applies to items sterilised in sealed packs and passed into Grade A, not through a double-ended steriliser
+  // (4.11): no block of the master says which); INJ-VHP and INJ-GLOVE-TEST (A1 4.22(i), 4.21: isolators and RABS, and no
+  // block of a master declares an isolator or RABS, so neither is required automatically for the EU: owner residual,
+  // lead ruling); INJ-RADIATION-EU (EU GMP Annex 12, not yet extracted among the checked sources: owner residual).
 ];
 
 function libraryCode(p: PhaseNode): string | undefined {
@@ -789,11 +818,13 @@ const requiredBlocks = defineRule('MKT-REQUIRED-BLOCKS', 'A master carries the b
       const t = a.taskOf(at.id);
       return t !== undefined && facts?.get(t.id)?.has(earlier.id) === true;
     };
-    const facts = before(entry.relation === 'AFTER' ? entry.trigger : entry.required);
+    const facts = entry.relation === 'PRESENT' ? undefined : before(entry.relation === 'AFTER' ? entry.trigger : entry.required);
     for (const t of triggers) {
-      const met = entry.relation === 'AFTER' ? required.some((r) => ran(facts, r, t)) : required.some((r) => ran(facts, t, r));
+      const met =
+        entry.relation === 'PRESENT' ? required.length > 0 : entry.relation === 'AFTER' ? required.some((r) => ran(facts, r, t)) : required.some((r) => ran(facts, t, r));
       if (!met) {
-        out.push(error(t.id, `${label(a, t.id)} uses ${entry.trigger} on a master for the ${entry.market} market, which needs a step of ${entry.required} ${entry.relation === 'AFTER' ? 'after' : 'before'} it on every path (${entry.control}; ${entry.clause})`));
+        const where = entry.relation === 'PRESENT' ? 'in the master' : `${entry.relation === 'AFTER' ? 'after' : 'before'} it on every path`;
+        out.push(error(t.id, `${label(a, t.id)} uses ${entry.trigger} on a master for the ${entry.market} market, which needs a step of ${entry.required} ${where} (${entry.control}; ${entry.clause})`));
       }
     }
   }
