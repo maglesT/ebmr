@@ -35,6 +35,13 @@ module.exports = {
       to: { path: '^(packages/(?!kernel/)|apps/|tools/)' },
     },
     {
+      name: 'rules-imports-only-expr',
+      comment: 'The rules package (ADR 0023) imports only the expression language (its exact decimals).',
+      severity: 'error',
+      from: { path: '^packages/rules/' },
+      to: { path: '^(packages/(?!(rules|expr)/)|apps/|tools/)' },
+    },
+    {
       name: 'expr-is-self-contained',
       comment: 'The expression language imports nothing else in the repository.',
       severity: 'error',
