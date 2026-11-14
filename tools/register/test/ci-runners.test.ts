@@ -84,7 +84,9 @@ describe('CI runner labels', () => {
   it('[meta] E2E_RUNNER=ubicloud (owner, decision 0032) moves only the end-to-end groups, their seed and the golden batches to Ubicloud ubuntu-2404, each telling the scripts it is a one-job machine', () => {
     const doc = YAML.parse(readFileSync(join(ROOT, '.github/workflows/ci.yml'), 'utf8')) as { jobs: Record<string, { 'runs-on'?: string; env?: Record<string, string> }> };
     const moved = Object.entries(doc.jobs).filter(([, j]) => (j['runs-on'] ?? '').includes('E2E_RUNNER')).map(([id]) => id).sort();
-    expect(moved).toEqual(['e2e', 'e2e-seed', 'golden']);
+    // seed-check moves with the seed job (lead ruling, 14 November 2026, #268): it starts the seed's physical snapshot,
+    // which only the same PostgreSQL build can start, and it belongs to the E2E seed the owner approved for Ubicloud.
+    expect(moved).toEqual(['e2e', 'e2e-seed', 'golden', 'seed-check']);
     for (const id of moved) {
       const job = doc.jobs[id];
       expect(job?.['runs-on'], id).toMatch(/vars\.E2E_RUNNER == 'ubicloud' && 'ubicloud-standard-\d+-ubuntu-2404' \|\| 'ubuntu-24.04' \}\}$/);

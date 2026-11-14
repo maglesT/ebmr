@@ -500,8 +500,11 @@ jobs:
     name: End-to-end seed equals a fresh set-up
     needs: [changes, e2e-seed]
     if: ${{ needs.changes.outputs.mode == 'full' && needs.e2e-seed.result == 'success' }}
-    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'pod' && 'ebmr-pod' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-4-ubuntu-2204' || 'ubuntu-24.04' }}
+    # The seed job's runner (lead ruling, 14 November 2026): a snapshot starts only on the same PostgreSQL build.
+    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'pod' && 'ebmr-pod' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-4-ubuntu-2204' || vars.E2E_RUNNER == 'ubicloud' && 'ubicloud-standard-4-ubuntu-2404' || 'ubuntu-24.04' }}
     timeout-minutes: 45
+    env:
+      EBMR_CI_HOST: ${{ (inputs.runner || vars.CI_RUNNER) == 'pod' && 'pod' || ((inputs.runner || vars.CI_RUNNER) == 'ubicloud' || vars.E2E_RUNNER == 'ubicloud') && 'ubicloud' || 'github' }}
     steps:
       - uses: actions/checkout@v4
       - name: Per-runner directories (self-hosted pod)
