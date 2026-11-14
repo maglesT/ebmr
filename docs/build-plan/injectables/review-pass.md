@@ -1,6 +1,7 @@
-# Injectables review pass (I-6): database items
+# Injectables review pass (I-6): database items and browser-test stalls
 
-Branch `inj/i6-review-db`, 14 November 2026. Three items from the lead's review list. Regulations are paraphrased.
+Branches `inj/i6-review-db` and `inj/i6-review-e2e-stalls`, combined in `inj/i6-review-pass`, 14 November 2026. Three
+database items from the lead's review list, then the browser-test stalls (item 4). Regulations are paraphrased.
 
 ## 1. Intermittent [DI-20] enrolment failure in CI shard 7 (fixed)
 
@@ -131,7 +132,27 @@ provider and has QA approve a record with units and one without. It then restore
 the same content and the same e-signature content hash (`esig.content_hash_of`) as the stored signatures, and
 `esig.verify_signatures()` reports no problem for either.
 
+## 4. Browser tests that held to the 1 h test timeout (guarded; root cause open)
+
+- **What happened.** The `endorseOnLicence` fill (library-inj-aseptic) and the 'API' radio in #248 hung until the
+  test timeout. The CI traces show one event in both: the page's main thread answered a snapshot about 1.3 s after
+  load, then never answered again. The app code shows nothing that would spin (`DefineForm`, `LicencesPage`,
+  `ChoiceGroup`, `Field`, the app timers). **What freezes the renderer is still open.**
+- **Why the action timeout did not end it.** The click timed out at 30 s, but Playwright's trace recorder (1.56.1,
+  `onAfterCall`) then takes an "after" snapshot by running script in the same frozen page, with no timeout.
+- **Guard.** `tools/e2e/fixtures/renderer-watchdog.ts` checks each page over its own CDP session every 5 s. If an
+  answer is 30 s late (the action timeout), it attaches where the page is stuck and closes the page, so the pending
+  action fails at once. Retries are 0 in every Playwright config and nothing in CI passes `--retries`, so a watchdog
+  close is always a failed test, never a pass on retry (lead, 14 November 2026). Tests: the watchdog unit test with a
+  fake clock, and a real-browser smoke spec where a click handler that never returns fails in about 5 s.
+- **Real race found on the way (fixed).** Demotab 12's `choose(Accept)` left the radio unchecked: the item's detail
+  (`RegisterPage.tsx` `ItemDetail`) appeared above the choices between press and release, so the release landed
+  elsewhere. A person's tap would be lost the same way. The answer and disposition controls now appear only once the
+  item has finished opening. A component test fails without the fix and passes with it.
+
 ## Residuals
+
+- Browser tests: find what freezes the renderer, using the stack the watchdog attaches at the next freeze.
 
 - Kernel: `iam.register_device` should report a duplicate device code with an `EBMR-IAM-` message, not the raw
   unique-violation error. Not needed now (lead, 14 November 2026).
