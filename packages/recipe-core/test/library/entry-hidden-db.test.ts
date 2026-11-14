@@ -19,7 +19,7 @@ import { nominalEntries } from '../../src/library/index.ts';
 import type { BlockDefinition, FieldDef, SectionDef } from '../../src/library/model.ts';
 import { SEED_CATALOGUE, type SeedItem } from '../../src/library/seed/index.ts';
 import { OP1, substituteBatch } from '../engine/support.ts';
-import { issueItem, recordNominal } from './seed-support.ts';
+import { byCode, issueItem, recordNominal } from './seed-support.ts';
 
 let db: TestDatabase;
 beforeAll(async () => {
@@ -140,6 +140,61 @@ describe('the database refuses a value in a field its condition hides, as the en
     expect(mismatches).toEqual([]);
     expect(runs).toBe(2 * CASES.length);
   }, 600_000);
+
+  it('[PR-03][PR-29] the engine reads a condition from the submission and the database from the stored entry, and they agree: a nested condition (its field hidden by its own condition), an optional condition field left empty, and a key that is no field is refused before any condition is read', async () => {
+    // INJ-STERILE-FILTER: validationRef is shown when extendedUseValidated is yes, which is shown when firstUseToday is no.
+    const item = byCode('INJ-STERILE-FILTER');
+    const section = item.definition.sections.find((s) => s.id === 'filter')!;
+    const run = (assign: Record<string, unknown>, extra: Record<string, unknown> = {}) => {
+      const { batch, def, config, mbr } = issueItem(item);
+      const full = fullEntry(def, config, section);
+      batch.start('p');
+      const old = encodeState(batch.state) as Json;
+      const shaped = shaper(full, section, assign)(full);
+      return { batch, def, config, mbr, full, old, shaped, extra, content: { ...(JSON.parse(JSON.stringify(mbr)) as Json), blockDefinitions: [def] } };
+    };
+    const engineRefuses = (r: ReturnType<typeof run>, entry: Record<string, unknown>): string =>
+      r.batch.refused({ type: 'RECORD_ENTRY', actor: OP1, step: 'p', context: [], entry: substituteBatch({ ...r.shaped, ...entry, ...r.extra }, r.batch.state.header.batchNumber) }).message;
+    const stored = (r: ReturnType<typeof run>, assign: Record<string, unknown>): { next: Json; key: string; data: Json } => {
+      recordNominal(r.batch, 'p', r.def, r.config, r.mbr, {}, (e) => (e.kind === section.id ? { ...shaper(r.full, section, assign)(e), ...r.extra } : e));
+      const next = encodeState(r.batch.state) as Json;
+      const entries = next['entries'] as Record<string, Entry & { data: Json }>;
+      const key = Object.keys(entries).filter((k) => !(k in (r.old['entries'] as Json)) && entries[k]?.kind === section.id).sort()[0]!;
+      return { next, key, data: entries[key]!.data };
+    };
+    const forge = (next: Json, key: string, data: Json): Json => {
+      const entries = next['entries'] as Record<string, Json>;
+      return { ...next, entries: { ...entries, [key]: { ...entries[key], data } } };
+    };
+
+    // Nested: first use today (yes) hides extendedUseValidated, and so validationRef too.
+    const a = run({ firstUseToday: true });
+    expect(engineRefuses(a, { extendedUseValidated: true, validationRef: 'VAL-1' })).toMatch(/applies only when firstUseToday is false; leave it empty/);
+    expect(engineRefuses(a, { validationRef: 'VAL-1' })).toMatch(/applies only when extendedUseValidated is true; leave it empty/);
+    const sa = stored(a, { firstUseToday: true });
+    expect('extendedUseValidated' in sa.data || 'validationRef' in sa.data).toBe(false);
+    expect(await problem(a.content, a.old, sa.next)).toBeNull();
+    expect(await problem(a.content, a.old, forge(sa.next, sa.key, { ...sa.data, extendedUseValidated: true, validationRef: 'VAL-1' }))).toMatch(/^stores extendedUseValidated = true in entry .*applies only when firstUseToday is false \(LIB-ENTRY-HIDDEN\)$/);
+    expect(await problem(a.content, a.old, forge(sa.next, sa.key, { ...sa.data, validationRef: 'VAL-1' }))).toMatch(/^stores validationRef = "VAL-1" in entry .*applies only when extendedUseValidated is true \(LIB-ENTRY-HIDDEN\)$/);
+
+    // Shown at both levels: the engine stores both, and the database accepts them.
+    const b = run({ firstUseToday: false, extendedUseValidated: true });
+    const sb = stored(b, { firstUseToday: false, extendedUseValidated: true });
+    expect(sb.data).toMatchObject({ firstUseToday: false, extendedUseValidated: true });
+    expect(sb.data['validationRef']).toBeDefined();
+    expect(await problem(b.content, b.old, sb.next)).toBeNull();
+
+    // A key that is no field of the section is refused by the entry schema before the handler reads any condition
+    // (ENG-ENTRY-SCHEMA), so the stored data holds only fields and the database reads a condition from the same values.
+    const c = run({ firstUseToday: true }, { readingId: 'R-1' });
+    expect(engineRefuses(c, {})).toMatch(/filter\.readingId is not a field of this block \(unknown fields are refused\)/);
+    const sc = stored(run({ firstUseToday: true }), { firstUseToday: true });
+    // Besides fields, the stored data holds only the facts the server read (lots, equipment) and the server's calculated
+    // figures (computed); a condition names a field of its section (LIB-SHOW-WHEN), never one of these.
+    const others = Object.keys(sc.data).filter((k) => !section.fields.some((f) => f.id === k));
+    expect(others.every((k) => ['computed', 'lots', 'equipment'].includes(k)), others.join(', ')).toBe(true);
+    expect(section.fields.some((f) => ['computed', 'lots', 'equipment'].includes(f.showWhen?.field ?? ''))).toBe(false);
+  }, 120_000);
 
   it('[PR-03][PR-29] every condition of the catalogue names a yes/no or choice field of its own section, so each is swept above; the others are calculated fields (1862) or timers', () => {
     for (const c of CONDITIONS) {
