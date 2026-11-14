@@ -51,6 +51,24 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 edited in a DRAFT. One version in preparation per family: server 409 DESIGNER_OPEN_VERSION and database rule (owner,
 13 November; recipe-core 1925, EBMR-RCP-436; new versions only, no row changed).
 
+**Fix: a unit or room in use that no step names can be ended, with a reason (demo report 13 November 2026, bug 4; branch fix-end-equipment-use).**
+A unit's use started on the Plant screen for a batch whose master binds no step to the unit had no screen to end it, so
+the unit stayed in use and every later batch was refused (EBMR-PLANT-061). The stage sign-off offered "End the use" to
+the supervisor, whom the database refuses (STEP.EXECUTE is the operator's).
+- New read `plant.openEquipmentUses` (GET /api/plant/equipment-uses): every process unit's use not ended, of any batch in
+  any state. The Plant screen's "Units in use" lists them and offers the operator the existing end act
+  (`plant.endEquipmentUse`: same right, fresh badge tap, audit row). No database change: `plant.end_equipment_use` never
+  read the batch's state, so a finished or abandoned batch's use was always endable there.
+- The stage sign-off offers "End the use" only to a role holding STEP.EXECUTE (web `STEP_EXECUTE` group); others are told
+  who ends it and where. The presenter-floor E2E now checks that instead of the supervisor's refusal.
+- Owner decisions (13 November): (1) the shift supervisor gets no right to end a use (kept hidden); (2) ending a use
+  records a reason; (3) rooms get the same Plant-screen list and end. Done in recipe-core 1926:
+  `plant.end_equipment_use(use, reason)` and `plant.end_area_occupancy(occupancy, reason)` store the reason on the
+  insert-only end row and write a business audit entry naming unit or room, batch and reason. A blank reason is refused
+  (EBMR-PLANT-065), and a use whose batch is EXECUTION_COMPLETE, ABORTED or CANCELLED is ended only with a reason. The
+  one-argument functions (step screen, demo loaders) still end a running batch's use without one. New read
+  `plant.openAreaOccupancies`; both end routes take an optional `reason`, and the Plant screen always asks for it.
+
 **Demo fix: an equipment status step that checks no unit (r13 bug 1, 13 November 2026; branch fix-validator-stage-equipment).**
 A stage added with the designer binds rooms but no equipment, and its G-09@2 step checked nothing; the validator passed it
 and on the floor the step could never be signed (G09-INCOMPLETE, EBMR-EXE-210). New validator rule

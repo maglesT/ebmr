@@ -28,6 +28,22 @@ import { useStepChoices } from '../choices.tsx';
 import { wcls } from '../classes.ts';
 import { plantEntryParams, plantEntryRoute } from '../family.ts';
 
+/**
+ * Recipe-core 1926 (owner decision of 13 November 2026 on demo report bug 4): once the batch has finished, ending one of
+ * its uses is no longer part of its run and states why; the step screen then asks for the reason (none while it runs).
+ */
+const FINISHED = new Set(['EXECUTION_COMPLETE', 'ABORTED', 'CANCELLED']);
+function useEndReason(view: StepScreenView) {
+  const finished = FINISHED.has(view.run.status);
+  const [reason, setReason] = useState('');
+  return {
+    finished,
+    missing: finished && reason.trim() === '',
+    body: finished ? { reason: reason.trim() } : {},
+    field: finished ? <Field name="endReason" label="Reason for ending the use (the batch has finished)" value={reason} onChange={setReason} /> : null,
+  };
+}
+
 const READ = [routes.batches.stepPlant.id];
 /** R3.3: a plant entry changes the step and the run as well as the plant (the step's entry is recorded with it). */
 const READ_WITH_STEP = [routes.batches.stepPlant.id, routes.execution.step.id, routes.execution.run.id];
@@ -76,11 +92,13 @@ function AreaPanel({ v, view }: { v: StepPlantView; view: StepScreenView }) {
   // R3.3 (D-7k-2): the start of the room's use and its record in the step are one act (one badge tap).
   const start = useCommand(plantEntryRoute(), READ_WITH_STEP, 'starting the use of the room and recording it in this step');
   const end = useCommand(routes.plant.endAreaOccupancy, READ, 'ending the use of the room');
+  const why = useEndReason(view);
   const busy = start.busy || end.busy;
   const occupied = new Set(v.occupancies.map((o) => o.areaCode));
   const record = (areaCode: string, occupancyId: string) => choices?.choose('AREA_OCCUPANCY', { areaCode, occupancyId });
   return (
     <div data-testid="plant-area">
+      {v.occupancies.length > 0 ? why.field : null}
       {v.occupancies.map((o) => (
         <div key={o.occupancyId} data-testid={`occupancy-${o.areaCode}`}>
           <p>
@@ -95,7 +113,7 @@ function AreaPanel({ v, view }: { v: StepPlantView; view: StepScreenView }) {
           ) : (
             <p className={wcls('muted')}>Started by another person: the step names only your own start.</p>
           )}
-          <Button isDisabled={busy} onPress={() => void end.run({ params: { occupancyId: o.occupancyId }, body: {} })}>
+          <Button isDisabled={busy || why.missing} onPress={() => void end.run({ params: { occupancyId: o.occupancyId }, body: why.body })}>
             {`End the use of ${o.areaCode}`}
           </Button>
         </div>
@@ -159,6 +177,7 @@ function UnitRef({ v, e, view }: { v: StepPlantView; e: StepPlantView['equipment
   // one act (one badge tap); the server books or starts as the master's stage binding says.
   const book = useCommand(plantEntryRoute(), READ_WITH_STEP, 'booking the unit and recording it in this step');
   const endUse = useCommand(routes.plant.endEquipmentUse, READ, 'ending the use of the unit');
+  const why = useEndReason(view);
   const [picked, setPicked] = useState<string | null>(null);
   const [hours, setHours] = useState<string | null>('12');
   const [reference, setReference] = useState('Per-use check');
@@ -174,6 +193,7 @@ function UnitRef({ v, e, view }: { v: StepPlantView; e: StepPlantView['equipment
       <h3 className={wcls('formTitle')}>
         {e.ref} ({e.kind.toLowerCase()}, class {e.classCode})
       </h3>
+      {uses.some((u) => u.kind === 'PROCESS') ? why.field : null}
       {uses.map((u) => (
         <div key={u.useId} data-testid={`use-${u.equipmentCode}`}>
           <p>
@@ -189,7 +209,7 @@ function UnitRef({ v, e, view }: { v: StepPlantView; e: StepPlantView['equipment
             <p className={wcls('muted')}>Booked by another person: the step names only your own booking.</p>
           )}
           {u.kind === 'PROCESS' ? (
-            <Button isDisabled={busy} onPress={() => void endUse.run({ params: { useId: u.useId }, body: {} })}>
+            <Button isDisabled={busy || why.missing} onPress={() => void endUse.run({ params: { useId: u.useId }, body: why.body })}>
               {`End the use of ${u.equipmentCode}`}
             </Button>
           ) : null}

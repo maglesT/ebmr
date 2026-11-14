@@ -6,6 +6,7 @@
  * the discharge configuration of a press (MASTERDATA.CHANGE); the unit is chosen from the plant list, never typed.
  * Slice 7h (gap report D2): the per-use check and the booking for a batch of an instrument the batch uses without a status
  * step naming it (a closure torque tester on a bottle line: TB23-TESTER), chosen from the plant list (STEP.EXECUTE).
+ * Demo report 13 November 2026 (bug 4): every process unit and room still in use, of any batch, with its end and reason.
  * ST-33 (tablets 1912): a line withdrawn after a failed media fill shows the batches made on it since its last successful
  * APS; QA records the review (the risk assessment and the repeat APS runs) before the line can be qualified again.
  */
@@ -64,6 +65,12 @@ export function PlantPage() {
       </Section>
       <Section title="Room or unit in use for a batch" testId="plant-use">
         <PlantUseForm />
+      </Section>
+      <Section title="Units in use" testId="units-in-use">
+        <OpenUnitUses />
+      </Section>
+      <Section title="Rooms and lines in use" testId="rooms-in-use">
+        <OpenRoomUses />
       </Section>
       <Section title="Calibration" testId="calibration">
         <CalibrationForm />
@@ -409,6 +416,70 @@ function PlantUseForm() {
       ) : (
         <p>Choose the batch.</p>
       )}
+    </>
+  );
+}
+
+/**
+ * Demo report 13 November 2026 (bug 4): a unit's or room's use started here for a batch whose master binds no step to it
+ * had no screen to end it, so it stayed in use and every later batch was refused (EBMR-PLANT-061). Every process unit and
+ * every room or line still in use is listed, whatever the state of its batch (finished, stuck or abandoned included), and a
+ * person offered the floor's acts ends it here with the reason (owner decision of 13 November 2026: always asked here;
+ * stored on the end and in the audit trail, recipe-core 1926). The act is the step screen's own end (the person's own
+ * command, a fresh badge tap on a kiosk; the database checks STEP.EXECUTE and ends the use once).
+ */
+function EndReasonField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return <Field name="endReason" label="Reason for ending the use" value={value} onChange={onChange} />;
+}
+
+function OpenUnitUses() {
+  const q = useApiQuery(routes.plant.openEquipmentUses);
+  const may = useOffered('STEP_EXECUTE');
+  const end = useCommand(routes.plant.endEquipmentUse, [routes.plant.openEquipmentUses.id, ...PENDING], 'ending the use of the unit');
+  const [reason, setReason] = useState('');
+  const uses = q.data?.uses ?? [];
+  return (
+    <>
+      {uses.length === 0 ? <p>No process unit is in use.</p> : null}
+      {uses.length > 0 && may ? <EndReasonField value={reason} onChange={setReason} /> : null}
+      <ul>
+        {uses.map((u) => (
+          <li key={u.useId} data-testid={`unit-use-${u.equipmentCode}`}>
+            <StatusChip tone="warning" label={`${u.equipmentCode} in use`} /> by batch {u.batchNumber} since {u.startedAt.text}, planned to end {u.plannedEnd.text}{' '}
+            {may ? (
+              <ActButton label={`End the use of ${u.equipmentCode}`} onPress={() => end.run({ params: { useId: u.useId }, body: { reason: reason.trim() } })} disabled={end.busy || reason.trim() === ''} />
+            ) : null}
+          </li>
+        ))}
+      </ul>
+      {uses.length > 0 && !may ? <p>An operator ends a unit's use (STEP.EXECUTE).</p> : null}
+      <ActResult error={end.error} done={end.done} label={end.done ? `The use of ${end.done.equipmentCode} by ${end.done.batchNumber} ended; the unit is to be cleaned.` : ''} />
+    </>
+  );
+}
+
+function OpenRoomUses() {
+  const q = useApiQuery(routes.plant.openAreaOccupancies);
+  const may = useOffered('STEP_EXECUTE');
+  const end = useCommand(routes.plant.endAreaOccupancy, [routes.plant.openAreaOccupancies.id, ...PENDING], 'ending the use of the room');
+  const [reason, setReason] = useState('');
+  const rooms = q.data?.occupancies ?? [];
+  return (
+    <>
+      {rooms.length === 0 ? <p>No room or line is in use.</p> : null}
+      {rooms.length > 0 && may ? <EndReasonField value={reason} onChange={setReason} /> : null}
+      <ul>
+        {rooms.map((o) => (
+          <li key={o.occupancyId} data-testid={`room-use-${o.areaCode}`}>
+            <StatusChip tone="warning" label={`${o.areaCode} in use`} /> by batch {o.batchNumber} for stage {o.stage} since {o.startedAt.text}{' '}
+            {may ? (
+              <ActButton label={`End the use of ${o.areaCode}`} onPress={() => end.run({ params: { occupancyId: o.occupancyId }, body: { reason: reason.trim() } })} disabled={end.busy || reason.trim() === ''} />
+            ) : null}
+          </li>
+        ))}
+      </ul>
+      {rooms.length > 0 && !may ? <p>An operator ends a room's use (STEP.EXECUTE).</p> : null}
+      <ActResult error={end.error} done={end.done} label={end.done ? `The use of ${end.done.areaCode} by ${end.done.batchNumber} ended.` : ''} />
     </>
   );
 }

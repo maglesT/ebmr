@@ -4,6 +4,10 @@
  * uses for the stage and the process units it still uses, each with its "End the use" act (the person's own command, a
  * fresh badge tap on a kiosk; the database ends it and starts the unit's dirty-hold clock). An instrument booking ends
  * by itself at its planned end and is listed for information only. GMP batches only (the plant acts are GMP's).
+ * Demo report 13 November 2026 (bug 4): ending a use is a floor act the database grants on STEP.EXECUTE, which the
+ * supervisor who signs the stage off does not hold; the dialog offered the supervisor "End the use" only to be refused.
+ * The act is now offered only to a person offered the floor's acts; anyone else is told where an operator ends it (the
+ * step's plant panel, or the Plant screen's "Units in use" for a unit no step names).
  */
 import { routes } from '@ebmr/api-contract';
 import { Button, StatusChip } from '@ebmr/ui-kit';
@@ -11,6 +15,8 @@ import { useApiQuery } from '../../../api/hooks.ts';
 import { ActResult, useCommand } from '../../../app/acts.tsx';
 import { wcls } from '../classes.ts';
 import { isGmpFloor } from '../family.ts';
+import { offered } from '../../../app/roles.ts';
+import { useFloorSession } from '../session.tsx';
 
 const READ = [routes.batches.stepPlant.id];
 
@@ -19,6 +25,7 @@ export function StageInUse({ batchId, stepKey, stageKey }: { batchId: string; st
   const q = useApiQuery(routes.batches.stepPlant, { params: { batchId, stepKey } }, { enabled: gmp });
   const endArea = useCommand(routes.plant.endAreaOccupancy, READ, 'ending the use of the room');
   const endUnit = useCommand(routes.plant.endEquipmentUse, READ, 'ending the use of the unit');
+  const may = offered(useFloorSession().role, 'STEP_EXECUTE');
   if (!gmp || !q.data) return null;
   const stage = stageKey.split('@')[0] ?? stageKey;
   const rooms = q.data.occupancies.filter((o) => o.stage === stage);
@@ -32,24 +39,33 @@ export function StageInUse({ batchId, stepKey, stageKey }: { batchId: string; st
         {rooms.map((o) => (
           <li key={o.occupancyId} data-testid={`in-use-${o.areaCode}`}>
             <StatusChip tone="warning" label={`${o.areaCode} in use`} /> since {o.startedAt.text}{' '}
-            <Button isDisabled={busy} onPress={() => void endArea.run({ params: { occupancyId: o.occupancyId }, body: {} })}>
-              {`End the use of ${o.areaCode}`}
-            </Button>
+            {may ? (
+              <Button isDisabled={busy} onPress={() => void endArea.run({ params: { occupancyId: o.occupancyId }, body: {} })}>
+                {`End the use of ${o.areaCode}`}
+              </Button>
+            ) : null}
           </li>
         ))}
         {units.map((u) => (
           <li key={u.useId} data-testid={`in-use-${u.equipmentCode}`}>
             <StatusChip tone="warning" label={`${u.equipmentCode} ${u.kind === 'PROCESS' ? 'in use' : `booked until ${u.plannedEnd.text}`}`} />{' '}
             {u.kind === 'PROCESS' ? (
-              <Button isDisabled={busy} onPress={() => void endUnit.run({ params: { useId: u.useId }, body: {} })}>
-                {`End the use of ${u.equipmentCode}`}
-              </Button>
+              may ? (
+                <Button isDisabled={busy} onPress={() => void endUnit.run({ params: { useId: u.useId }, body: {} })}>
+                  {`End the use of ${u.equipmentCode}`}
+                </Button>
+              ) : null
             ) : (
               <span className={wcls('muted')}>The booking ends at its planned end.</span>
             )}
           </li>
         ))}
       </ul>
+      {!may && (rooms.length > 0 || units.some((u) => u.kind === 'PROCESS')) ? (
+        <p className={wcls('muted')} data-testid="stage-in-use-who">
+          An operator ends these uses: a room on its clearance step, a unit on its status step or on the Plant screen (Units in use).
+        </p>
+      ) : null}
       <ActResult error={endArea.error ?? endUnit.error} />
     </section>
   );

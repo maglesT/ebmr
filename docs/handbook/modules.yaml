@@ -462,7 +462,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^040\d_', '^0460_', '^052[1-3]_', '^0691_', '^0890_', '^0912_', '^188[67]_']
+      packages/recipe-core/sql: ['^040\d_', '^0460_', '^052[1-3]_', '^0691_', '^0890_', '^0912_', '^188[67]_', '^1926_']
     src: [packages/recipe-core/src/plant]
     tests:
       - 'packages/recipe-core/test/plant/**'
