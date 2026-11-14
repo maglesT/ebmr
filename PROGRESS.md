@@ -62,23 +62,6 @@ at their judged precision (item 8). The title block shows its signatures; a stal
 `docs/operations/ha-and-restore.md`); IN-18 forbids reuse, not gaps. Owner decision (13 November): the register screen now
 lists each skipped range with its numbers, reason and time (site-services 1924, read from `continuity.sequence_bump`).
 
-**Injectables I-5 (session 13, 12 November 2026).** #236 merged:
-- INJ-AVI: automated visual inspection; the counts are typed from the machine report and CHECKED.
-- INJ-AVI-CHALLENGE-EU: the Annex 1 8.32 challenge, EU only.
-- INJ-CCIT-100: deterministic 100 % CCIT; a leaker is a counted reject, accounted through `totalRejects`.
-- RMM: `rmmReportAttached` in TEST-INJ-RELEASE.
-
-The E2E (group `library-inj-inspection`) takes the vial with these blocks through its sandbox half to IN authorisation. The
-RMM end to end is a residual for the I-6 golden batch or a GMP half (`docs/build-plan/injectables/resume.md`).
-
-**Process-simulation mark (injectables I-2 feature B, recipe-core 1896, lead design 11 November 2026).** A master header may
-carry `nonProduct: PROCESS_SIMULATION` (a media fill), on an injectables processing master only (EBMR-RCP-435). The mark is
-approved content and in the hash. Such a batch is issued
-without the licence or any market's export permission, and the hazard dedication still applies. Its licence basis
-records `process_simulation` with no licence. The database refuses its label (IND-050), a packaging order of it
-(EXE-198), a finished lot (IND-045) and a shipment (IND-046). A US-market media fill meets the 11.100(c) gate with the site's
-licence holder (1260, lead ruling); the allocation register shows processSimulation.
-
 **Injectables EM tiers (12 November 2026, session 10c).** The library E2E types each limit tier into its own boxes; the
 aseptic vial's EM breach is an action-tier breach. Routine EM is not a batch record (lead): owner question, a room-level
 EM logbook as a future feature, if wanted.
@@ -102,9 +85,9 @@ finished lot of it is refused. The master-version market authorisation stays (le
 - Hosted demo re-set-up for area_status v2: no code (owner chose the easy way; the state engine, kernel 1110, never
   changes an aggregate's machine version, so areas move to v2 by running the demo set-up again).
 
-**Earlier state** (moved verbatim to `docs/progress/history.md` on 11 November 2026, and session 12's entries on
-14 November (search "PROGRESS.md session 12, moved 14 November"); search "PROGRESS.md condensed, 11
-November"): the sandbox date-time fix (kernel 1406); the post-use inspection without a second person (tablets 1908);
+**Earlier state** (moved verbatim to `docs/progress/history.md` on 11 November 2026, and session 12's and I-5's
+entries on 14 November (search "PROGRESS.md session 12, moved 14 November" and "PROGRESS.md I-5, moved 14 November");
+search "PROGRESS.md condensed, 11 November"): the sandbox date-time fix (kernel 1406); the post-use inspection without a second person (tablets 1908);
 MEDHANTA slice 2, deviations through the Deviations product (tablets 1907, decision 0029); declutter D1 to D4b (decision
 record in `docs/build-plan/declutter/plan.md`); the API edition A0 to A2; the demo gaps D-0 to D-4, R-flow and R-rest;
 the capsules edition; the injectables plan and I-1 to I-4; the dynamic library S0 to S16 (decision 0026); Phases 0 to 4,
