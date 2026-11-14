@@ -97,31 +97,8 @@ at their judged precision (item 8). The title block shows its signatures; a stal
 `docs/operations/ha-and-restore.md`); IN-18 forbids reuse, not gaps. Owner decision (13 November): the register screen now
 lists each skipped range with its numbers, reason and time (site-services 1924, read from `continuity.sequence_bump`).
 
-**Injectables EM tiers (12 November 2026, session 10c).** The library E2E types each limit tier into its own boxes; the
-aseptic vial's EM breach is an action-tier breach. Routine EM is not a batch record (lead): owner question, a room-level
-EM logbook as a future feature, if wanted.
-
-**Injectables I-2d (12 November 2026, session 10c).** The media fill's GMP run, E2E: the mark set on screen, the batch issued
-with no licence (the register says so), run on the kiosks with no release for packing, ended by QA's record review; a
-finished lot of it is refused. The master-version market authorisation stays (lead).
-
-**Owner retest fixes (13 November 2026).**
-- MGL-SR-BL retest of 13 November, bugs 5 and 6 (branch fix-unit-choice-and-planning):
-  - Bug 5: a status step (G-09@2) offered only the stage room's units, so a usable unit of the class in another room was
-    never offered. No control or database rule ties a unit to the stage's room. Default taken: the stage room's units
-    come first. When none of them can be used now, usable units of the class in other rooms are offered with their room
-    and a note says why. When no unit can be used anywhere, every unit is listed with the plant's reason and what to do.
-    A unit with an open use of the batch is always offered. Raw EQUIPMENT_USE/PRESS_SETUP forms pick an open use.
-  - Bug 6: recipe-core 1921 makes the planning read list every matching master in `matches`. When more than one
-    matches, `match` is null and `noMatch` names them; the planning screen asks the planner to choose. Owner, 13
-    November: a twin family is refused at authorisation (recipe-core 1923, EBMR-RCP-438: another family of the same
-    product with an active authorisation for the same market, site, line and batch quantity); the planner's choice stays
-    for twins already in a database and on different lines. Owner: a unit of another room may be used (no guard).
-- Hosted demo re-set-up for area_status v2: no code (owner chose the easy way; the state engine, kernel 1110, never
-  changes an aggregate's machine version, so areas move to v2 by running the demo set-up again).
-
 **Earlier state** (moved verbatim to `docs/progress/history.md` on 11 November 2026, and session 12's and I-5's
-entries on 14 November (search "PROGRESS.md session 12, moved 14 November" and "PROGRESS.md I-5, moved 14 November");
+entries on 14 November, with the EM tiers, I-2d and owner retest entries (search "Moved from PROGRESS.md on 14 November 2026", "PROGRESS.md session 12, moved 14 November" and "PROGRESS.md I-5, moved 14 November");
 search "PROGRESS.md condensed, 11 November"): the sandbox date-time fix (kernel 1406); the post-use inspection without a
 second person (tablets 1908); MEDHANTA slice 2, deviations through the Deviations product (tablets 1907, decision 0029);
 declutter D1 to D4b (decision record in `docs/build-plan/declutter/plan.md`); the API edition A0 to A2; the demo gaps
