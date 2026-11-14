@@ -1,13 +1,15 @@
 /**
  * Injectables I-6.3 (ST-71; lead ruling (a), 12 November 2026): on an injectables processing batch, a unit accountability
  * that does not balance (INJ-UNIT-ACCOUNT, the edition's yield) and an open deviation each keep the lot from release, over
- * the routes with the seed's personas and real signatures. The master: ampoule filling (INJ-FILL), sealing
- * (INJ-AMPOULE-SEAL), 100 % inspection (INJ-VISUAL-INSPECT) and the unit accountability that reads their counts. The
+ * the routes with the seed's personas and real signatures. The master: ampoule filling (INJ-FILL), the environmental
+ * monitoring during it (INJ-EM), sealing (INJ-AMPOULE-SEAL), 100 % inspection (INJ-VISUAL-INSPECT) and the unit
+ * accountability that reads their counts; in a stage of its own the EM counts after incubation (INJ-EM-COUNTS), as an
+ * aseptic fill needs both (INV-23). The
  * finished lot is posted on the processing batch as the edition's definer posts it, as aseptic-gate.test.ts does (whose
  * arrangement this file follows), so the gate is evaluated on that record.
  *
- * Arranged outside the routes: the product, the licence, the plant units the steps name (test arrangement of master
- * data), the ERP order and the numbering rule.
+ * Arranged outside the routes: the product, the licence, the plant units the steps name and the EM plates' released
+ * media lot (test arrangement of master data), the ERP order and the numbering rule.
  */
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -21,6 +23,7 @@ import { openServiceSession } from '@ebmr/test-kit';
 import { postOrder } from '../../../../packages/recipe-core/test/lifecycle/gmp-support.ts';
 import { cell, reason, type World } from '../../../../packages/recipe-core/test/lifecycle/support.ts';
 import { INJECTABLE_SEEDS } from '../../../../packages/recipe-core/src/library/seed/injectables.ts';
+import { INJECTABLE_ASEPTIC_SEEDS } from '../../../../packages/recipe-core/src/library/seed/injectables-aseptic.ts';
 import { startSigningServer, valueOf } from '../esig/support.ts';
 import type { ExecServer, RunDriver } from '../execution/support.ts';
 import { actorOf, gmpContent, gmpLifecycleWorld } from '../support/gmp-world.ts';
@@ -39,10 +42,15 @@ const UNITS: Record<string, readonly [string, string, string]> = {
   room: ['ROOM-GRADE-C', `ROOM-C-${TAG}`, 'Grade C filling room'],
   sealer: ['AMPOULE-SEALER', `SEALER-${TAG}`, 'Ampoule sealing station'],
   booth: ['INSPECTION-BOOTH', `BOOTH-${TAG}`, 'Inspection booth'],
+  counter: ['PARTICLE-COUNTER', `COUNTER-${TAG}`, 'Particle counter'],
+  // The room the EM samples, of the seed's Grade B class (the EM entry names it in its own field `room`: EM_OVER).
+  emRoom: ['ROOM-GRADE-B', `ROOM-B-${TAG}`, 'Grade B filling room'],
 };
+/** The EM plates' media lot, released after its growth-promotion test (ST-23). */
+const MEDIA_LOT = `TSA-${TAG}`;
 
 const seed = (code: string) => {
-  const item = INJECTABLE_SEEDS.find((s) => s.definition.code === code);
+  const item = [...INJECTABLE_SEEDS, ...INJECTABLE_ASEPTIC_SEEDS].find((s) => s.definition.code === code);
   if (!item) throw new Error(`no injectables seed ${code}`);
   return item;
 };
@@ -50,9 +58,13 @@ const FILL = seed('INJ-FILL');
 const SEAL = seed('INJ-AMPOULE-SEAL');
 const INSPECT = seed('INJ-VISUAL-INSPECT');
 const ACCOUNT = seed('INJ-UNIT-ACCOUNT');
+const EM = seed('INJ-EM');
+const COUNTS = seed('INJ-EM-COUNTS');
+/** The EM's area entry: the Grade B room and the media lot (the other units by their field ids, as UNITS maps them). */
+const EM_OVER: Json = { area: { room: UNITS['emRoom']?.[1], mediaLot: MEDIA_LOT } };
 /** An ampoule master reads the closing rejects from its sealing step, as the catalogue's own test wires it. */
 const ACCOUNT_USE = { ...ACCOUNT.exampleUse, stepValues: { ...ACCOUNT.exampleUse.stepValues, closingRejectsSource: { step: 'sealing', field: 'totalRejects' } } };
-const DEFS = [FILL.definition, SEAL.definition, INSPECT.definition, ACCOUNT.definition];
+const DEFS = [FILL.definition, EM.definition, SEAL.definition, INSPECT.definition, ACCOUNT.definition, COUNTS.definition];
 
 const processing: flow.MbrContent = gmpContent((m) => {
   const header = m['header'] as Json;
@@ -67,10 +79,13 @@ const processing: flow.MbrContent = gmpContent((m) => {
   body['children'] = [
     stage(like, 'S-FILL', 'Filling, sealing, inspection and unit accountability', [
       phaseOf(FILL.definition, 'filling', FILL.exampleUse),
+      phaseOf(EM.definition, 'em', EM.exampleUse),
       phaseOf(SEAL.definition, 'sealing', SEAL.exampleUse),
       phaseOf(INSPECT.definition, 'inspection', INSPECT.exampleUse),
       phaseOf(ACCOUNT.definition, 'account', ACCOUNT_USE),
     ]),
+    // The plates of the filling window are read after their incubation, days later, in a stage of their own.
+    stage(like, 'S-EM', 'Environmental monitoring after incubation', [phaseOf(COUNTS.definition, 'counts', COUNTS.exampleUse)]),
   ];
   for (const k of ['parameters', 'calculations', 'yieldCheckpoints', 'timeConstraints', 'goldenCases', 'intermediates', 'riskReductions', 'inputs']) m[k] = [];
   m['blockDefinitions'] = DEFS;
@@ -81,7 +96,10 @@ let world: World;
 let proc: { familyId: string; versionId: string };
 let n = 0;
 
-/** The plant units the steps name (test arrangement of master data, triggers off): qualified, of the formulation's classes. */
+/**
+ * The plant units the steps name (test arrangement of master data, triggers off): qualified, of the formulation's classes;
+ * and the EM plates' media lot, released (a component received as the E2E receives one, as filter-reuse-gate.test.ts does).
+ */
 async function arrangeUnits(): Promise<void> {
   const c = await gmp.db.admin.connect();
   try {
@@ -95,6 +113,15 @@ async function arrangeUnits(): Promise<void> {
       const { rows } = await c.query<{ id: string }>("insert into plant.equipment (code, name, class_code, kind, recorded_by) values ($1, $2, $3, 'PROCESS', gen_random_uuid()) returning id", [code, name, cls]);
       await c.query("insert into plant.equipment_event (equipment_id, kind, reference, detail, person_id, account_id) values ($1, 'QUALIFIED', 'QUAL-INJ', 'IQ/OQ/PQ approved', gen_random_uuid(), gen_random_uuid())", [rows[0]?.id]);
     }
+    const { rows } = await c.query<{ id: string }>(
+      `insert into site.material_lot (id, site_code, lot_code, material_code, material_name, material_kind, received_quantity, unit, expires_at,
+                                      received_by_person, received_by_account, correlation_id)
+       values (gen_random_uuid(), $1, $2, $3, 'Environmental monitoring plates, tryptone soya agar', 'PRIMARY_PACKAGING', 500, '1', clock_timestamp() + interval '1 year',
+               gen_random_uuid(), gen_random_uuid(), gen_random_uuid()) returning id`,
+      [SITE, MEDIA_LOT, `MAT-TSA-${TAG}`],
+    );
+    await c.query("insert into platform.aggregate_state (aggregate_type, aggregate_id, machine_code, machine_version, state, version) values ('material_lot', $1, 'material_lot', 1, 'RELEASED', 2)", [rows[0]?.id]);
+    await c.query("insert into site.lot_identity_result (lot_id, result, method_reference, test_reference, recorded_by_person, recorded_by_account) values ($1, 'PASS', 'STP-ID', 'AR-1', gen_random_uuid(), gen_random_uuid())", [rows[0]?.id]);
     await c.query('commit');
   } finally {
     c.release();
@@ -194,6 +221,8 @@ describe('Injectables I-6.3: the release gate on an unbalanced unit accountabili
     // Ampoules: no stopper-height check.
     await record(d, 'filling@', FILL, { setup: { format: 'Ampoule', stopperCheck: undefined } });
     await signed(d, 'filling@');
+    await record(d, 'em@', EM, EM_OVER);
+    await signed(d, 'em@');
     await record(d, 'sealing@', SEAL);
     await signed(d, 'sealing@');
     await record(d, 'inspection@', INSPECT);

@@ -13,12 +13,12 @@ All data here are DEMO-ONLY: the product, the methods, the limits, the samples a
 
 | Record | Stage | Blocks |
 |---|---|---|
-| Processing (V{YY}{SEQ:5}) | S-FILL, aseptic filling | INJ-FILL (line VIAL-LINE-GBI01, room ROOM-C-GBI01), INJ-STERILITY-SAMPLE |
+| Processing (V{YY}{SEQ:5}) | S-FILL, aseptic filling | INJ-FILL (line VIAL-LINE-GBI01, room ROOM-C-GBI01), INJ-EM (room ROOM-B-GBI01, counter COUNTER-GBI01, released media lot TSA-GBI01; INV-23), INJ-STERILITY-SAMPLE |
 | | S-EM, after incubation | INJ-EM-COUNTS |
 | | S-RELEASE | H-PACK (QA's release for packing) |
 | Packaging ({PARENT}/P{SEQ:2}) | S-PACK | INJ-PACK-EXAM (closes an injectables packaging record) |
 
-The plant units, the masters' plant-free shape, the ERP orders (PO-GBI01-001, PO-GBI01-002) and the numbering rules are
+The plant units, the EM plates' media lot, the masters' plant-free shape, the ERP orders (PO-GBI01-001, PO-GBI01-002) and the numbering rules are
 arranged as in the injectables chain tests (`../../injectables/vial-chain.test.ts`, `aseptic-gate.test.ts`).
 
 ## Quantities and waits

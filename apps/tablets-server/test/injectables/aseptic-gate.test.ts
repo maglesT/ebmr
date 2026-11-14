@@ -1,15 +1,17 @@
 /**
  * Injectables I-6.2: the release gate holds an aseptic lot while its environmental monitoring is not in (ST-24) and while
  * the deviation of an unlisted intervention is open (ST-36), over the routes with the seed's personas and real
- * signatures. A processing master of catalogue blocks: the filling (INJ-FILL, with its event section) and, in a stage of
- * its own, the counts of the EM plates after incubation (INJ-EM-COUNTS). The finished lot is posted on the processing
+ * signatures. A processing master of catalogue blocks: the filling (INJ-FILL, with its event section) and the
+ * environmental monitoring during it (INJ-EM, INV-23) and, in a stage of its own, the counts of the EM plates after
+ * incubation (INJ-EM-COUNTS). The finished lot is posted on the processing
  * batch as the edition's definer posts it (as the release gate's own tests do), so the gate is evaluated on that record.
  * A second master of the same product holds the nitrogen overlay gas filter's post-use integrity test (INJ-GAS-FILTER,
  * ST-28), so a batch without that test is shown not certifiable. A third master binds the filling to the filling room,
  * made a controlled area, so only an operator authorised for that area signs it there (PR-15, kernel 1190).
  *
  * Arranged outside the routes, as the vial chain (vial-chain.test.ts): the product, the licence, the plant units the
- * filling names (test arrangement of master data), the ERP order and the numbering rule.
+ * filling and the EM name and the EM plates' released media lot (test arrangement of master data), the ERP order and the
+ * numbering rule.
  */
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -39,6 +41,10 @@ const PRODUCT = { code: `INJAG-${TAG}`, name: 'Demoinj aseptic 10 mg/2 mL vials'
 const REASON = 'Injectables I-6.2 aseptic gate';
 const FILL_LINE = `VIAL-LINE-${TAG}`;
 const FILL_ROOM = `ROOM-C-${TAG}`;
+/** The room the EM samples (of the seed's Grade B class), its particle counter and the plates' released media lot (ST-23). */
+const EM_ROOM = `ROOM-B-${TAG}`;
+const COUNTER = `COUNTER-${TAG}`;
+const MEDIA_LOT = `TSA-${TAG}`;
 /** A seeded shop-floor kiosk this file does not otherwise use, registered to the filling room for the PR-15 test. */
 const FILL_KIOSK = 'KIOSK-PRINT-1';
 
@@ -48,6 +54,7 @@ const seed = (code: string) => {
   return item;
 };
 const FILL = seed('INJ-FILL');
+const EM = seed('INJ-EM');
 const COUNTS = seed('INJ-EM-COUNTS');
 const ROOM = seed('INJ-ROOM-READY');
 const GAS = seed('INJ-GAS-FILTER');
@@ -63,14 +70,15 @@ const processing: flow.MbrContent = gmpContent((m) => {
   const body = (m['procedure'] as Json)['body'] as Json;
   const like = (body['children'] as Json[])[0] as Json;
   body['children'] = [
-    stage(like, 'S-FILL', 'Aseptic filling', [phaseOf(FILL.definition, 'p-fill', FILL.exampleUse)]),
+    // The filling and the environmental monitoring during it (INV-23: an aseptic fill monitors its environment).
+    stage(like, 'S-FILL', 'Aseptic filling', [phaseOf(FILL.definition, 'p-fill', FILL.exampleUse), phaseOf(EM.definition, 'p-em', EM.exampleUse)]),
     // The plates of the filling window are read after their incubation, days later, in a stage of their own.
     stage(like, 'S-EM', 'Environmental monitoring after incubation', [phaseOf(COUNTS.definition, 'p-counts', COUNTS.exampleUse)]),
     // The filling room's readiness block, here read after the filling (a stage of its own): its pressure difference.
     stage(like, 'S-ROOM', 'Filling room check', [phaseOf(ROOM.definition, 'p-room', ROOM.exampleUse)]),
   ];
   for (const k of ['parameters', 'calculations', 'yieldCheckpoints', 'timeConstraints', 'goldenCases', 'intermediates', 'riskReductions', 'inputs']) m[k] = [];
-  m['blockDefinitions'] = [FILL.definition, COUNTS.definition, ROOM.definition];
+  m['blockDefinitions'] = [FILL.definition, EM.definition, COUNTS.definition, ROOM.definition];
 });
 
 /**
@@ -110,11 +118,12 @@ const suite: flow.MbrContent = gmpContent((m) => {
   delete header['unitMassMg'];
   const body = (m['procedure'] as Json)['body'] as Json;
   const like = (body['children'] as Json[])[0] as Json;
-  const filling = stage(like, 'S-FILL', 'Aseptic filling', [phaseOf(FILL.definition, 'p-fill', FILL.exampleUse)]);
+  // The EM during the filling and the counts after it (INV-23) come after the filling: the test's first command is the filling's start.
+  const filling = stage(like, 'S-FILL', 'Aseptic filling', [phaseOf(FILL.definition, 'p-fill', FILL.exampleUse), phaseOf(EM.definition, 'p-em', EM.exampleUse)]);
   filling['binding'] = { ...(like['binding'] as Json), rooms: [FILL_ROOM] };
-  body['children'] = [filling];
+  body['children'] = [filling, stage(like, 'S-EM', 'Environmental monitoring after incubation', [phaseOf(COUNTS.definition, 'p-counts', COUNTS.exampleUse)])];
   for (const k of ['parameters', 'calculations', 'yieldCheckpoints', 'timeConstraints', 'goldenCases', 'intermediates', 'riskReductions', 'inputs']) m[k] = [];
-  m['blockDefinitions'] = [FILL.definition];
+  m['blockDefinitions'] = [FILL.definition, EM.definition, COUNTS.definition];
 });
 
 let gmp: ExecServer;
@@ -124,13 +133,18 @@ let procGas: { familyId: string; versionId: string };
 let procSuite: { familyId: string; versionId: string };
 let n = 0;
 
-/** The plant units the filling names (test arrangement of master data, triggers off): qualified, of the formulation's classes. */
+/**
+ * The plant units the filling and the EM name (test arrangement of master data, triggers off): qualified, of the
+ * formulation's classes. With them the EM plates' media lot, released after its growth-promotion test (ST-23; a component
+ * received as the E2E receives one, as filter-reuse-gate.test.ts arranges its filter lot).
+ */
 async function arrangeUnits(): Promise<void> {
   const c = await gmp.db.admin.connect();
   try {
     await c.query('begin');
     await c.query('set local session_replication_role = replica');
-    for (const [cls, code, name] of [['VIAL-FILLING-LINE', FILL_LINE, 'Vial filling line'], ['ROOM-GRADE-C', FILL_ROOM, 'Grade C filling room']] as const) {
+    for (const [cls, code, name] of [['VIAL-FILLING-LINE', FILL_LINE, 'Vial filling line'], ['ROOM-GRADE-C', FILL_ROOM, 'Grade C filling room'],
+                                     ['ROOM-GRADE-B', EM_ROOM, 'Grade B filling room'], ['PARTICLE-COUNTER', COUNTER, 'Particle counter']] as const) {
       await c.query(
         "insert into plant.equipment_class (code, kind, description, clean_hold, dirty_hold, calibration_required, recorded_by) values ($1, 'PROCESS', $2, interval '3 days', interval '2 days', false, gen_random_uuid()) on conflict do nothing",
         [cls, name],
@@ -138,6 +152,15 @@ async function arrangeUnits(): Promise<void> {
       const { rows } = await c.query<{ id: string }>("insert into plant.equipment (code, name, class_code, kind, recorded_by) values ($1, $2, $3, 'PROCESS', gen_random_uuid()) returning id", [code, name, cls]);
       await c.query("insert into plant.equipment_event (equipment_id, kind, reference, detail, person_id, account_id) values ($1, 'QUALIFIED', 'QUAL-INJ', 'IQ/OQ/PQ approved', gen_random_uuid(), gen_random_uuid())", [rows[0]?.id]);
     }
+    const { rows } = await c.query<{ id: string }>(
+      `insert into site.material_lot (id, site_code, lot_code, material_code, material_name, material_kind, received_quantity, unit, expires_at,
+                                      received_by_person, received_by_account, correlation_id)
+       values (gen_random_uuid(), $1, $2, $3, 'Environmental monitoring plates, tryptone soya agar', 'PRIMARY_PACKAGING', 500, '1', clock_timestamp() + interval '1 year',
+               gen_random_uuid(), gen_random_uuid(), gen_random_uuid()) returning id`,
+      [SITE, MEDIA_LOT, `MAT-TSA-${TAG}`],
+    );
+    await c.query("insert into platform.aggregate_state (aggregate_type, aggregate_id, machine_code, machine_version, state, version) values ('material_lot', $1, 'material_lot', 1, 'RELEASED', 2)", [rows[0]?.id]);
+    await c.query("insert into site.lot_identity_result (lot_id, result, method_reference, test_reference, recorded_by_person, recorded_by_account) values ($1, 'PASS', 'STP-ID', 'AR-1', gen_random_uuid(), gen_random_uuid())", [rows[0]?.id]);
     await c.query('commit');
   } finally {
     c.release();
@@ -173,6 +196,12 @@ async function signed(d: RunDriver, stepKey: string): Promise<void> {
   await d.signed('verifier1', { type: 'VERIFY', stepKey, meaning: 'VERIFIED' });
 }
 
+/** The EM during the filling (INJ-EM, the seed's nominal entries) on the Grade B room, its counter and the released media lot, signed and verified. */
+async function monitored(d: RunDriver): Promise<void> {
+  await record(d, 'p-em@', EM, { area: { room: EM_ROOM, counter: COUNTER, mediaLot: MEDIA_LOT } });
+  await signed(d, 'p-em@');
+}
+
 /** The finished lot of the batch, posted as the edition's definer posts it (site.create_finished_lot is not granted). */
 async function lotOf(b: BatchRef): Promise<string> {
   const stores = { ...(await actorOf(gmp, 'stores')), reasonCode: 'TEST_SETUP', reasonText: 'finished lot of the processing record', correlationId: randomUUID() };
@@ -205,7 +234,7 @@ beforeAll(async () => {
   } }));
   await signAs(gmp, await gmp.asPersona('approver'), 'approver', { kind: 'INDIA_ACT', act: 'LICENCE_APPROVE', subjectId: licence.licenceId });
   const [author, approver] = await Promise.all([gmp.asPersona('author'), gmp.asPersona('approver')]);
-  for (const def of [FILL.definition, COUNTS.definition, ROOM.definition, GAS.definition]) {
+  for (const def of [FILL.definition, EM.definition, COUNTS.definition, ROOM.definition, GAS.definition]) {
     const { block } = valueOf(await author.call(routes.library.draft, { body: { definition: def as unknown as Json } }));
     await signAs(gmp, approver, 'approver', { kind: 'LIBRARY_ACT', act: 'BLOCK_APPROVE', subjectId: block.blockId });
   }
@@ -231,6 +260,7 @@ describe('Injectables I-6.2: the release gate waits for the EM counts and for th
     const d = await driverOf(gmp, b.batchId);
     await record(d, 'p-fill@', FILL);
     await signed(d, 'p-fill@');
+    await monitored(d);
     await d.signed('supervisor1', { type: 'SIGN_OFF_STAGE', stageKey: 'S-FILL@' });
     // The counts after incubation are not in: the EM stage is still open.
     const lotId = await lotOf(b);
@@ -256,6 +286,7 @@ describe('Injectables I-6.2: the release gate waits for the EM counts and for th
     await d.ok('supervisor1', { type: 'ATTACH_DEVIATION', exception: unlisted[0] ?? '', deviationRef: dev.ref });
     await d.signed('qa1', { type: 'DISPOSITION_EXCEPTION', exception: unlisted[0] ?? '', outcome: 'DEVIATION_RAISED', justification: `Deviation ${dev.ref}: the batch is held until the investigation concludes` });
     await signed(d, 'p-fill@');
+    await monitored(d);
     await d.signed('supervisor1', { type: 'SIGN_OFF_STAGE', stageKey: 'S-FILL@' });
     await record(d, 'p-counts@', COUNTS);
     await signed(d, 'p-counts@');
@@ -295,6 +326,7 @@ describe('Injectables I-6.2: the release gate waits for the EM counts and for th
     const d = await driverOf(gmp, b.batchId);
     await record(d, 'p-fill@', FILL);
     await signed(d, 'p-fill@');
+    await monitored(d);
     await d.signed('supervisor1', { type: 'SIGN_OFF_STAGE', stageKey: 'S-FILL@' });
     await record(d, 'p-counts@', COUNTS);
     await signed(d, 'p-counts@');

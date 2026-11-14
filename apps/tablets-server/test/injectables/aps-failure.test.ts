@@ -12,9 +12,10 @@
  * withdrawal or a second problem of the unit is still refused.
  *
  * The media-fill masters carry the process-simulation mark (recipe-core 1896), so they are issued with no licence and no
- * export permission; the product master is licensed. Arranged outside the routes, as the aseptic gate
- * (aseptic-gate.test.ts): the products, the plant units (test arrangement of master data), the ERP orders and the
- * numbering rules.
+ * export permission; the product master is licensed. Every master fills aseptically, a media fill included, so each
+ * monitors its environment during the filling (INJ-EM) and enters the EM counts after it (INJ-EM-COUNTS) (INV-23).
+ * Arranged outside the routes, as the aseptic gate (aseptic-gate.test.ts): the products, the plant units and the EM
+ * plates' released media lot (test arrangement of master data), the ERP orders and the numbering rules.
  */
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -52,6 +53,8 @@ const seed = (code: string) => {
 const FILL = seed('INJ-FILL');
 const ALARMS = seed('INJ-ALARM-ASSESSMENT');
 const READ = seed('INJ-APS-READ');
+const EM = seed('INJ-EM');
+const COUNTS = seed('INJ-EM-COUNTS');
 type Item = { definition: library.BlockDefinition; exampleUse: unknown };
 /** A firm's own media-fill reading under its own code (decision 0026): the role APS_READING and the marked count. */
 const SITE_READ: Item = { definition: { ...READ.definition, code: 'SITE-MEDIA-READ', title: 'Media fill reading (site form)' }, exampleUse: READ.exampleUse };
@@ -108,15 +111,17 @@ const mediaFill = (k: Key): flow.MbrContent =>
     const like = (body['children'] as Json[])[0] as Json;
     const eu = markets.includes('EU');
     body['children'] = [
-      stage(like, 'S-FILL', 'Aseptic filling with growth medium', [phaseOf(fill.definition, 'p-fill', fill.exampleUse as never)]),
+      stage(like, 'S-FILL', 'Aseptic filling with growth medium', [phaseOf(fill.definition, 'p-fill', fill.exampleUse as never), phaseOf(EM.definition, 'p-em', EM.exampleUse)]),
       ...(eu ? [stage(like, 'S-ALARMS', 'Alarms raised during filling', [phaseOf(ALARMS.definition, 'p-alarms', ALARMS.exampleUse)])] : []),
       stage(like, 'S-READ', 'Incubation and reading', [phaseOf(read.definition, 'p-read', read.exampleUse as never)]),
+      // The EM plates' counts after incubation (INV-23), after the reading: the tests here stop at the reading.
+      stage(like, 'S-EM', 'Environmental monitoring after incubation', [phaseOf(COUNTS.definition, 'p-counts', COUNTS.exampleUse)]),
     ];
     for (const x of ['parameters', 'calculations', 'yieldCheckpoints', 'timeConstraints', 'goldenCases', 'intermediates', 'riskReductions', 'inputs']) m[x] = [];
-    m['blockDefinitions'] = [FILL.definition, ...(eu ? [ALARMS.definition] : []), read.definition];
+    m['blockDefinitions'] = [FILL.definition, EM.definition, ...(eu ? [ALARMS.definition] : []), read.definition, COUNTS.definition];
   });
 
-/** A product's processing master for India: the aseptic filling only. */
+/** A product's processing master for India: the aseptic filling with the EM during it, and the EM counts after incubation (INV-23). */
 const productMaster: flow.MbrContent = gmpContent((m) => {
   const header = m['header'] as Json;
   header['family'] = `INJ-APSP-${TAG}`;
@@ -128,9 +133,12 @@ const productMaster: flow.MbrContent = gmpContent((m) => {
   delete header['unitMassMg'];
   const body = (m['procedure'] as Json)['body'] as Json;
   const like = (body['children'] as Json[])[0] as Json;
-  body['children'] = [stage(like, 'S-FILL', 'Aseptic filling', [phaseOf(FILL.definition, 'p-fill', FILL.exampleUse)])];
+  body['children'] = [
+    stage(like, 'S-FILL', 'Aseptic filling', [phaseOf(FILL.definition, 'p-fill', FILL.exampleUse), phaseOf(EM.definition, 'p-em', EM.exampleUse)]),
+    stage(like, 'S-EM', 'Environmental monitoring after incubation', [phaseOf(COUNTS.definition, 'p-counts', COUNTS.exampleUse)]),
+  ];
   for (const x of ['parameters', 'calculations', 'yieldCheckpoints', 'timeConstraints', 'goldenCases', 'intermediates', 'riskReductions', 'inputs']) m[x] = [];
-  m['blockDefinitions'] = [FILL.definition];
+  m['blockDefinitions'] = [FILL.definition, EM.definition, COUNTS.definition];
 });
 
 const masters = Object.fromEntries((Object.keys(MF) as Key[]).map((k) => [k, mediaFill(k)])) as Record<Key, flow.MbrContent>;
@@ -140,6 +148,42 @@ let world: World;
 const versions: Partial<Record<Key | 'PRODUCT', { familyId: string; versionId: string }>> = {};
 
 type Units = { line: string; room: string; incubator: string };
+
+/** The room the EM samples (of the seed's Grade B class), its particle counter and the plates' released media lot (ST-23). */
+const EM_UNITS = { room: `ROOM-B-${TAG}`, counter: `COUNTER-${TAG}`, mediaLot: `TSA-${TAG}` } as const;
+
+/**
+ * The EM's units and media lot, shared by every batch (test arrangement of master data, triggers off): the room and the
+ * counter qualified; the lot released after its growth-promotion test (a component received as the E2E receives one, as
+ * filter-reuse-gate.test.ts arranges its filter lot).
+ */
+async function arrangeEm(): Promise<void> {
+  const c = await gmp.db.admin.connect();
+  try {
+    await c.query('begin');
+    await c.query('set local session_replication_role = replica');
+    for (const [cls, code, name] of [['ROOM-GRADE-B', EM_UNITS.room, 'Grade B filling room'], ['PARTICLE-COUNTER', EM_UNITS.counter, 'Particle counter']] as const) {
+      await c.query(
+        "insert into plant.equipment_class (code, kind, description, clean_hold, dirty_hold, calibration_required, recorded_by) values ($1, 'PROCESS', $2, interval '3 days', interval '2 days', false, gen_random_uuid()) on conflict do nothing",
+        [cls, name],
+      );
+      const { rows } = await c.query<{ id: string }>("insert into plant.equipment (code, name, class_code, kind, recorded_by) values ($1, $2, $3, 'PROCESS', gen_random_uuid()) returning id", [code, name, cls]);
+      await c.query("insert into plant.equipment_event (equipment_id, kind, reference, detail, person_id, account_id) values ($1, 'QUALIFIED', 'QUAL-INJ', 'IQ/OQ/PQ approved', gen_random_uuid(), gen_random_uuid())", [rows[0]?.id]);
+    }
+    const { rows } = await c.query<{ id: string }>(
+      `insert into site.material_lot (id, site_code, lot_code, material_code, material_name, material_kind, received_quantity, unit, expires_at,
+                                      received_by_person, received_by_account, correlation_id)
+       values (gen_random_uuid(), $1, $2, $3, 'Environmental monitoring plates, tryptone soya agar', 'PRIMARY_PACKAGING', 500, '1', clock_timestamp() + interval '1 year',
+               gen_random_uuid(), gen_random_uuid(), gen_random_uuid()) returning id`,
+      [SITE, EM_UNITS.mediaLot, `MAT-TSA-${TAG}`],
+    );
+    await c.query("insert into platform.aggregate_state (aggregate_type, aggregate_id, machine_code, machine_version, state, version) values ('material_lot', $1, 'material_lot', 1, 'RELEASED', 2)", [rows[0]?.id]);
+    await c.query("insert into site.lot_identity_result (lot_id, result, method_reference, test_reference, recorded_by_person, recorded_by_account) values ($1, 'PASS', 'STP-ID', 'AR-1', gen_random_uuid(), gen_random_uuid())", [rows[0]?.id]);
+    await c.query('commit');
+  } finally {
+    c.release();
+  }
+}
 
 /**
  * The plant units a media fill names (test arrangement of master data, triggers off): qualified, of the formulation's
@@ -234,6 +278,9 @@ async function filled(k: Key | 'PRODUCT', units: Units): Promise<{ batchId: stri
 async function mediaFillRead(k: Key, units: Units, contaminated: string): Promise<{ batchId: string; batchNumber: string; d: RunDriver }> {
   const b = await filled(k, units);
   const d = b.d;
+  // The EM during the filling (the seed's nominal entries on the EM's room, counter and media lot), signed and verified.
+  await record(d, 'p-em@', EM, units, { area: { ...EM_UNITS } });
+  await signed(d, 'p-em@');
   await d.signed('supervisor1', { type: 'SIGN_OFF_STAGE', stageKey: 'S-FILL@' });
   if (MF[k].markets.includes('EU')) {
     await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-alarms@' });
@@ -305,10 +352,11 @@ beforeAll(async () => {
   } }));
   const [author, approver] = await Promise.all([gmp.asPersona('author'), gmp.asPersona('approver')]);
   await signAs(gmp, approver, 'approver', { kind: 'INDIA_ACT', act: 'LICENCE_APPROVE', subjectId: licence.licenceId });
-  for (const def of [FILL.definition, ALARMS.definition, READ.definition, SITE_READ.definition, PLAIN_READ.definition]) {
+  for (const def of [FILL.definition, EM.definition, COUNTS.definition, ALARMS.definition, READ.definition, SITE_READ.definition, PLAIN_READ.definition]) {
     const { block } = valueOf(await author.call(routes.library.draft, { body: { definition: def as unknown as Json } }));
     await signAs(gmp, approver, 'approver', { kind: 'LIBRARY_ACT', act: 'BLOCK_APPROVE', subjectId: block.blockId });
   }
+  await arrangeEm();
   world = await gmpLifecycleWorld(gmp);
   for (const k of Object.keys(MF) as Key[]) {
     const v = await world.approvedVersion(masters[k]);

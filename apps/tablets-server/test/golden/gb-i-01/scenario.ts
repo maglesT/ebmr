@@ -5,8 +5,9 @@
  * the sterility test by the rapid method) move the database's clock forward only.
  *
  * What is arranged outside the routes, as in the injectables chain tests (vial-chain.test.ts, aseptic-gate.test.ts): the
- * plant units the filling names (test arrangement of master data), the masters' plant-free shape, the ERP orders (fixed
- * numbers, so the normalised true copies are the same on every run) and the numbering rules.
+ * plant units the filling and the EM name and the EM plates' released media lot (test arrangement of master data), the
+ * masters' plant-free shape, the ERP orders (fixed numbers, so the normalised true copies are the same on every run) and
+ * the numbering rules.
  */
 import { vi } from 'vitest';
 import { routes, type ContainerView, type LotResultView } from '@ebmr/api-contract';
@@ -31,6 +32,8 @@ const REASON = 'GB-I-01 golden batch (invented injectable)';
 export const PRODUCT = { code: 'GBI01-VIAL', name: 'Demoinj aseptic 10 mg/2 mL vials', strength: '10 mg/2 mL' };
 const FILL_LINE = 'VIAL-LINE-GBI01';
 const FILL_ROOM = 'ROOM-C-GBI01';
+/** The room the EM samples (of the seed's Grade B class), its particle counter and the plates' released media lot (ST-23). */
+const EM_UNITS = { room: 'ROOM-B-GBI01', counter: 'COUNTER-GBI01', mediaLot: 'TSA-GBI01' } as const;
 
 const seed = (code: string) => {
   const item = [...INJECTABLE_SEEDS, ...INJECTABLE_ASEPTIC_SEEDS].find((s) => s.definition.code === code);
@@ -38,6 +41,7 @@ const seed = (code: string) => {
   return item;
 };
 const FILL = seed('INJ-FILL');
+const EM = seed('INJ-EM');
 const SAMPLING = seed('INJ-STERILITY-SAMPLE');
 const COUNTS = seed('INJ-EM-COUNTS');
 const EXAM = seed('INJ-PACK-EXAM');
@@ -82,14 +86,15 @@ function vialMaster(recordKind: 'PROCESSING' | 'PACKAGING', stages: (like: Json)
 }
 
 /**
- * The processing master: the aseptic filling with its sterility sampling; the counts of the filling window's EM plates
+ * The processing master: the aseptic filling with the environmental monitoring during it (INV-23) and its sterility
+ * sampling; the counts of the filling window's EM plates
  * after incubation, in a stage of their own; QA's release for packing (H-PACK) in a stage of its own.
  */
 export const processing = vialMaster('PROCESSING', (like) => [
-  stage(like, 'S-FILL', 'Aseptic filling', [phaseOf(FILL.definition, 'p-fill', FILL.exampleUse), phaseOf(SAMPLING.definition, 'p-sampling', SAMPLING.exampleUse)]),
+  stage(like, 'S-FILL', 'Aseptic filling', [phaseOf(FILL.definition, 'p-fill', FILL.exampleUse), phaseOf(EM.definition, 'p-em', EM.exampleUse), phaseOf(SAMPLING.definition, 'p-sampling', SAMPLING.exampleUse)]),
   stage(like, 'S-EM', 'Environmental monitoring after incubation', [phaseOf(COUNTS.definition, 'p-counts', COUNTS.exampleUse)]),
   stage(like, 'S-RELEASE', 'Release for packing', [{ kind: 'holdPoint', id: 'H-PACK', name: 'Batch released for packing', role: 'QA', dispositions: ['APPROVED', 'NOT_APPROVED'] }]),
-], [FILL.definition, SAMPLING.definition, COUNTS.definition]);
+], [FILL.definition, EM.definition, SAMPLING.definition, COUNTS.definition]);
 /** The packaging master: the finished-pack examination that closes an injectables packaging record. */
 export const packaging = vialMaster('PACKAGING', (like) => [stage(like, 'S-PACK', 'Labelling and packing', [phaseOf(EXAM.definition, 'p-exam', EXAM.exampleUse)])], [EXAM.definition]);
 
@@ -109,13 +114,14 @@ async function signed(d: RunDriver, persona: string, intent: Parameters<RunDrive
   await d.signed(persona, intent);
 }
 
-/** The plant units the filling names (test arrangement of master data, triggers off): qualified, of the formulation's classes. */
+/** The plant units the filling and the EM name (test arrangement of master data, triggers off): qualified, of the formulation's classes. */
 async function arrangeUnits(gmp: ExecServer): Promise<void> {
   const c = await gmp.db.admin.connect();
   try {
     await c.query('begin');
     await c.query('set local session_replication_role = replica');
-    for (const [cls, code, name] of [['VIAL-FILLING-LINE', FILL_LINE, 'Vial filling line'], ['ROOM-GRADE-C', FILL_ROOM, 'Grade C filling room']] as const) {
+    for (const [cls, code, name] of [['VIAL-FILLING-LINE', FILL_LINE, 'Vial filling line'], ['ROOM-GRADE-C', FILL_ROOM, 'Grade C filling room'],
+                                     ['ROOM-GRADE-B', EM_UNITS.room, 'Grade B filling room'], ['PARTICLE-COUNTER', EM_UNITS.counter, 'Particle counter']] as const) {
       await c.query(
         "insert into plant.equipment_class (code, kind, description, clean_hold, dirty_hold, calibration_required, recorded_by) values ($1, 'PROCESS', $2, interval '3 days', interval '2 days', false, gen_random_uuid()) on conflict do nothing",
         [cls, name],
@@ -123,6 +129,31 @@ async function arrangeUnits(gmp: ExecServer): Promise<void> {
       const { rows } = await c.query<{ id: string }>("insert into plant.equipment (code, name, class_code, kind, recorded_by) values ($1, $2, $3, 'PROCESS', gen_random_uuid()) returning id", [code, name, cls]);
       await c.query("insert into plant.equipment_event (equipment_id, kind, reference, detail, person_id, account_id) values ($1, 'QUALIFIED', 'QUAL-INJ', 'IQ/OQ/PQ approved', gen_random_uuid(), gen_random_uuid())", [rows[0]?.id]);
     }
+    await c.query('commit');
+  } finally {
+    c.release();
+  }
+}
+
+/**
+ * The EM plates' media lot, released after its growth-promotion test (ST-23; test arrangement of the lot register,
+ * triggers off; a component received as the E2E receives one, as filter-reuse-gate.test.ts arranges its filter lot).
+ * Received on the golden clock with an expiry 365 days on, so the lot's facts in the true copy are the same on every run.
+ */
+async function arrangeMediaLot(gmp: ExecServer): Promise<void> {
+  const c = await gmp.db.admin.connect();
+  try {
+    await c.query('begin');
+    await c.query('set local session_replication_role = replica');
+    const { rows } = await c.query<{ id: string }>(
+      `insert into site.material_lot (id, site_code, lot_code, material_code, material_name, material_kind, received_quantity, unit, expires_at,
+                                      received_by_person, received_by_account, correlation_id)
+       values (gen_random_uuid(), $1, $2, 'MAT-TSA-GBI01', 'Environmental monitoring plates, tryptone soya agar', 'PRIMARY_PACKAGING', 500, '1', clock_timestamp() + interval '365 days',
+               gen_random_uuid(), gen_random_uuid(), gen_random_uuid()) returning id`,
+      [SITE, EM_UNITS.mediaLot],
+    );
+    await c.query("insert into platform.aggregate_state (aggregate_type, aggregate_id, machine_code, machine_version, state, version) values ('material_lot', $1, 'material_lot', 1, 'RELEASED', 2)", [rows[0]?.id]);
+    await c.query("insert into site.lot_identity_result (lot_id, result, method_reference, test_reference, recorded_by_person, recorded_by_account) values ($1, 'PASS', 'STP-ID', 'AR-1', gen_random_uuid(), gen_random_uuid())", [rows[0]?.id]);
     await c.query('commit');
   } finally {
     c.release();
@@ -145,7 +176,7 @@ export async function setUpGbi01(gmp: ExecServer): Promise<Masters> {
   } }));
   await signAs(gmp, await gmp.asPersona('approver'), 'approver', { kind: 'INDIA_ACT', act: 'LICENCE_APPROVE', subjectId: licence.licenceId });
   const [author, approver] = await Promise.all([gmp.asPersona('author'), gmp.asPersona('approver')]);
-  for (const def of [FILL.definition, SAMPLING.definition, COUNTS.definition, EXAM.definition]) {
+  for (const def of [FILL.definition, EM.definition, SAMPLING.definition, COUNTS.definition, EXAM.definition]) {
     const { block } = valueOf(await author.call(routes.library.draft, { body: { definition: def as unknown as Json } }));
     await signAs(gmp, approver, 'approver', { kind: 'LIBRARY_ACT', act: 'BLOCK_APPROVE', subjectId: block.blockId });
   }
@@ -212,11 +243,13 @@ async function goldenDriver(gmp: ExecServer, batchId: string): Promise<RunDriver
 }
 
 /**
- * The processing batch: planned from its ERP order, issued, filled aseptically with its sterility samples taken and its
+ * The processing batch: planned from its ERP order, issued, filled aseptically with its environment monitored during the
+ * filling and its sterility samples taken and its
  * two loads closed into verified output containers; seven days later the EM plates of the filling window are counted;
  * QA releases the batch for packing (H-PACK).
  */
 export async function runBatch(gmp: ExecServer, m: Masters): Promise<{ batch: BatchRef; loads: string[] }> {
+  await arrangeMediaLot(gmp);
   tick();
   await postOrder(gmp.db.app, await openServiceSession(gmp.db, gmp.seed, 'erpInterface'), processing, SIZE, { orderNo: 'PO-GBI01-001' });
   tick();
@@ -227,6 +260,7 @@ export async function runBatch(gmp: ExecServer, m: Masters): Promise<{ batch: Ba
   const batch = { batchId: planned.batchId, batchNumber: planned.batchNumber };
   let d = await goldenDriver(gmp, batch.batchId);
   await runLibrary(d, 'p-fill@', FILL);
+  await runLibrary(d, 'p-em@', EM, { area: { ...EM_UNITS } });
   await runLibrary(d, 'p-sampling@', SAMPLING);
   const loads: string[] = [];
   for (const units of PLAN.loads) loads.push(await closeLoad(gmp, d, batch.batchId, units));
