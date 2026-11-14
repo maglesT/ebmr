@@ -19,6 +19,8 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
   integrations, QP package, contract giver, EU importer register, PQR, dashboards, CAPA, training, incidents,
   alarms, kiosk extras, the sandbox evidence package and the Phase 7 product backlog (R7, R8, R11, R12). Plan:
   `docs/build-plan/dynamic-library/plan.html`.
+- **Decision 0032 (14 November 2026): the faster merge loop.** PRs merge on their gate (selected tests, `tools/ci/src/select.ts`);
+  full runs on main after every merge and nightly; a red main stops merges. Review: `docs/reviews/2026-11-build-speed.md`.
 - Owner, 19 October: the focus is functionality; open questions take the less strict option, the minimum compliance
   that keeps the product usable (within the CLAUDE.md hard rules). Load test and soak move to deployment (D-P7R-7).
 

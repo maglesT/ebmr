@@ -13,6 +13,7 @@ import { choose, openStep, primary, simulator } from '../journey/support.ts';
 import { load } from './own-product-flow.ts';
 import { act, allInOrder, ANY, as, card, completed, entry, fillBlock, performAndCheck, ready, save, saveBlock, sign, startStep, type Fill } from './kiosk-batch-support.ts';
 import { watchPages } from '../../fixtures/renderer-watchdog.ts';
+import { waitFor } from '../../fixtures/waits.ts';
 
 export type Inst = 'GMP' | 'SANDBOX';
 
@@ -564,7 +565,7 @@ export async function granulation(f: Floor, plan: ProcessPlan): Promise<void> {
     await saveBlock(page, 'MASSING_START', op);
     await entryNaming(page, 'BINDER_ADDITION', op, 'Preparation', /\(EN-\d+, /, { Quantity: { Value: plan.binderKg, Unit: 'kg' } });
     await manualValue(page, op, 'granulator.power_kW', '12.50', 'kW');
-    await page.waitForTimeout(31_000);
+    await waitFor(page, 31_000, 'process-timer');
     await saveBlock(page, 'END_POINT', op);
     await performAndCheck(page, op, verifier, op);
     await completed(page);
@@ -631,14 +632,14 @@ export async function blending(f: Floor, plan: ProcessPlan): Promise<void> {
     await step(f, page, 'p-blend@');
     await begin(page, op);
     await saveBlock(page, 'BLEND_START', op);
-    await page.waitForTimeout(65_000);
+    await waitFor(page, 65_000, 'process-timer');
     await saveBlock(page, 'BLEND_END', op);
     await saveBlock(page, 'LUBRICANT_ADDED', op, async (form) => {
       const q = form.getByTestId('block-object-quantity');
       await q.getByRole('textbox', { name: 'Value' }).fill(plan.blendLubricantKg);
       await q.getByRole('textbox', { name: 'Unit' }).fill('kg');
     });
-    await page.waitForTimeout(35_000);
+    await waitFor(page, 35_000, 'process-timer');
     await saveBlock(page, 'LUBRICATION_END', op);
     await performAndCheck(page, op, verifier, op);
     await completed(page);
@@ -842,13 +843,13 @@ export async function coating(f: Floor, plan: ProcessPlan): Promise<void> {
     await begin(page, op);
     if (plan.coating.disintegration === 'GASTRO_RESISTANT') {
       await entry(page, 'DT_START', op, { Instrument: instrumentOf(f, 'DT-01'), Capture: 'MANUAL', 'Bath temperature': '37.0', Stage: 'ACID' });
-      await page.waitForTimeout(62_000);
+      await waitFor(page, 62_000, 'process-timer');
       await entry(page, 'DT_END', op, { Capture: 'MANUAL', Units: Array.from({ length: 6 }, () => ({ Disintegrated: 'No' })) });
       await entry(page, 'DT_START', op, { Instrument: instrumentOf(f, 'DT-01'), Capture: 'MANUAL', 'Bath temperature': '37.0', Stage: 'BUFFER' });
     } else {
       await entry(page, 'DT_START', op, { Instrument: instrumentOf(f, 'DT-01'), Capture: 'MANUAL', 'Bath temperature': '37.0', Stage: 'MAIN' });
     }
-    await page.waitForTimeout(32_000);
+    await waitFor(page, 32_000, 'process-timer');
     await entry(page, 'DT_END', op, { Capture: 'MANUAL', Units: Array.from({ length: 6 }, () => ({ Disintegrated: 'Yes' })) });
     await performAndCheck(page, op, verifier, op);
     await completed(page);

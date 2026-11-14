@@ -673,3 +673,37 @@ describe('catalog-test clauses the approved MODIFY decision left out (not_requir
     expect(md).toContain(`| NOT_REQUIRED | ${DECISION}: "${QUOTE}" |`);
   });
 });
+
+describe('a pull request gate traces only what it ran (decision 0032)', () => {
+  const A = 'packages/x/test/a.test.ts';
+  const B = 'packages/y/test/b.test.ts';
+  const inA = `${A} > d > [DI-20] in a`;
+  const inB = `${B} > d > [DI-20] in b`;
+  // Due in phase 1; no clauses of its own (an empty list, so the structural check of clauses has nothing to say).
+  const base: ControlRecord = { ...control('DI-20'), target_phase: 1, tests: [inA, inB], clauses: [] };
+  const errs = (results: TestResult[], partial: boolean, c: ControlRecord = base): string[] => buildTrace([c], results, 1, { partial }).errors;
+
+  it('[meta] a control, listed test or clause whose test files did not run is left to the full run; one whose file ran is checked as in a full run', () => {
+    // Nothing of the control ran: the full trace refuses it, the partial one leaves it to main's full run.
+    expect(errs([], false)).toContain('DI-20 (target phase 1) has no passing test');
+    expect(errs([], true)).toEqual([]);
+    // Only file A ran: B's listed test is not reported, which only the full trace refuses.
+    expect(errs([result(inA)], false)).toEqual([`DI-20 lists a test the run did not report: "${inB}"`]);
+    expect(errs([result(inA)], true)).toEqual([]);
+    // File A ran but no longer reports its listed test (renamed or deleted): refused in both.
+    const other = `${A} > d > [DI-20] renamed`;
+    expect(errs([result(other)], true)).toEqual([
+      `DI-20 lists a test the run did not report: "${inA}"`,
+      `DI-20 does not list a test tagged with it that passed (register sync-tests adds it): "${other}"`,
+    ]);
+    // A failing test, an unknown control and a skipped listed test are refused in both.
+    expect(errs([result(inA, 'failed')], true)).toContain('DI-20 has failing tests: d [DI-20] in a');
+    expect(errs([result(inA), result(`${A} > d > [DI-99] x`)], true)).toContain('test cites unknown control DI-99: "d [DI-99] x"');
+    expect(errs([result(inA, 'skipped')], true)).toContain(`DI-20 lists a test that did not run (skipped): "${inA}"`);
+    // A clause: checked when one of its tests' files ran, left to main when none did.
+    const clauses: ControlRecord = { ...base, clauses: [{ clause: 'first', tests: [inA] }, { clause: 'second', tests: [inB] }] };
+    expect(errs([result(inA, 'skipped'), result(inB)], true, clauses).filter((e) => e.includes('clause'))).toEqual(['DI-20 clause 1 has no passing test and no deferral: "first"']);
+    expect(errs([result(inA)], true, clauses).filter((e) => e.includes('clause'))).toEqual([]);
+    expect(errs([result(inA)], false, clauses).filter((e) => e.includes('clause'))).toEqual(['DI-20 clause 2 has no passing test and no deferral: "second"']);
+  });
+});
