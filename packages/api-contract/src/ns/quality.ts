@@ -33,6 +33,11 @@ export type DeviationView = z.infer<typeof DeviationView>;
 export const LotResultView = z.strictObject({
   resultId: Uuid,
   testCode: z.string(),
+  /**
+   * The method the result was made by: copied from the QA-approved specification when the result was recorded (site
+   * 0841, IN-33); read-only, never typed on the results screen.
+   */
+  methodReference: z.string(),
   purpose: z.enum(['RELEASE', 'RETEST']),
   value: z.string(),
   unit: z.string(),

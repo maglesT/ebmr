@@ -109,7 +109,7 @@ describe('a lot\'s reservations and stock-location exceptions', () => {
 
 describe('the OOS record of an approved failing result', () => {
   it('[IN-20] raising the OOS record of an approved failing result links it to the lot and names it on the result', async () => {
-    const result: LotResultView = { resultId: '6d1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e', testCode: 'ASSAY', purpose: 'RELEASE', value: '91.0', unit: '%', lowerLimit: '98.0', upperLimit: '102.0', verdict: 'FAIL', state: 'APPROVED' };
+    const result: LotResultView = { resultId: '6d1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e', testCode: 'ASSAY', methodReference: 'STP-TEST-01', purpose: 'RELEASE', value: '91.0', unit: '%', lowerLimit: '98.0', upperLimit: '102.0', verdict: 'FAIL', state: 'APPROVED' };
     const dev = example('quality-deviations').deviations[0];
     const ui = renderOffice(lotPath, {
       role: 'QC_ANALYST',

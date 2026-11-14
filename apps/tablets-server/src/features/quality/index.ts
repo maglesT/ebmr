@@ -59,16 +59,16 @@ async function deviationView(db: Db, deviationId: string): Promise<DeviationView
 
 async function lotResults(db: Db, lotId: string): Promise<LotResultView[]> {
   const { rows } = await db.query<{
-    id: string; test_code: string; purpose: 'RELEASE' | 'RETEST'; value: string; unit: string; lower: string | null; upper: string | null; verdict: 'PASS' | 'FAIL';
+    id: string; test_code: string; method_reference: string; purpose: 'RELEASE' | 'RETEST'; value: string; unit: string; lower: string | null; upper: string | null; verdict: 'PASS' | 'FAIL';
     state: 'RECORDED' | 'APPROVED' | 'REVISED'; point: string | null;
   }>(
-    `select r.id, r.test_code, r.purpose, r.result_value::text as value, r.unit, r.lower_limit::text as lower, r.upper_limit::text as upper, r.verdict,
+    `select r.id, r.test_code, r.method_reference, r.purpose, r.result_value::text as value, r.unit, r.lower_limit::text as lower, r.upper_limit::text as upper, r.verdict,
             site.lot_test_state(r.id) as state, p.label as point
        from site.lot_test_result r left join site.specification_test_point p on p.id = r.point_id where r.lot_id = $1 order by r.recorded_at, r.id`,
     [lotId],
   );
   return rows.map((r) => ({
-    resultId: r.id, testCode: r.test_code, purpose: r.purpose, value: r.value, unit: r.unit, lowerLimit: r.lower, upperLimit: r.upper, verdict: r.verdict, state: r.state,
+    resultId: r.id, testCode: r.test_code, methodReference: r.method_reference, purpose: r.purpose, value: r.value, unit: r.unit, lowerLimit: r.lower, upperLimit: r.upper, verdict: r.verdict, state: r.state,
     // Slice 7p: the time point of a profile test's result.
     ...(r.point ? { point: r.point } : {}),
   }));

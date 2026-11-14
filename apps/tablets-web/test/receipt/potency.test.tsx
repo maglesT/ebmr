@@ -42,7 +42,7 @@ const quality: RouteResponse<typeof routes.execution.lotQuality> = {
     { basis: 'ANHYDROUS_WATER', assay: '99.0', water: '0.5', lod: null, solvents: null, asIs: '98.505', certificateRef: 'COA-RAB-0001', reason: null, by: 'Meera Iyer', recordedAt: at('01-OCT-2026 09:00'), current: false },
   ],
 };
-const result = (resultId: string, testCode: string, value: string): LotResultView => ({ resultId, testCode, purpose: 'RETEST', value, unit: '%', lowerLimit: null, upperLimit: null, verdict: 'PASS', state: 'APPROVED' });
+const result = (resultId: string, testCode: string, value: string): LotResultView => ({ resultId, testCode, methodReference: 'STP-TEST-01', purpose: 'RETEST', value, unit: '%', lowerLimit: null, upperLimit: null, verdict: 'PASS', state: 'APPROVED' });
 const NEW_ASSAY = '6d1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d01';
 const NEW_WATER = '6d1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d02';
 

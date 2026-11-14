@@ -149,7 +149,10 @@ function ResultRow({ lotId, lotCode, result: r, qc }: { lotId: string; lotCode: 
   return (
     <>
       <p>
-        {name} ({r.purpose}): {r.value} {r.unit} {limits ? `(${limits})` : ''} <StatusChip tone={r.verdict === 'PASS' ? 'ok' : 'error'} label={r.verdict} /> <StatusChip tone="neutral" label={r.state} />
+        {name} ({r.purpose}): {r.value} {r.unit} {limits ? `(${limits})` : ''}{' '}
+        {/* The method of the specification the result was recorded against (IN-33): shown, never typed here. */}
+        <span data-testid={`result-method-${r.resultId}`}>by {r.methodReference}</span>{' '}
+        <StatusChip tone={r.verdict === 'PASS' ? 'ok' : 'error'} label={r.verdict} /> <StatusChip tone="neutral" label={r.state} />
       </p>
       {qc && r.state === 'RECORDED' ? (
         <ActButton label={`Approve ${name}`} onPress={() => signed.sign({ kind: 'QUALITY_ACT', act: 'LOT_RESULT_APPROVE', subjectId: r.resultId, input: {} }, `Approve result ${name} ${r.value} ${r.unit} (${r.verdict}) of lot ${lotCode}`)} disabled={signed.busy} />
