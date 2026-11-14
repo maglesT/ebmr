@@ -43,6 +43,11 @@ export interface UpgradeDrillOptions {
   renderLimit?: number;
   /** Rows sampled per spot check (default 20). */
   spotChecks?: number;
+  /**
+   * The seed that orders the spot-check samples (by the MD5 of each key and the seed). Default: a random seed per drill,
+   * as in production. A test passes a fixed one to sample known rows; the same seed on the same rows gives the same sample.
+   */
+  sampleSeed?: string;
   keepCopy?: boolean;
   /**
    * Phase B slice 6: a source with no record to render, and so no signature or unit row to sample, passes (the platform
@@ -202,7 +207,7 @@ async function schemaRelease(c: pg.Client): Promise<string | null> {
   return (await c.query<{ r: string }>('select platform.schema_release() as r')).rows[0]?.r ?? null;
 }
 
-interface Sample {
+export interface Sample {
   kind: SpotCheck['kind'];
   table: string;
   /** The table as the report's table list names it ("schema"."table"). */
@@ -215,7 +220,7 @@ interface Sample {
 }
 
 /** Deterministic samples: ordered by the MD5 of the key and the drill's seed. */
-async function takeSamples(c: pg.Client, n: number, seed: string): Promise<Sample[]> {
+export async function takeSamples(c: pg.Client, n: number, seed: string): Promise<Sample[]> {
   const out: Sample[] = [];
   const sig = await c.query<{ id: string; v: string; shown: string }>(
     `select s.id::text as id,
@@ -287,7 +292,7 @@ function summarise(tables: TableResult[]): UpgradeReport['summary'] {
 export async function runUpgradeDrill(o: UpgradeDrillOptions): Promise<UpgradeOutcome> {
   const started = process.hrtime.bigint();
   const work = o.workDatabase ?? `${o.sourceDatabase.slice(0, 40)}_upg_${randomBytes(4).toString('hex')}`;
-  const seed = randomBytes(4).toString('hex');
+  const seed = o.sampleSeed ?? randomBytes(4).toString('hex');
   const spot = o.spotChecks ?? 20;
   const failures: string[] = [];
   await copyDatabase(o.adminUrl, o.sourceDatabase, work);
