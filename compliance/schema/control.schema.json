@@ -56,7 +56,7 @@
             "additionalProperties": false,
             "required": ["phase", "reason"],
             "properties": {
-              "phase": { "type": "integer", "minimum": 1, "maximum": 7 },
+              "phase": { "type": "integer", "minimum": 1, "maximum": 8, "$comment": "8 = open owner question or deployment item after the editions' exit; never used to hide a gap the lead can decide. A phase-8 reason cites a docs/decisions file (tools/register validate.ts)." },
               "reason": { "type": "string", "minLength": 10 }
             }
           },
@@ -81,7 +81,7 @@
         "required": ["scope", "phase", "reason"],
         "properties": {
           "scope": { "type": "string", "minLength": 10 },
-          "phase": { "type": "integer", "minimum": 1, "maximum": 7 },
+          "phase": { "type": "integer", "minimum": 1, "maximum": 8, "$comment": "8 = open owner question or deployment item after the editions' exit; never used to hide a gap the lead can decide. A phase-8 reason cites a docs/decisions file (tools/register validate.ts)." },
           "reason": { "type": "string", "minLength": 10 }
         }
       }

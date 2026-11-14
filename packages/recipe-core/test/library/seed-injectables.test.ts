@@ -10,9 +10,9 @@ import { checkBlockDefinition, checkBlockUse, libraryBlockType, libraryBlockVers
 import type { FieldDef } from '../../src/library/model.ts';
 import { blockEdition, editionFits } from '../../src/library/model.ts';
 import { INJECTABLE_ASEPTIC_CATALOGUE, INJECTABLE_CATALOGUE, INJECTABLE_INSPECTION_CATALOGUE, INJECTABLE_LYO_CATALOGUE, INJECTABLE_ROUTE_CATALOGUE, SEED_CATALOGUE, type SeedItem } from '../../src/library/seed/index.ts';
-import { define, done, OP1, Run, T0, testRegistry } from '../engine/support.ts';
+import { define, done, OP1, QA1, Run, sig, T0, testRegistry } from '../engine/support.ts';
 import { expr, mbrWith, phase } from '../flow/support.ts';
-import { judgedRun, recordNominal } from './seed-support.ts';
+import { catalogueMaster, configOf, judgedRun, recordNominal, runNominalStep, useOf } from './seed-support.ts';
 
 function byCode(code: string): SeedItem {
   const item = INJECTABLE_CATALOGUE.find((s) => s.definition.code === code);
@@ -572,5 +572,41 @@ describe('aseptic headcount and the overlay gas filter (I-6 B1)', () => {
     expect(codes({ ...gas, roles: ['OBSERVATION'] })).toEqual(['LIB-GAS-FILTER']);
     expect(codes(mapFields(gas, (f) => { const c = { ...f } as Record<string, unknown>; delete c['postUseIntegrity']; return c; }))).toEqual(['LIB-GAS-FILTER']);
     expect(codes(mapFields(gas, (f) => ({ ...f, critical: false })))).toEqual(['LIB-GAS-FILTER']);
+  });
+});
+
+describe('a failed parts sterilisation holds the aseptic filling that uses the load (PR-28)', () => {
+  // Sterilised parts are not inventory here: the load is the INJ-PARTS-AUTOCLAVE step of the batch, and its items are
+  // used by the aseptic filling after it, which cannot start while the load's step is not completed.
+  const BOM: MbrContent['bom'] = [{ id: 'BOM-API', material: 'MAT-API', role: 'ACTIVE', quantity: { value: '1', unit: 'kg' } }];
+  const steps = [{ id: 'parts', code: 'INJ-PARTS-AUTOCLAVE' }, { id: 'filling', code: 'INJ-FILL' }];
+
+  it('[PR-28] a failed autoclave cycle (answered not passed, or its temperature below the minimum) prevents use of the load\'s items: the load cannot be signed and the filling cannot start; once QA has dispositioned the exception the load completes and the filling runs', () => {
+    for (const failure of [{ cyclePassed: false }, { temperature: '120.5', cyclePassed: true }]) {
+      const label = JSON.stringify(failure);
+      const { mbr, registry } = catalogueMaster(steps, BOM, 'Injection');
+      const run = Run.issue(define(mbr, { registry }), {}, T0);
+      run.start('parts');
+      recordNominal(run, 'parts', byCode('INJ-PARTS-AUTOCLAVE').definition, configOf(useOf(steps[0]!)), mbr, { cycle: failure });
+      const open = run.exceptions().filter((x) => x.status === 'OPEN');
+      expect(open, label).toHaveLength(1);
+      const x = open[0]!;
+      expect(x, label).toMatchObject(failure.cyclePassed ? { type: 'LIB_LIMIT_BREACH', deviationRequired: true, qaOnly: true, releaseBlocking: true } : { type: 'LIB_UNEXPECTED_ANSWER', deviationRequired: true });
+      // The failed load: its step cannot be signed, and the step that uses its items cannot start.
+      run.refused({ type: 'SIGN_PERFORMED', actor: OP1, step: 'parts', context: [], signature: sig('PERFORMED', OP1) }, 'ENG-BLOCKED');
+      expect(run.status('parts'), label).toBe('IN_PROGRESS');
+      const refusal = run.refused({ type: 'START_STEP', actor: OP1, step: 'filling', context: [] });
+      expect(refusal.code, label).toBe('ENG-NOT-ENABLED');
+      expect(run.status('filling'), label).toBeUndefined();
+      // QA dispositions the exception under its deviation: the load is signed and checked, and only
+      // then are its items used by the filling.
+      run.ok({ type: 'ATTACH_DEVIATION', actor: QA1, exception: x.id, deviationRef: `DEV-${x.id}` });
+      run.ok({ type: 'DISPOSITION_EXCEPTION', actor: QA1, exception: x.id, outcome: 'DEVIATION_RAISED', justification: 'Cycle failure assessed under the deviation', signature: sig('EXCEPTION_DISPOSITIONED', QA1) });
+      run.perform('parts');
+      run.verify('parts');
+      expect(run.status('parts'), label).toBe('COMPLETED');
+      runNominalStep(run, 'filling', byCode('INJ-FILL').definition, configOf(useOf(steps[1]!)), mbr);
+      expect(run.status('filling'), label).toBe('COMPLETED');
+    }
   });
 });
