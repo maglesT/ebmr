@@ -1,7 +1,7 @@
 # ADR 0023: One rule definition, two generated enforcers
 
-- **Status:** Proposed (session 19, 14 November 2026). For the lead's review; the owner may veto. Nothing is built
-  until it is accepted.
+- **Status:** Accepted by the lead (14 November 2026), with the four additions in decisions 9 to 12; the owner may
+  veto. Proposed by session 19.
 - **Context documents:** `docs/reviews/2026-11-build-speed.md`; decision 0008 section 2 (database enforcement of the
   regulation-required core); ADR 0006 (server-authoritative execution); ADR 0005 (the expression language).
 
@@ -24,7 +24,8 @@ reported to the lead and not fixed here:
 - **Visibility.** The engine decides whether a field is shown (`showWhen`) from the raw submission (`shown(f, entry)`).
   The guard decides it from the stored data (`e -> 'data'`).
 - **Expected answers.** The engine raises `LIB_UNEXPECTED_ANSWER` for a yes/no field answered against its expected
-  answer. No migration requires that exception. The guard uses the expected answer only to decide a loop's pass.
+  answer. No migration on main requires that exception (#261 adds it). The guard uses the expected answer only to decide
+  a loop's pass.
 
 The database must keep enforcing the regulation-required core. Decision 0008 section 2 requires it, and it is what
 makes a bypass of the application harmless. So the fix is not to drop one copy. It is to stop writing the two copies
@@ -99,6 +100,22 @@ by hand.
      pin code, version and content hash). Moving a product to v2 is a master revision through change control, as for
      any other change.
    - The first lock records today's v1 hashes as they are.
+
+9. **The generator and the interpreter are qualified tools.** They produce GMP enforcement, so:
+   - every generated function's header names the `packages/rules` version and the definition's hash;
+   - Stryker runs on `packages/rules` with decision 0032's rule (no new surviving mutant), beside the SQL mutation
+     harness on the generated functions;
+   - a "generator qualification" item (GAMP 5: the tool's intended use, its risk and its verification) is recorded as
+     deployment work, at the timing decision 0008 sets for validation-grade evidence.
+10. **Generation is deterministic.** The same definitions give the same bytes: keys and clauses in a fixed, sorted
+    order, and no timestamps, absolute paths, machine names or random identifiers in the output. `rules:check` proves it
+    by regenerating in CI and comparing byte for byte.
+11. **Family 6.1 waits for the hand-written hidden-field guard.** The visibility family moves only after session 18's
+    hand-written hidden-field PR (recipe-core 1928) has merged. Its differential harness then compares the generated
+    function with that guard as well.
+12. **The first library lock is not a release baseline.** Today's v1 hashes include the in-place edits of the I-6
+    work. The lock file's header says so: it records the state at the point the lock was introduced, not versions
+    released as validated.
 
 ## Consequences
 
