@@ -70,13 +70,13 @@ the supervisor, whom the database refuses (STEP.EXECUTE is the operator's).
   `plant.openAreaOccupancies`; both end routes take an optional `reason`, and the Plant screen always asks for it.
 
 **Injectables I-6 item 3: the database re-checks expected answers (14 November 2026; branch inj/i6-expected-answer-db, no
-PR yet).** recipe-core 1924: `recipe.library_answer_records` gives the LIB_UNEXPECTED_ANSWER (critical when
+PR yet).** recipe-core 1927: `recipe.library_answer_records` gives the LIB_UNEXPECTED_ANSWER (critical when
 `unexpectedCritical`) and LIB_NOT_ALLOWED_CHOICE records an entry's answers require, with the engine's facts; a field
 its condition hides and a loop's YES_NO endpoint are not judged, as in the engine. `library_limits_problem` and
 `library_limits_check` are carried forward from 1862 with nothing removed (`docs/build-plan/injectables/expected-answer-db-1862.diff`,
 and a test compares the bodies). Parity sweep (`packages/recipe-core/test/library/expected-answer-db.test.ts`) over the
 catalogue's 197 expected answers and 4 not-allowed choices, hidden fields included. One 1862 test changed: it held that an
-answer exception is not judged. Follow-up (branch inj/i6-entry-hidden-db): recipe-core 1927 refuses a value stored in a
+answer exception is not judged. Follow-up (branch inj/i6-entry-hidden-db): recipe-core 1928 refuses a value stored in a
 field its condition hides (EBMR-LIB-025, LIB-ENTRY-HIDDEN), with a parity test over every seeded condition, a bypass test
 and the SQL mutation group `library-entry-hidden` (`docs/build-plan/injectables/review-pass.md`).
 
@@ -126,8 +126,8 @@ D-0 to D-4, R-flow and R-rest; the capsules edition; the injectables plan and I-
   - Owner question pending: the Tablets v1.0.0 tag.
 - **Demo:** fresh install after the I-6 merges (lead ruling on #245).
 - **Next (I-6):** #259 (kernel content-extension point) merged. (1) #261, the expected-answer database re-check
-  (recipe-core 1924). (2) #260, the [DI-48] drill's fixed spot-check seed. (3) The hidden-field follow-up (recipe-core
-  1927, this branch). (4) Lead ruling of 14 November on the invariant residuals: INV-23 (b) monitoring required with
+  (recipe-core 1927). (2) #260, the [DI-48] drill's fixed spot-check seed. (3) The hidden-field follow-up (recipe-core
+  1928, this branch). (4) Lead ruling of 14 November on the invariant residuals: INV-23 (b) monitoring required with
   filling and (c) a firm-set APS interval through the planned fill end, and INV-36 (release item E.STERILE_FILTER) are
   built to their binding clauses with one end-to-end test each; INV-44 and the should-only clauses are write-ups.
 

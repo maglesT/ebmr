@@ -505,15 +505,15 @@ export const TARGETS: Target[] = [
                 // API edition plan A0 (kernel 1403, recipe-core 1872): the one list of editions, and the rule tables an
                 // edition's master binds (the API edition the kernel table only).
                 'kernel.editions', 'kernel.edition_codes', 'recipe.rule_table_versions',
-                // Injectables review pass item 3 (recipe-core 1924): expected answers and not-allowed choices.
+                // Injectables review pass item 3 (recipe-core 1927): expected answers and not-allowed choices.
                 'recipe.library_answer_records'],
     tests: [s('library/library-routes.test.ts'), s('library/library-batch-gmp.test.ts'), s('mutation/library-blocks.test.ts'),
             s('library/library-edition.test.ts'), s('library/substance-edition.test.ts'),
-            // 1924: the engine/database parity sweep over the seed catalogue's answers, and the bypass cases.
+            // 1927: the engine/database parity sweep over the seed catalogue's answers, and the bypass cases.
             r('library/expected-answer-db.test.ts')],
     threshold: 90,
   },
-  // ---- Follow-up to injectables review pass item 3 (recipe-core 1927): a value in a field its condition hides -------
+  // ---- Follow-up to injectables review pass item 3 (recipe-core 1928): a value in a field its condition hides -------
   {
     group: 'library-entry-hidden',
     functions: ['recipe.library_hidden_problem', 'recipe.library_hidden_check'],

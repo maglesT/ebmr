@@ -1,8 +1,8 @@
 /**
  * The database re-checks the expected yes/no answers and the not-allowed choices of a library block as the engine judges
- * them (recipe-core 1924; injectables review pass item 3, lead's ruling of 14 November 2026).
+ * them (recipe-core 1927; injectables review pass item 3, lead's ruling of 14 November 2026).
  *
- * - Carried forward: 1924's recipe.library_limits_problem and recipe.library_limits_check are 1862's text with lines
+ * - Carried forward: 1927's recipe.library_limits_problem and recipe.library_limits_check are 1862's text with lines
  *   added and the two type lists of the exceptions matched widened; no line of 1862 is removed
  *   (docs/build-plan/injectables/expected-answer-db-1862.diff).
  * - Parity: every expected answer and every not-allowed choice of the seed catalogue, in every section that holds one,
@@ -139,13 +139,13 @@ function variants(c: Case): { name: string; assign: Record<string, unknown>; rai
   return out;
 }
 
-describe('the database re-checks expected answers and allowed choices as the engine does (recipe-core 1924)', () => {
-  it('[PR-29][PR-08] 1924 carries 1862\'s library_limits_problem and library_limits_check forward: every line of 1862 is kept in order, apart from the two type lists of the exceptions matched, which only add LIB_UNEXPECTED_ANSWER and LIB_NOT_ALLOWED_CHOICE', () => {
+describe('the database re-checks expected answers and allowed choices as the engine does (recipe-core 1927)', () => {
+  it('[PR-29][PR-08] 1927 carries 1862\'s library_limits_problem and library_limits_check forward: every line of 1862 is kept in order, apart from the two type lists of the exceptions matched, which only add LIB_UNEXPECTED_ANSWER and LIB_NOT_ALLOWED_CHOICE', () => {
     const widen = (l: string): string => l.replace("('LIB_LIMIT_BREACH', 'LIB_REPEAT_LIMIT_REACHED')", "('LIB_LIMIT_BREACH', 'LIB_REPEAT_LIMIT_REACHED', 'LIB_UNEXPECTED_ANSWER', 'LIB_NOT_ALLOWED_CHOICE')");
     for (const name of ['recipe.library_limits_problem', 'recipe.library_limits_check']) {
       const before = body('1862_library_limits_judgement.sql', name);
-      const after = body('1924_library_expected_answers.sql', name);
-      // Each line of 1862 (a widened type list as widened) is found in 1924 in the same order; the rest of 1924 is added.
+      const after = body('1927_library_expected_answers.sql', name);
+      // Each line of 1862 (a widened type list as widened) is found in 1927 in the same order; the rest of 1927 is added.
       let at = 0;
       const missing: string[] = [];
       let widened = 0;

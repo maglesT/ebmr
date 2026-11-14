@@ -6,7 +6,7 @@
 --
 -- A field of a library block may carry a condition (showWhen: another field of the section holds a given answer). The
 -- engine refuses an entry that gives a value to a field its condition hides ("leave it empty"), and so never stores one.
--- 1924 judges answers only in fields the entry shows, and 1862 refuses a calculated value the condition hides, but
+-- 1927 judges answers only in fields the entry shows, and 1862 refuses a calculated value the condition hides, but
 -- nothing in the database refused a recorded value in a hidden field. A write through the application role could
 -- therefore store, for example, a rework quantity with rework answered "no", and the record would show a value that the
 -- master says does not apply. Now the trigger zzh_library_entry_hidden refuses it (EBMR-LIB-025, naming LIB-ENTRY-HIDDEN).
