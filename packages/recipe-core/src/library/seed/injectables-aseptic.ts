@@ -332,7 +332,7 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
       edition: EDITION,
       // INV-36 (injectables 3060; lead ruling, 14 November 2026, v1 edit in place): the release item E.STERILE_FILTER
       // reads this block by its role and its results by the marks preUseIntegrity and postUseIntegrity, never by code.
-      roles: ['STERILE_FILTER_INTEGRITY'],
+      roles: ['PARAMETER_RECORD', 'STERILE_FILTER_INTEGRITY'],
       description: 'INJ-13. The sterilising filter (its released lot, named where it is used; a second person verifies it is the filter registered for the product; whether it is used for the first time today and, if not, the reference of the validation of its longer use), its integrity tested before use and after use, each against its limit; the filtration pressure and the filtration time. The test after sterilisation before use (PUPSIT) is the block INJ-PUPSIT.',
       instructions: 'Use only the filter registered for the product. A filter first used on an earlier day may be used only where that longer use is validated: give the validation\'s reference. Test its integrity by the method of the formulation before use; filter; then test it again after use before removing it.',
       sections: [

@@ -618,9 +618,9 @@ describe('the sterilising filter integrity tests are read by role and marks (INV
   const mapFields = (def: Def, fn: (f: FieldDef) => object): Def => ({ ...def, sections: def.sections.map((x) => ({ ...x, fields: x.fields.map((f) => fn(f) as FieldDef) })) });
   const unmark = (def: Def, ids: string[], mark: string): Def => mapFields(def, (f) => { const c = { ...f } as Record<string, unknown>; if (ids.includes(f.id)) delete c[mark]; return c; });
 
-  it('[INV-36] INJ-STERILE-FILTER has the role STERILE_FILTER_INTEGRITY and marks each method\'s critical result before use (preUseIntegrity) and after use (postUseIntegrity); the catalogue block passes the checker', () => {
+  it('[INV-36] INJ-STERILE-FILTER has the role STERILE_FILTER_INTEGRITY (beside PARAMETER_RECORD, its role before) and marks each method\'s critical result before use (preUseIntegrity) and after use (postUseIntegrity); the catalogue block passes the checker', () => {
     const item = asepticItem('INJ-STERILE-FILTER');
-    expect(item.definition.roles).toEqual(['STERILE_FILTER_INTEGRITY']);
+    expect(item.definition.roles).toEqual(['PARAMETER_RECORD', 'STERILE_FILTER_INTEGRITY']);
     for (const id of ['preBubblePoint', 'preDiffusion']) expect(fieldOf(item, id)).toMatchObject({ type: 'NUMBER', critical: true, preUseIntegrity: true });
     for (const id of ['postBubblePoint', 'postDiffusion']) expect(fieldOf(item, id)).toMatchObject({ type: 'NUMBER', critical: true, postUseIntegrity: true });
     expect(codes(item.definition)).toEqual([]);

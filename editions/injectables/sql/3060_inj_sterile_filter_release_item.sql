@@ -18,8 +18,8 @@
 --   injectables.grel_sterile_filter(batches)  new: the release item E.STERILE_FILTER (group 10) over the processing batch
 --       and the packaging order of the lot. Fails closed:
 --       NA      no step of the batches has the role (a step NOT_APPLICABLE does not count).
---       RED     such a step is not COMPLETED; or its definition marks no pre-use or no post-use result field; or it has
---               no passing pre-use or no passing post-use result; or a result is not within its limit (a value the
+--       RED     such a step is not COMPLETED; or it has no passing pre-use or no passing post-use result (also when its
+--               definition marks no such field); or a result is not within its limit (a value the
 --               database cannot judge, or a missing limit, does not pass; a dispositioned failure stays RED); or a
 --               post-use result is recorded (recordedSeq) before another data entry of the step that holds no post-use
 --               result, so the post-use test was not done after the filtration. A timer's start and stop are not data
@@ -50,7 +50,7 @@ declare
   v_spec    jsonb;
   v_reading jsonb;
   v_value   text;
-  v_pass    jsonb;
+  v_pass    text[];
   v_post    jsonb;
   v_first   numeric;
   v_last    numeric;
@@ -82,13 +82,8 @@ begin
              jsonb_array_elements(case when jsonb_typeof(sec -> 'fields') = 'array' then sec -> 'fields' else '[]'::jsonb end) fl,
              (values ('preUseIntegrity'), ('postUseIntegrity')) mk (mark)
        where fl ->> 'type' = 'NUMBER' and fl -> mk.mark = 'true'::jsonb;
-      v_pass := '{}'::jsonb;
+      v_pass := '{}'::text[];
       v_post := '[]'::jsonb;
-      foreach m in array array['preUseIntegrity', 'postUseIntegrity'] loop
-        if not exists (select 1 from jsonb_array_elements(v_fields) x where x ->> 'mark' = m) then
-          v_probs := v_probs || jsonb_build_array(tab.grel_problem(format('the sterilising filter integrity test %s marks no %s result field', k, case m when 'preUseIntegrity' then 'pre-use' else 'post-use' end), tab.grel_batch_ev(b)));
-        end if;
-      end loop;
       for e in select x from jsonb_array_elements(tab.grel_entries(b, k, null)) x loop
         for f in select x from jsonb_array_elements(v_fields) x where x ->> 'section' = e ->> 'kind' loop
           v_value := e -> 'data' ->> (f -> 'field' ->> 'id');
@@ -104,12 +99,13 @@ begin
             v_probs := v_probs || jsonb_build_array(tab.grel_problem(format('the sterilising filter''s %s integrity result %s %s of %s does not pass its limit',
                                                      case f ->> 'mark' when 'preUseIntegrity' then 'pre-use' else 'post-use' end, v_value, coalesce(f -> 'field' ->> 'unit', ''), k), tab.grel_batch_ev(b)));
           else
-            v_pass := v_pass || jsonb_build_object(f ->> 'mark', true);
+            v_pass := v_pass || (f ->> 'mark');
           end if;
         end loop;
       end loop;
       foreach m in array array['preUseIntegrity', 'postUseIntegrity'] loop
-        if exists (select 1 from jsonb_array_elements(v_fields) x where x ->> 'mark' = m) and not v_pass ? m then
+        -- A definition that marks no such field has no passing result either (fails closed).
+        if not (m = any (v_pass)) then
           v_probs := v_probs || jsonb_build_array(tab.grel_problem(format('the sterilising filter integrity test %s has no passing %s result', k, case m when 'preUseIntegrity' then 'pre-use' else 'post-use' end), tab.grel_batch_ev(b)));
         end if;
       end loop;
