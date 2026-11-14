@@ -610,3 +610,37 @@ describe('a failed parts sterilisation holds the aseptic filling that uses the l
     }
   });
 });
+
+describe('the sterilising filter integrity tests are read by role and marks (INV-36, injectables 3060)', () => {
+  type Def = SeedItem['definition'];
+  const asepticItem = (code: string): SeedItem => { const x = INJECTABLE_ASEPTIC_CATALOGUE.find((s) => s.definition.code === code); if (!x) throw new Error(`no aseptic item ${code}`); return x; };
+  const codes = (def: Def) => checkBlockDefinition(def, expr).map((p) => p.code);
+  const mapFields = (def: Def, fn: (f: FieldDef) => object): Def => ({ ...def, sections: def.sections.map((x) => ({ ...x, fields: x.fields.map((f) => fn(f) as FieldDef) })) });
+  const unmark = (def: Def, ids: string[], mark: string): Def => mapFields(def, (f) => { const c = { ...f } as Record<string, unknown>; if (ids.includes(f.id)) delete c[mark]; return c; });
+
+  it('[INV-36] INJ-STERILE-FILTER has the role STERILE_FILTER_INTEGRITY and marks each method\'s critical result before use (preUseIntegrity) and after use (postUseIntegrity); the catalogue block passes the checker', () => {
+    const item = asepticItem('INJ-STERILE-FILTER');
+    expect(item.definition.roles).toEqual(['STERILE_FILTER_INTEGRITY']);
+    for (const id of ['preBubblePoint', 'preDiffusion']) expect(fieldOf(item, id)).toMatchObject({ type: 'NUMBER', critical: true, preUseIntegrity: true });
+    for (const id of ['postBubblePoint', 'postDiffusion']) expect(fieldOf(item, id)).toMatchObject({ type: 'NUMBER', critical: true, postUseIntegrity: true });
+    expect(codes(item.definition)).toEqual([]);
+  });
+
+  it('[INV-36] a mark out of place is refused (LIB-STERILE-FILTER): no pre-use or no post-use result marked; a mark on a value that is not critical; the pre-use mark without the role; a post-use result in or before a pre-use section; both filter roles on one block', () => {
+    const sterile = asepticItem('INJ-STERILE-FILTER').definition;
+    expect(codes(unmark(sterile, ['preBubblePoint', 'preDiffusion'], 'preUseIntegrity'))).toEqual(['LIB-STERILE-FILTER']);
+    expect(codes(unmark(sterile, ['postBubblePoint', 'postDiffusion'], 'postUseIntegrity'))).toEqual(['LIB-STERILE-FILTER']);
+    expect(codes(mapFields(sterile, (f) => (f.id === 'postDiffusion' ? { ...f, critical: false } : f)))).toContain('LIB-STERILE-FILTER');
+    expect(codes(mapFields(sterile, (f) => (f.id === 'pressure' ? { ...f, preUseIntegrity: true, critical: true } : f)))).toEqual([]);
+    // A post-use result in the pre-use section (the section holds both marks), or sections reordered so the post-use
+    // results come first.
+    expect(codes(mapFields(sterile, (f) => { if (f.id !== 'preDiffusion') return f; const c = { ...f, postUseIntegrity: true } as Record<string, unknown>; delete c['preUseIntegrity']; return c; }))).toEqual(['LIB-STERILE-FILTER']);
+    expect(codes({ ...sterile, sections: [...sterile.sections].reverse() })).toContain('LIB-STERILE-FILTER');
+    expect(codes({ ...sterile, roles: ['STERILE_FILTER_INTEGRITY', 'GAS_FILTER_INTEGRITY'] })).toEqual(['LIB-STERILE-FILTER']);
+    // Without the role, the pre-use marks and the post-use marks are both refused.
+    expect(new Set(codes({ ...sterile, roles: ['OBSERVATION'] }))).toEqual(new Set(['LIB-STERILE-FILTER', 'LIB-GAS-FILTER']));
+    // The overlay gas filter test may not carry a pre-use mark.
+    const gas = byCode('INJ-GAS-FILTER').definition;
+    expect(codes(mapFields(gas, (f) => ((f as { postUseIntegrity?: true }).postUseIntegrity ? { ...f, preUseIntegrity: true } : f)))).toEqual(['LIB-STERILE-FILTER']);
+  });
+});
