@@ -398,3 +398,20 @@ describe('the stage sign-off offers only the acts the viewer may do (demo report
     await waitFor(() => expect(posts(ui, `/api/plant/equipment-uses/${USE_PRESS}/end`)).toHaveLength(1));
   });
 });
+
+describe('the end of a finished batch\'s use states why (owner decision of 13 November 2026; recipe-core 1922)', () => {
+  it('[DI-22][IN-25][INV-40] once the batch has finished the step screen asks for the reason before it ends a unit\'s use and sends it; while the batch runs it asks none', async () => {
+    const view = gmpView('G-09@2', 'p-comp-status@', []);
+    view.run.status = 'EXECUTION_COMPLETE';
+    const use = { useId: USE_PRESS, kind: 'PROCESS' as const, equipmentCode: 'PRESS-01', batchNumber: 'B26-0007', startedBy: OP, startedAt: at('20-OCT-2026 09:00'), plannedEnd: at('20-OCT-2026 21:00'), ended: null, mine: true };
+    const current = plant({ block: 'G-09@2', equipment: [{ ref: 'PRESS', kind: 'PROCESS', classCode: 'PRS', units: [{ code: 'PRESS-01', name: 'Press', areaCode: null, fitness: null, lastCheck: null }] }], uses: [use] });
+    const ui = render(view, () => current, {});
+    const unit = await screen.findByTestId('plant-unit-PRESS');
+    const button = within(unit).getByRole('button', { name: 'End the use of PRESS-01' });
+    expect(button.hasAttribute('disabled')).toBe(true);
+    await userEvent.type(within(unit).getByRole('textbox', { name: 'Reason for ending the use (the batch has finished)' }), 'Last stage signed off; press released');
+    await userEvent.click(button);
+    await waitFor(() => expect(posts(ui, `/api/plant/equipment-uses/${USE_PRESS}/end`)).toHaveLength(1));
+    expect(posts(ui, `/api/plant/equipment-uses/${USE_PRESS}/end`)[0]?.body).toMatchObject({ reason: 'Last stage signed off; press released' });
+  });
+});

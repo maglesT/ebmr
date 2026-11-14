@@ -186,11 +186,13 @@ async function run(app: DemoApp, opts: ReleasePathOptions): Promise<ReleasePathS
 
   // 3. The batch.
   log('release path: a GB-T-02 batch for IN, US and EU, run to its release for packing');
-  // The review batch (step 3) still occupies DISP-1: its operator ends that use before the room is cleaned.
+  // The review batch (step 3) still occupies DISP-1: its operator ends that use before the room is cleaned. That batch
+  // has finished, so the end states why (recipe-core 1922, EBMR-PLANT-065; owner decision of 13 November 2026).
   const leftOpen = (await db.admin.query<{ id: string }>("select o.id from plant.area_occupancy_status o join plant.area a on a.id = o.area_id where a.code = 'DISP-1' and o.ended_at is null")).rows;
   if (leftOpen.length > 0) {
     const leaver = await app.browser('operator2', 'KIOSK-DISP-1');
-    for (const o of leftOpen) await app.dbAs(leaver, 'select plant.end_area_occupancy($1) as r', [o.id]);
+    const reason = 'The review batch has finished; its use of DISP-1 was left open';
+    for (const o of leftOpen) await app.dbAs(leaver, 'select plant.end_area_occupancy($1, $2) as r', [o.id, reason]);
   }
   for (const code of ['BLD-01', 'PRESS-01']) await clean('EQUIPMENT', code);
   for (const room of ['DISP-1', 'BLEND-1', 'COMP-1']) await clean('AREA', room);
@@ -224,9 +226,10 @@ async function run(app: DemoApp, opts: ReleasePathOptions): Promise<ReleasePathS
     return app.dbAs<string>(who, 'select plant.record_instrument_use($1, $2::uuid, clock_timestamp() + make_interval(hours => 12)) as r', [code, b.batchId]);
   };
   const unitUse = (who: DemoBrowser, code: string, b: DemoBatch) => app.dbAs<string>(who, 'select plant.start_equipment_use($1, $2, clock_timestamp() + make_interval(hours => 12)) as r', [code, b.batchId]);
-  const end = async (who: DemoBrowser, uses: string[], occupancies: string[]): Promise<void> => {
-    for (const u of uses) await app.dbAs(who, 'select plant.end_equipment_use($1) as r', [u]);
-    for (const o of occupancies) await app.dbAs(who, 'select plant.end_area_occupancy($1) as r', [o]);
+  // recipe-core 1922 (owner decision of 13 November 2026): the use of a finished batch ends only with the reason.
+  const end = async (who: DemoBrowser, uses: string[], occupancies: string[], reason: string | null = null): Promise<void> => {
+    for (const u of uses) await app.dbAs(who, 'select plant.end_equipment_use($1, $2) as r', [u, reason]);
+    for (const o of occupancies) await app.dbAs(who, 'select plant.end_area_occupancy($1, $2) as r', [o, reason]);
   };
   const e = (stepKey: string, kind: string, data: Json): ClientIntent => batch.entry(stepKey, kind, data);
   const data = (stepKey: string, item: string, v: string, unit: string): ClientIntent => ({ type: 'RECORD_DATA', stepKey, item, value: { kind: 'DECIMAL', value: v, unit }, source: { mode: 'MANUAL' } });
@@ -342,7 +345,7 @@ async function run(app: DemoApp, opts: ReleasePathOptions): Promise<ReleasePathS
   await batch.step('p-comp-yield@', f.op1, f.ver, [data('p-comp-yield@', 'compGood', '19.500', 'kg'), data('p-comp-yield@', 'compResidue', '0.150', 'kg'), data('p-comp-yield@', 'compRejects', '0.200', 'kg')]);
   await batch.signed(f.qa, { type: 'DISPOSITION_HOLD_POINT', stepKey: 'H-PACK@', disposition: 'APPROVED', comment: 'Bulk released for packing' });
   await batch.closeStage('S-COMP@', f.qa, f.sup);
-  await end(f.op1, [press], [occ]);
+  await end(f.op1, [press], [occ], FINISHED_REASON);
   log(`release path: batch ${batch.batchNumber} released for packing with ${String(bulk.length)} bulk containers`);
 
   // 4 and 5. Two bottle orders, one container each.
@@ -476,13 +479,16 @@ export async function approveVersion(app: DemoApp, versionId: string, spec: Spec
   ], { reasonCode: 'NEW_PRODUCT', reasonText: `Numbering of ${spec.productCode ?? GBT02_PRODUCT.productCode} (${n.kind.toLowerCase()})` });
 }
 
+/** The reason a loader gives when it ends a use after the batch's last stage is signed off (recipe-core 1922). */
+export const FINISHED_REASON = 'The batch has finished (its last stage is signed off); the use ends after it';
+
 export interface FloorKit {
   clean(target: 'EQUIPMENT' | 'AREA', code: string): Promise<void>;
   floor(room: string): Promise<{ op1: DemoBrowser; op2: DemoBrowser; ver: DemoBrowser; sup: DemoBrowser; qa: DemoBrowser }>;
   clearAndOccupy(f: { op2: DemoBrowser; ver: DemoBrowser }, room: string, stage: string, b: DemoBatch, line?: string): Promise<string>;
   instrumentUse(who: DemoBrowser, code: string, b: DemoBatch): Promise<string>;
   unitUse(who: DemoBrowser, code: string, b: DemoBatch): Promise<string>;
-  end(who: DemoBrowser, uses: string[], occupancies: string[]): Promise<void>;
+  end(who: DemoBrowser, uses: string[], occupancies: string[], reason?: string | null): Promise<void>;
 }
 
 /** One demo bottle order (100 bottles) of one bulk container, run to its end. */
@@ -561,7 +567,7 @@ export async function bottleOrder(app: DemoApp, parent: DemoBatch, familyId: str
   ], 'WITNESSED');
   await o.step('p-pk-yield@', f.op2, f.ver);
   await o.closeStage('S-PACK@', f.qa, f.sup);
-  await k.end(f.op2, [filler, cartoner], [occ]);
+  await k.end(f.op2, [filler, cartoner], [occ], FINISHED_REASON);
   return o;
 }
 
