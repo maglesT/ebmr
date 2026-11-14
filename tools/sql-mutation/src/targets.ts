@@ -502,9 +502,13 @@ export const TARGETS: Target[] = [
                 'recipe.library_edition_problem', 'recipe.library_edition_at_approval_check',
                 // API edition plan A0 (kernel 1403, recipe-core 1872): the one list of editions, and the rule tables an
                 // edition's master binds (the API edition the kernel table only).
-                'kernel.editions', 'kernel.edition_codes', 'recipe.rule_table_versions'],
+                'kernel.editions', 'kernel.edition_codes', 'recipe.rule_table_versions',
+                // Injectables review pass item 3 (recipe-core 1924): expected answers and not-allowed choices.
+                'recipe.library_answer_records'],
     tests: [s('library/library-routes.test.ts'), s('library/library-batch-gmp.test.ts'), s('mutation/library-blocks.test.ts'),
-            s('library/library-edition.test.ts'), s('library/substance-edition.test.ts')],
+            s('library/library-edition.test.ts'), s('library/substance-edition.test.ts'),
+            // 1924: the engine/database parity sweep over the seed catalogue's answers, and the bypass cases.
+            r('library/expected-answer-db.test.ts')],
     threshold: 90,
   },
   // ---- Site services: the batch-number register (sql 0600; not in the Phase 1 run) ---------------------------------

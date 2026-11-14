@@ -713,11 +713,13 @@ describe('release review R3: the database judges library values as the engine do
       // No value of the row is outside its limit: the exception is not one it requires.
       expect(await limits(c, {}, { entries: { E1: entry('run', { w: '5' }) }, exceptions: { X1: breach('p-lib.w') } })).toBe('adds exception X1 (LIB_LIMIT_BREACH, severity CRITICAL, item p-lib.w), which no value of the row requires with these facts');
       expect(await limits(c, {}, { exceptions: { X1: breach('p-lib.w') } })).toMatch(/^adds exception X1 /);
-      // Another type of exception is not a library limit exception.
-      expect(await limits(c, {}, { exceptions: { X1: breach('p-lib.w', { type: 'LIB_UNEXPECTED_ANSWER' }) } })).toBeNull();
+      // Another type of exception is not a library limit exception (since 1924 an answer exception is judged too: no
+      // unexpected answer of the row requires this one).
+      expect(await limits(c, {}, { exceptions: { X1: breach('p-lib.w', { type: 'LATE_ENTRY' }) } })).toBeNull();
+      expect(await limits(c, {}, { exceptions: { X1: breach('p-lib.w', { type: 'LIB_UNEXPECTED_ANSWER' }) } })).toMatch(/^adds exception X1 \(LIB_UNEXPECTED_ANSWER/);
       const t = await batchState(c, { steps: STEPS, entries: W, exceptions: { X1: breach('p-lib.w') } }, 'zzg_library_limits');
       expect(await t.update({ steps: STEPS, entries: W, exceptions: { X1: breach('p-lib.w'), X2: breach('p-lib.w', {}, 'X2') } })).toMatch(/^This row adds exception X2 .*\[EBMR-LIB-020\]$/);
-      expect(await t.update({ steps: STEPS, entries: W, exceptions: { X1: breach('p-lib.w'), X2: breach('p-lib.w', { type: 'LIB_UNEXPECTED_ANSWER' }, 'X2') } })).toBe('');
+      expect(await t.update({ steps: STEPS, entries: W, exceptions: { X1: breach('p-lib.w'), X2: breach('p-lib.w', { type: 'LATE_ENTRY' }, 'X2') } })).toBe('');
     });
   });
 });
@@ -893,5 +895,25 @@ describe('the snapshots against the library (recipe-core 1810)', () => {
     await world.check(v.versionId);
     await expect(world.approve(v.versionId)).rejects.toThrow(new RegExp(`EBMR-LIB-021 this master cannot be approved: ${String(def['code'])}@1 is retired`));
     expect((await world.state(v.versionId)).state).toBe('CHECKED');
+  });
+});
+
+describe('expected answers and allowed choices in the database (recipe-core 1924)', () => {
+  /** An answer exception of the KILL-LIM step as the engine records it (tx.ts raise of an ACTION draft blocking the step). */
+  const answer = (type: string, item: string, id = 'X1'): Json => ({
+    id, type, category: 'OUT_OF_LIMIT', title: `Limits, Confirm: ${item}`, controls: ['PR-29'], severity: 'ACTION',
+    source: { stepKey: 'p-lib@', step: 'p-lib', frames: [], item }, raisedAt: { $u: '1000' }, raisedSeq: 2, raisedBy: OP, deviationRequired: true,
+    registrationRelevant: false, qaOnly: false, stageSignOffBlocked: false, releaseBlocking: false, status: 'OPEN', block: { steps: ['p-lib@'], until: 'DEVIATION' },
+  });
+
+  it('[PR-29] the trigger itself refuses a row that adds only a LIB_UNEXPECTED_ANSWER or a LIB_NOT_ALLOWED_CHOICE that no answer requires (EBMR-LIB-020); one of another type is not checked', async () => {
+    await inCommand(gmp, 'author', async (c) => {
+      const t = await batchState(c, { steps: STEPS, entries: {}, exceptions: {} }, 'zzg_library_limits');
+      for (const type of ['LIB_UNEXPECTED_ANSWER', 'LIB_NOT_ALLOWED_CHOICE']) {
+        expect(await t.update({ steps: STEPS, entries: {}, exceptions: { X1: answer(type, 'p-lib.ok') } }), type).toMatch(new RegExp(`^This row adds exception X1 \\(${type}, severity ACTION, item p-lib\\.ok\\), which no value of the row requires with these facts: .*\\[EBMR-LIB-020\\]$`));
+      }
+      // A row adding an exception of another type only is not checked.
+      expect(await t.update({ steps: STEPS, entries: {}, exceptions: { X1: { ...answer('LIB_UNEXPECTED_ANSWER', 'p-lib.ok'), type: 'LATE_ENTRY' } } })).toBe('');
+    });
   });
 });

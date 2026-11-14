@@ -1,0 +1,38 @@
+--- 1862_library_limits_judgement.sql
++++ 1924_library_expected_answers.sql
+@@ -178,6 +178,17 @@
+         v_used := v_used || false;
+       end if;
+     end loop;
++    -- Expected answers and allowed choices (1924): a YES_NO field the entry shows, answered other than its expected answer,
++    -- requires its LIB_UNEXPECTED_ANSWER, and a CHOICE the formulation does not allow its LIB_NOT_ALLOWED_CHOICE
++    -- (block-version.ts accept; recipe.library_answer_records).
++    for x in select r from jsonb_array_elements(recipe.library_answer_records(s, e -> 'data', v_until, v_exhausted, v_inst, recipe.step_graph_node(p_content, v_step), v_step, e ->> 'enteredBy')) r loop
++      if v_inst is null then
++        return format('stores %s in step instance %s, which the state does not hold', x ->> 'what', e ->> 'stepKey');
++      end if;
++      v_want := v_want || (x -> 'want');
++      v_what := v_what || (x ->> 'what');
++      v_used := v_used || false;
++    end loop;
+     -- Test results (R3-SQL-2): each statistic's values, of the readings or of each point's readings, against its limits.
+     for f in select y from jsonb_array_elements(s -> 'fields') y where y ->> 'type' = 'TEST_RESULT' and e -> 'data' ? (y ->> 'id') loop
+       v_item := v_step || '.' || (f ->> 'id');
+@@ -238,7 +249,7 @@
+   end loop;
+   -- The row's new library limit and loop exceptions, one for one with the records its values require (R3-SQL-1, R3-SQL-4).
+   for k, x in select y.key, y.value from jsonb_each(x1) y
+-               where not (x0 ? y.key) and jsonb_typeof(y.value) = 'object' and y.value ->> 'type' in ('LIB_LIMIT_BREACH', 'LIB_REPEAT_LIMIT_REACHED') order by y.key loop
++               where not (x0 ? y.key) and jsonb_typeof(y.value) = 'object' and y.value ->> 'type' in ('LIB_LIMIT_BREACH', 'LIB_REPEAT_LIMIT_REACHED', 'LIB_UNEXPECTED_ANSWER', 'LIB_NOT_ALLOWED_CHOICE') order by y.key loop
+     v_hit := null;
+     for i in 1 .. coalesce(array_length(v_want, 1), 0) loop
+       if not v_used[i] and x ->> 'id' = k
+@@ -290,7 +301,7 @@
+                   where not coalesce((old.state -> 'entries') ? k, false))
+      and not exists (select 1
+                        from jsonb_each(case when jsonb_typeof(new.state -> 'exceptions') = 'object' then new.state -> 'exceptions' else '{}'::jsonb end) x
+-                      where not coalesce((old.state -> 'exceptions') ? x.key, false) and x.value ->> 'type' in ('LIB_LIMIT_BREACH', 'LIB_REPEAT_LIMIT_REACHED')) then
++                      where not coalesce((old.state -> 'exceptions') ? x.key, false) and x.value ->> 'type' in ('LIB_LIMIT_BREACH', 'LIB_REPEAT_LIMIT_REACHED', 'LIB_UNEXPECTED_ANSWER', 'LIB_NOT_ALLOWED_CHOICE')) then
+     return null;
+   end if;
+   v_problem := recipe.library_limits_problem(recipe.batch_mbr_content(new.batch_id), old.state, new.state);

@@ -22,7 +22,8 @@ export function judgedRun(item: SeedItem, overrides: Readonly<Record<string, Rea
   return runItem(item, overrides, true);
 }
 
-function runItem(item: SeedItem, overrides: Readonly<Record<string, Readonly<Record<string, unknown>>>>, stopWhenBlocked: boolean): { exceptions: string[]; status: string | undefined } {
+/** A catalogue item's one-step master (its example values, formula lines, inputs and batch size), issued as a batch. */
+export function issueItem(item: SeedItem): { batch: Run; def: BlockDefinition; config: Record<string, unknown>; mbr: MbrContent } {
   const def = item.definition;
   const config = item.exampleUse as Record<string, unknown>;
   const lines = Object.values(item.exampleUse.bomLines ?? {});
@@ -42,7 +43,11 @@ function runItem(item: SeedItem, overrides: Readonly<Record<string, Readonly<Rec
   const mbr: MbrContent = size ? { ...base, header: { ...base.header, batchSizes: [{ id: 'BS', quantity: size }] } } : base;
   const d = define(mbr, { registry: testRegistry().extend(libraryBlockVersion(def, expr)) });
   const values = Object.fromEntries(inputs.map(([k, v]) => [k, { value: { kind: 'DECIMAL' as const, value: v.value, unit: v.unit }, source: 'seed example' }]));
-  const batch = Run.issue(d, { inputs: values }, T0);
+  return { batch: Run.issue(d, { inputs: values }, T0), def, config, mbr };
+}
+
+function runItem(item: SeedItem, overrides: Readonly<Record<string, Readonly<Record<string, unknown>>>>, stopWhenBlocked: boolean): { exceptions: string[]; status: string | undefined } {
+  const { batch, def, config, mbr } = issueItem(item);
   batch.start('p');
   recordNominal(batch, 'p', def, config, mbr, overrides);
   try {
@@ -83,12 +88,20 @@ export function runNominalStep(batch: Run, stepId: string, def: BlockDefinition,
 
 /**
  * Records a started step's nominal entries of `def` under `config` (some values of a section's entries changed by
- * `overrides`), keeping its in-process checks on time while a timer runs (R3-ENG-4: the gap from the last round to the
+ * `overrides`, then each entry as `shape` gives it), keeping its in-process checks on time while a timer runs (R3-ENG-4: the gap from the last round to the
  * step's end is held too): the hour before a timer stops is spent in 10-minute stretches, each closed by a round of
  * every per-interval section (the catalogue's intervals are 15 minutes or more).
  */
-export function recordNominal(batch: Run, stepId: string, def: BlockDefinition, config: Record<string, unknown>, mbr: MbrContent, overrides: Readonly<Record<string, Readonly<Record<string, unknown>>>> = {}): void {
-  const entries = nominalEntries(def, config as never, mbr).map((e) => (overrides[e.kind] ? { ...e, ...overrides[e.kind] } : e));
+export function recordNominal(
+  batch: Run,
+  stepId: string,
+  def: BlockDefinition,
+  config: Record<string, unknown>,
+  mbr: MbrContent,
+  overrides: Readonly<Record<string, Readonly<Record<string, unknown>>>> = {},
+  shape: (e: Record<string, unknown> & { kind: string }) => Record<string, unknown> & { kind: string } = (e) => e,
+): void {
+  const entries = nominalEntries(def, config as never, mbr).map((e) => shape(overrides[e.kind] ? { ...e, ...overrides[e.kind] } : e));
   const rounds = entries.filter((e) => def.sections.some((s) => s.id === e.kind && s.repeat?.kind === 'PER_INTERVAL'));
   for (const e of entries) {
     if (e.kind === TIMER_STOP) {
