@@ -40,8 +40,8 @@ const heldOf = (hold: unknown): string[] => {
 };
 
 export async function occupancyView(app: AppContext, db: Db, id: string): Promise<OccupancyView> {
-  const { rows } = await db.query<{ id: string; area: string; batch: string; stage: string; started_by: string; started_us: string; ended_by: string | null; ended_us: string | null }>(
-    `select o.id, a.code as area, o.batch_ref as batch, o.stage, o.started_by, ${usOf('o.started_at')} as started_us, o.ended_by, ${usOf('o.ended_at')} as ended_us
+  const { rows } = await db.query<{ id: string; area: string; batch: string; stage: string; started_by: string; started_us: string; ended_by: string | null; ended_us: string | null; end_reason: string | null }>(
+    `select o.id, a.code as area, o.batch_ref as batch, o.stage, o.started_by, ${usOf('o.started_at')} as started_us, o.ended_by, ${usOf('o.ended_at')} as ended_us, o.end_reason
        from plant.area_occupancy_status o join plant.area a on a.id = o.area_id where o.id = $1`,
     [id],
   );
@@ -50,16 +50,17 @@ export async function occupancyView(app: AppContext, db: Db, id: string): Promis
   const people = await peopleOf(db, [r.started_by, r.ended_by]);
   return {
     occupancyId: r.id, areaCode: r.area, batchNumber: r.batch, stage: r.stage, startedBy: personRef(people, r.started_by, 'OPERATOR'), startedAt: app.formatInstant(r.started_us),
-    ended: r.ended_by && r.ended_us ? { by: personRef(people, r.ended_by, 'OPERATOR'), at: app.formatInstant(r.ended_us) } : null,
+    ended: r.ended_by && r.ended_us ? { by: personRef(people, r.ended_by, 'OPERATOR'), at: app.formatInstant(r.ended_us), ...(r.end_reason ? { reason: r.end_reason } : {}) } : null,
   };
 }
 
 export async function useView(app: AppContext, db: Db, id: string): Promise<PlantUseView> {
-  const { rows } = await db.query<{ id: string; kind: 'PROCESS' | 'INSTRUMENT'; code: string; batch: string; by: string; us: string; end_us: string; ended_by: string | null; ended_us: string | null }>(
-    `select u.id, 'PROCESS' as kind, e.code, u.batch_ref as batch, u.started_by as by, ${usOf('u.started_at')} as us, ${usOf('u.planned_end')} as end_us, u.ended_by, ${usOf('u.ended_at')} as ended_us
+  const { rows } = await db.query<{ id: string; kind: 'PROCESS' | 'INSTRUMENT'; code: string; batch: string; by: string; us: string; end_us: string; ended_by: string | null; ended_us: string | null; end_reason: string | null }>(
+    `select u.id, 'PROCESS' as kind, e.code, u.batch_ref as batch, u.started_by as by, ${usOf('u.started_at')} as us, ${usOf('u.planned_end')} as end_us, u.ended_by, ${usOf('u.ended_at')} as ended_us,
+            u.end_reason
        from plant.equipment_use_status u join plant.equipment e on e.id = u.equipment_id where u.id = $1
      union all
-     select u.id, 'INSTRUMENT', e.code, u.batch_ref, u.person_id, ${usOf('u.recorded_at')}, ${usOf('u.planned_end')}, null, null
+     select u.id, 'INSTRUMENT', e.code, u.batch_ref, u.person_id, ${usOf('u.recorded_at')}, ${usOf('u.planned_end')}, null, null, null
        from plant.instrument_use u join plant.equipment e on e.id = u.equipment_id where u.id = $1`,
     [id],
   );
@@ -68,7 +69,7 @@ export async function useView(app: AppContext, db: Db, id: string): Promise<Plan
   const people = await peopleOf(db, [r.by, r.ended_by]);
   return {
     useId: r.id, kind: r.kind, equipmentCode: r.code, batchNumber: r.batch, startedBy: personRef(people, r.by, 'OPERATOR'), startedAt: app.formatInstant(r.us), plannedEnd: app.formatInstant(r.end_us),
-    ended: r.ended_by && r.ended_us ? { by: personRef(people, r.ended_by, 'OPERATOR'), at: app.formatInstant(r.ended_us) } : null,
+    ended: r.ended_by && r.ended_us ? { by: personRef(people, r.ended_by, 'OPERATOR'), at: app.formatInstant(r.ended_us), ...(r.end_reason ? { reason: r.end_reason } : {}) } : null,
   };
 }
 
@@ -81,8 +82,23 @@ export function plantFloorHandlers(app: AppContext) {
       const id = await write(app, ctx, 'select plant.start_area_occupancy($1, $2, $3, $4, $5) as r', [b.areaCode, b.batchId, b.stage, b.order ?? null, b.artworkSet ?? null]);
       return occupancyView(app, pool, text(id));
     },
+    // Owner decision of 13 November 2026 (demo report bug 4): every room's or line's use not ended, of any batch, for the
+    // Plant screen's "Rooms and lines in use".
+    openAreaOccupancies: async (ctx: Ctx<'openAreaOccupancies'>): Promise<{ occupancies: (OccupancyView & { mine: boolean })[] }> => {
+      const viewer = ctx.requireSession().personId;
+      const { rows } = await pool.query<{ id: string; area: string; batch: string; stage: string; by: string; us: string }>(
+        `select o.id, a.code as area, o.batch_ref as batch, o.stage, o.started_by as by, ${usOf('o.started_at')} as us
+           from plant.area_occupancy_status o join plant.area a on a.id = o.area_id
+          where o.ended_at is null order by o.started_at, o.id`,
+      );
+      const people = await peopleOf(pool, rows.map((r) => r.by));
+      return {
+        occupancies: rows.map((r) => ({ occupancyId: r.id, areaCode: r.area, batchNumber: r.batch, stage: r.stage, startedBy: personRef(people, r.by, 'OPERATOR'), startedAt: app.formatInstant(r.us), ended: null, mine: r.by === viewer })),
+      };
+    },
     endAreaOccupancy: async (ctx: Ctx<'endAreaOccupancy'>): Promise<OccupancyView> => {
-      await write(app, ctx, 'select plant.end_area_occupancy($1) as r', [ctx.params.occupancyId]);
+      // recipe-core 1926: the reason, when given, is stored and audited; a finished batch's room needs one.
+      await write(app, ctx, 'select plant.end_area_occupancy($1, $2::text) as r', [ctx.params.occupancyId, ctx.body.reason ?? null]);
       return occupancyView(app, pool, ctx.params.occupancyId);
     },
     recordInstrumentCheck: async (ctx: Ctx<'recordInstrumentCheck'>): Promise<InstrumentCheckView> => {
@@ -101,8 +117,26 @@ export function plantFloorHandlers(app: AppContext) {
       const id = await write(app, ctx, 'select plant.start_equipment_use($1, $2::uuid, clock_timestamp() + make_interval(hours => $3::int)) as r', [ctx.params.code, ctx.body.batchId, ctx.body.plannedHours]);
       return useView(app, pool, text(id));
     },
+    // Demo report 13 November 2026 (bug 4): every process unit's use not ended, of any batch in any state, for the Plant
+    // screen's "Units in use" (each ended there with endEquipmentUse below).
+    openEquipmentUses: async (ctx: Ctx<'openEquipmentUses'>): Promise<{ uses: (PlantUseView & { mine: boolean })[] }> => {
+      const viewer = ctx.requireSession().personId;
+      const { rows } = await pool.query<{ id: string; code: string; batch: string; by: string; us: string; end_us: string }>(
+        `select u.id, e.code, u.batch_ref as batch, u.started_by as by, ${usOf('u.started_at')} as us, ${usOf('u.planned_end')} as end_us
+           from plant.equipment_use_status u join plant.equipment e on e.id = u.equipment_id
+          where u.ended_at is null order by u.started_at, u.id`,
+      );
+      const people = await peopleOf(pool, rows.map((r) => r.by));
+      return {
+        uses: rows.map((r) => ({
+          useId: r.id, kind: 'PROCESS' as const, equipmentCode: r.code, batchNumber: r.batch, startedBy: personRef(people, r.by, 'OPERATOR'), startedAt: app.formatInstant(r.us),
+          plannedEnd: app.formatInstant(r.end_us), ended: null, mine: r.by === viewer,
+        })),
+      };
+    },
     endEquipmentUse: async (ctx: Ctx<'endEquipmentUse'>): Promise<PlantUseView> => {
-      await write(app, ctx, 'select plant.end_equipment_use($1) as r', [ctx.params.useId]);
+      // recipe-core 1926: the reason, when given, is stored and audited; a finished batch's use needs one.
+      await write(app, ctx, 'select plant.end_equipment_use($1, $2::text) as r', [ctx.params.useId, ctx.body.reason ?? null]);
       return useView(app, pool, ctx.params.useId);
     },
     chargeContainer: async (ctx: Ctx<'chargeContainer'>): Promise<ChargeView> => {

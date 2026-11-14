@@ -177,7 +177,9 @@ export const TARGETS: Target[] = [
                 'recipe.record_evidence', 'recipe.return_to_draft', 'recipe.record_change_record', 'recipe.inv04_violations',
                 'recipe.approved_content_violations',
                 // Demo finding D-3 (recipe-core 1878): a new draft in a family whose drafts were all discarded.
-                'recipe.reopen_family'],
+                'recipe.reopen_family',
+                // Owner decision 13 November 2026 (recipe-core 1925): one version in preparation per family.
+                'recipe.insert_version'],
     tests: [r('lifecycle/approval.test.ts'), r('lifecycle/change-control.test.ts'), r('lifecycle/audit-reason.test.ts'),
             r('lifecycle/machine.test.ts'), r('lifecycle/authorization.test.ts'),
             // Phase 3 exit: the files that test this group's functions as Phase 3 redefined them.
@@ -616,6 +618,8 @@ export const TARGETS: Target[] = [
                 'plant.guard_clearance_passed', 'plant.guard_area_occupancy_open', 'plant.guard_area_no_occupancy_open',
                 // Injectables I-1c2 P3b (recipe-core 1886): the clearance's checker read from the stage's G-10 step.
                 'plant.guard_clearance_recorded_passed', 'plant.area_occupancy_clearance_guard', 'recipe.clearance_checked',
+                // Demo report bug 4, owner decision of 13 November 2026 (recipe-core 1926): the reason an end of a use states.
+                'plant.use_end_reason',
                 'plant.fail', 'plant.move', 'plant.state_of', 'plant.equipment_by_code', 'plant.area_by_code',
                 'plant.require_product', 'plant.dirty_since', 'plant.define_equipment_class', 'plant.define_area',
                 'plant.define_equipment', 'plant.latest_event_of', 'plant.latest_calibration',

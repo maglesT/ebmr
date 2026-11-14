@@ -6,7 +6,7 @@
 import { routes } from '@ebmr/api-contract';
 import { useApiQuery } from '../api/hooks.ts';
 
-export type ActGroup = 'QA' | 'QC' | 'PRODUCTION_HEAD' | 'PRODUCTION_FLOOR' | 'PLANNING' | 'FORMULA_AUTHOR' | 'FORMULA_APPROVER' | 'MASTER_CONFIRMER' | 'MASTER_ENTRY' | 'PLANT_MASTER' | 'PLANT_VERIFIER' | 'STORES' | 'US_QCU' | 'EU_QP';
+export type ActGroup = 'QA' | 'QC' | 'PRODUCTION_HEAD' | 'PRODUCTION_FLOOR' | 'STEP_EXECUTE' | 'PLANNING' | 'FORMULA_AUTHOR' | 'FORMULA_APPROVER' | 'MASTER_CONFIRMER' | 'MASTER_ENTRY' | 'PLANT_MASTER' | 'PLANT_VERIFIER' | 'STORES' | 'US_QCU' | 'EU_QP';
 
 const GROUPS: Readonly<Record<ActGroup, RegExp>> = {
   QA: /^(QA_[A-Z_]+|QA|AUTHORISED_PERSON|HEAD_OF_QA)$/,
@@ -15,6 +15,9 @@ const GROUPS: Readonly<Record<ActGroup, RegExp>> = {
   PRODUCTION_HEAD: /^(HEAD_OF_PRODUCTION|PRODUCTION_SUPERVISOR|SHIFT_SUPERVISOR)$/,
   // Phase 4 slice 1 (containers): the floor's acts on output containers (close, sort, the second person's check).
   PRODUCTION_FLOOR: /^(OPERATOR|DISPENSER|VERIFIER|PRODUCTION_VERIFIER|SHIFT_SUPERVISOR|PRODUCTION_SUPERVISOR|HEAD_OF_PRODUCTION)$/,
+  // Demo report 13 November 2026 (bug 4): the floor acts the database grants on STEP.EXECUTE alone (kernel 0120, recipe-core
+  // 0200: the operator roles), such as ending a room's or unit's use; a supervisor is not offered them.
+  STEP_EXECUTE: /^(OPERATOR|PRODUCTION_OPERATOR)$/,
   PLANNING: /^(BATCH_ISSUER|PRODUCTION_PLANNER|HEAD_OF_PRODUCTION|SHIFT_SUPERVISOR|PRODUCTION_SUPERVISOR)$/,
   FORMULA_AUTHOR: /^(FORMULATION_STEWARD|MASTER_DATA_STEWARD|MBR_AUTHOR)$/,
   FORMULA_APPROVER: /^(QA_[A-Z_]+|HEAD_OF_QC|HEAD_OF_PRODUCTION|FORMULATION_STEWARD|MASTER_DATA_STEWARD)$/,

@@ -187,13 +187,20 @@ export class GoldenBatch {
     return id;
   }
 
-  /** Ends the batch's uses and occupancies of `codes` (operator1). */
+  /**
+   * Ends the batch's uses and occupancies of `codes` (operator1). Once the batch has finished (its last stage signed off)
+   * the operator states why, as the database requires then (recipe-core 1926, EBMR-PLANT-065; owner decision of
+   * 13 November 2026); while it runs, the end carries no reason, as on the step screen.
+   */
   async release(codes: string[], operator = 'operator1'): Promise<void> {
+    const { rows } = await this.w.server.db.admin.query<{ status: string }>('select status from recipe.execution_state where batch_id = $1', [this.batchId]);
+    const finished = ['EXECUTION_COMPLETE', 'ABORTED', 'CANCELLED'].includes(rows[0]?.status ?? '');
+    const reason = finished ? 'The batch has finished (its last stage is signed off); the use ends after it' : null;
     for (const code of codes) {
       const use = this.uses.get(code);
-      if (use && !code.startsWith('BAL-')) await dbAs(this.w, this.b(operator), operator, 'select plant.end_equipment_use($1) as r', [use]);
+      if (use && !code.startsWith('BAL-')) await dbAs(this.w, this.b(operator), operator, 'select plant.end_equipment_use($1, $2) as r', [use, reason]);
       const occ = this.occupancies.get(code);
-      if (occ) await dbAs(this.w, this.b(operator), operator, 'select plant.end_area_occupancy($1) as r', [occ]);
+      if (occ) await dbAs(this.w, this.b(operator), operator, 'select plant.end_area_occupancy($1, $2) as r', [occ, reason]);
     }
   }
 
