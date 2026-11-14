@@ -45,12 +45,23 @@ async function findings(c: Content): Promise<validator.ValidationReport['finding
   return validator.validateMbr(c, context).findings;
 }
 
-/** The content with the designer's new stage after the first stage (ADD_STAGE). */
-function withStage(c: Content, after: 'first' | 'last' = 'first'): Content {
+/**
+ * The content with the designer's new stage after the first stage (ADD_STAGE). Equipped: the author has bound the stage's
+ * balance (ADD_STAGE_EQUIPMENT, with dc-mini's pinned class) and ticked "checks its status" on its equipment status step;
+ * a new stage binds no equipment, and the validator refuses its status step until then (r13 bug 1, 13 November 2026).
+ */
+function withStage(c: Content, after: 'first' | 'last' = 'first', equipped = true): Content {
   const out = structuredClone(c);
   const seq = out.procedure.body as flow.SequenceNode;
   const at = after === 'first' ? 1 : seq.children.length;
-  seq.children.splice(at, 0, structuredClone(stageFixture) as unknown as flow.StageNode);
+  const stage = structuredClone(stageFixture) as unknown as flow.StageNode;
+  if (equipped) {
+    stage.binding.equipment = [{ ref: 'BAL', equipmentClass: 'EQC-BAL', kind: 'INSTRUMENT' }];
+    flow.walk(stage, (n) => {
+      if (n.kind === 'phase' && n.block.type === 'G-09') n.equipment = [{ ref: 'BAL', use: 'STATUS_CHECK' }];
+    });
+  }
+  seq.children.splice(at, 0, stage);
   return out;
 }
 
@@ -82,6 +93,8 @@ describe('a new stage in the designer (demo finding D-1)', () => {
       if (n.kind === 'phase') used.push(`${n.block.type}@${n.block.version}`);
     });
     expect(used).toEqual([`G-10@${latest('G-10')}`, `G-09@${latest('G-09')}`]);
+    // As added, the stage binds no equipment: its equipment status step would check no unit (r13 bug 1).
+    expect((await findings(withStage(c, 'first', false))).map((f) => `${f.rule} ${f.subject}`).sort()).toEqual(['GMP-EQUIPMENT-STATUS-UNITS p-g-09', 'GMP-STAGE-YIELD S-LAYER-2-GRANULATION']);
     const staged = withStage(c);
     expect((await findings(staged)).map((f) => f.rule)).toEqual(['GMP-STAGE-YIELD']);
     // Its own yield: without the product's limits the yield has no minimum and maximum (PR-31) and is refused.

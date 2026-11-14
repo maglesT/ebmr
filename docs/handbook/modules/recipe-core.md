@@ -1127,7 +1127,10 @@ composition ([recipe.formula_create](../../../packages/recipe-core/sql/0640_form
 [recipe.formula_pin_mbr](../../../packages/recipe-core/sql/0640_formulation_library.sql#sym=recipe.formula_pin_mbr), [recipe.formula_choice](../../../packages/recipe-core/sql/0640_formulation_library.sql#sym=recipe.formula_choice)). The composition is confidential: readable only with
 FORMULA.READ ([recipe.formula_read](../../../packages/recipe-core/sql/0640_formulation_library.sql#sym=recipe.formula_read), [recipe.formula_listing](../../../packages/recipe-core/sql/0642_formula_readers_by_flag.sql#sym=recipe.formula_listing); readers for a caller that decided the
 permission itself in 0642). An active stated as its base with a salt factor may stand in the BOM on the base (0690).
-Planning reads open ERP production orders ([recipe.planning_orders](../../../packages/recipe-core/sql/0762_packaging_planning_reads.sql#sym=recipe.planning_orders), 0641). TypeScript callers:
+Planning reads open ERP production orders ([recipe.planning_orders](../../../packages/recipe-core/sql/1921_planning_several_masters.sql#sym=recipe.planning_orders), 0641, 0762). Every matching master is listed;
+when more than one matches, none is named the match and the planner chooses (1921). A twin family (same product, strength,
+market, site, line and batch quantity as another family's active authorisation) is refused at authorisation
+([recipe.authorisation_cell_twin_guard](../../../packages/recipe-core/sql/1923_twin_family_authorisation.sql#sym=recipe.authorisation_cell_twin_guard), EBMR-RCP-438). TypeScript callers:
 [formula/index.ts](../../../packages/recipe-core/src/formula/index.ts).
 
 **Pharma context.** The master formula is a controlled document (Schedule M master formula; 21 CFR 211.186(b);

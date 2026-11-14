@@ -71,7 +71,7 @@ export const LEFT_OUT: Record<string, string> = Object.fromEntries(
       'recipe.mbr_edition_citations', 'recipe.rbe_rules_as_of', 'iam.support_grants', 'esig.policy_values',
       'esig.dsc_configuration', 'esig.dsc_of', 'esig.dsc_enrolments_of', 'platform.config_as_of', 'platform.config_diff',
       'report.catalog_rows_v1', 'analytics.method_monitor_rows_v1', 'iam.setup_state', 'tab.installation_contents',
-      'recipe.packaging_order_bulk'].map((f): [string, string] => [f, READS_FOR_A_SCREEN]),
+      'recipe.packaging_order_bulk', 'recipe.planning_orders'].map((f): [string, string] => [f, READS_FOR_A_SCREEN]),
 );
 
 const k = (f: string) => `packages/kernel/test/${f}`;
@@ -204,10 +204,12 @@ export const TARGETS: Target[] = [
                 'recipe.market_authorisation_activation_guard', 'recipe.authorisation_cell_activation_guard',
                 'recipe.authorisation_cell_supersession_guard',
                 // recipe-core 1889 (owner item 11): the proposer never activates.
-                'recipe.market_authorisation_activation_not_proposer'],
+                'recipe.market_authorisation_activation_not_proposer',
+                // recipe-core 1923 (owner, 13 November 2026): a twin family is refused at authorisation.
+                'recipe.authorisation_cell_twin_guard'],
     tests: [r('lifecycle/market.test.ts'), r('lifecycle/issue.test.ts'), r('lifecycle/selection.property.test.ts'),
             r('lifecycle/review-inventory.test.ts'), r('lifecycle/audit-reason.test.ts'), r('lifecycle/concurrency.test.ts'),
-            r('lifecycle/authorization.test.ts')],
+            r('lifecycle/authorization.test.ts'), r('lifecycle/planning-several-masters.test.ts')],
     threshold: 90,
   },
   // ---- Phase 2: recipe-core, execution store: the commands (sql 0210, 0240, 0270, 0295, 0298, 0299) ----------------

@@ -91,13 +91,13 @@ describe('the room a clearance step occupies (A2; R3.3)', () => {
 describe('the units a status step checks (A3, A4; R3.3, R3.4)', () => {
   it('[PR-23][IN-25][INV-40] records the balance\'s per-use check, books it and the press each with its record in the step as one act; a booked unit is not offered for booking again and says until when', async () => {
     const view = gmpView('G-09@2', 'p-comp-status@', [form('EQUIPMENT_USE', 'Equipment use', { equipmentRef: str('Reference'), equipmentCode: str('Unit'), useId: str('Use', ID) })]);
-    const unit = (code: string, name: string) => ({ code, name, areaCode: 'COMP-1', fitness: 'QUALIFIED', lastCheck: null });
+    const unit = (code: string, name: string) => ({ code, name, areaCode: 'COMP-1', inStageRoom: true, fitness: 'QUALIFIED', problems: [], lastCheck: null });
     const booking = (useId: string, kind: 'PROCESS' | 'INSTRUMENT', equipmentCode: string) => ({ useId, kind, equipmentCode, batchNumber: 'B26-0007', startedBy: OP, startedAt: at('20-OCT-2026 09:00'), plannedEnd: at('20-OCT-2026 21:00'), ended: null });
     let current = plant({
       block: 'G-09@2',
       equipment: [
-        { ref: 'BAL', kind: 'INSTRUMENT', classCode: 'EQC-BAL', units: [unit('BAL-C1', 'Balance 6 kg')] },
-        { ref: 'PRESS', kind: 'PROCESS', classCode: 'EQC-PRESS', units: [unit('PRESS-01', 'Rotary press')] },
+        { ref: 'BAL', kind: 'INSTRUMENT', classCode: 'EQC-BAL', units: [unit('BAL-C1', 'Balance 6 kg')], note: null },
+        { ref: 'PRESS', kind: 'PROCESS', classCode: 'EQC-PRESS', units: [unit('PRESS-01', 'Rotary press')], note: null },
       ],
     });
     let shown = view;
@@ -136,6 +136,45 @@ describe('the units a status step checks (A3, A4; R3.3, R3.4)', () => {
     expect(posts(ui, path)[1]?.body).toMatchObject({ act: { act: 'BOOK_UNIT', equipmentRef: 'PRESS', code: 'PRESS-01', plannedHours: '12' } });
     await waitFor(() => expect(within(screen.getByTestId('use-PRESS-01')).getByText('Recorded in this step for PRESS.')).toBeTruthy());
     expect(ui.commands()).toHaveLength(0);
+  });
+});
+
+describe('a unit of another room when the stage room\'s unit cannot be used (retest 13 November 2026, bug 5)', () => {
+  it('[PR-23][IN-25] shows why the other room\'s unit is offered, with its room; its open use is recorded from the step, and the raw entry form offers the open use to pick instead of asking for its id', async () => {
+    const view = gmpView('G-09@2', 'p-comp-status@', [form('EQUIPMENT_USE', 'Equipment use', { equipmentRef: str('Reference'), equipmentCode: str('Unit'), useId: str('Use', ID) })]);
+    const note = 'PRESS-02 (COMP-1: it is in use by batch MGL260051 (INV-12)): cannot be used now. Units of class EQC-PRESS in other rooms that can be used are offered: PRESS-01 (COMP-2).';
+    const use = { useId: USE_PRESS, kind: 'PROCESS' as const, equipmentCode: 'PRESS-01', batchNumber: 'B26-0007', startedBy: OP, startedAt: at('20-OCT-2026 09:00'), plannedEnd: at('20-OCT-2026 21:00'), ended: null, mine: true };
+    const current = plant({
+      block: 'G-09@2',
+      stage: 'S-COMP',
+      equipment: [
+        {
+          ref: 'PRESS', kind: 'PROCESS', classCode: 'EQC-PRESS', note,
+          units: [
+            { code: 'PRESS-02', name: 'Rotary press', areaCode: 'COMP-1', inStageRoom: true, fitness: 'QUALIFIED', problems: ['it is in use by batch MGL260051 (INV-12)'], lastCheck: null },
+            { code: 'PRESS-01', name: 'Rotary press', areaCode: 'COMP-2', inStageRoom: false, fitness: 'QUALIFIED', problems: [], lastCheck: null },
+          ],
+        },
+      ],
+      uses: [use],
+    });
+    const ui = render(view, () => current, {});
+    const unitCard = await screen.findByTestId('plant-unit-PRESS');
+    expect(within(unitCard).getByTestId('unit-note-PRESS').textContent).toBe(note);
+    expect(within(unitCard).getByRole('radio', { name: 'PRESS-01 Rotary press (COMP-2, another room)' })).toBeTruthy();
+    expect(within(unitCard).getByRole('radio', { name: 'PRESS-02 Rotary press (COMP-1): cannot be used now' })).toBeTruthy();
+    await userEvent.click(within(unitCard).getByRole('radio', { name: 'PRESS-02 Rotary press (COMP-1): cannot be used now' }));
+    expect(within(unitCard).getByTestId('unit-problems-PRESS-02').textContent).toContain('in use by batch MGL260051');
+    expect(within(screen.getByTestId('use-PRESS-01')).getByRole('button', { name: 'Record PRESS-01 for PRESS in this step' })).toBeTruthy();
+    // The raw form of the entry: the use is picked from the batch's open uses; no identifier is typed.
+    await userEvent.click(screen.getByRole('button', { name: 'Record: Equipment use' }));
+    const formCard = await screen.findByTestId('block-form-EQUIPMENT_USE');
+    expect(within(formCard).queryByRole('textbox', { name: /Use id/ })).toBeNull();
+    await userEvent.type(within(formCard).getByRole('textbox', { name: /Equipment ref/ }), 'PRESS');
+    await userEvent.click(await within(formCard).findByRole('radio', { name: 'PRESS-01, in use since 20-OCT-2026 09:00 until 20-OCT-2026 21:00' }));
+    await userEvent.click(within(formCard).getByRole('button', { name: 'Save: Equipment use' }));
+    await waitFor(() => expect(ui.commands()).toHaveLength(1));
+    expect(entryOf(ui)).toEqual({ kind: 'BLOCK_ENTRY', entryKind: 'EQUIPMENT_USE', data: { equipmentRef: 'PRESS', equipmentCode: 'PRESS-01', useId: USE_PRESS } });
   });
 });
 

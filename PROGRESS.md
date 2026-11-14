@@ -44,6 +44,14 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 ## Where things stand
 
+**Demo fix: an equipment status step that checks no unit (r13 bug 1, 13 November 2026; branch fix-validator-stage-equipment).**
+A stage added with the designer binds rooms but no equipment, and its G-09@2 step checked nothing; the validator passed it
+and on the floor the step could never be signed (G09-INCOMPLETE, EBMR-EXE-210). New validator rule
+GMP-EQUIPMENT-STATUS-UNITS (validator 1.4.0; PR-23, PR-03) refuses a G-09 step from version 2 that checks no unit, naming
+the stage and what to add (the stage's equipment, then "checks its status" on the step; both already on screen). G-09@1
+(sandbox, any unit) is unchanged. Open: masters already approved with this shape stay stuck (revising them is r13 bug 2);
+the packaging skeleton from a formula now shows this error until the author binds the line's units.
+
 **Injectables I-5 (session 13, 12 November 2026).** #236 merged:
 - INJ-AVI: automated visual inspection; the counts are typed from the machine report and CHECKED.
 - INJ-AVI-CHALLENGE-EU: the Annex 1 8.32 challenge, EU only.
@@ -103,6 +111,17 @@ finished lot of it is refused. The master-version market authorisation stays (le
     trace found. Main is merged in, and the library-bilayer group sits beside the injectables groups.
   - Local container: apt mirrors may answer 503. `runpod-setup.sh` works with `apt-get` stubbed out; PostgreSQL stops
     when the container restarts (`pg_ctlcluster 16 main start`, plus ci, ci2, ci3 and golden).
+- MGL-SR-BL retest of 13 November, bugs 5 and 6 (branch fix-unit-choice-and-planning):
+  - Bug 5: a status step (G-09@2) offered only the stage room's units, so a usable unit of the class in another room was
+    never offered. No control or database rule ties a unit to the stage's room. Default taken: the stage room's units
+    come first. When none of them can be used now, usable units of the class in other rooms are offered with their room
+    and a note says why. When no unit can be used anywhere, every unit is listed with the plant's reason and what to do.
+    A unit with an open use of the batch is always offered. Raw EQUIPMENT_USE/PRESS_SETUP forms pick an open use.
+  - Bug 6: recipe-core 1921 makes the planning read list every matching master in `matches`. When more than one
+    matches, `match` is null and `noMatch` names them; the planning screen asks the planner to choose. Owner, 13
+    November: a twin family is refused at authorisation (recipe-core 1923, EBMR-RCP-438: another family of the same
+    product with an active authorisation for the same market, site, line and batch quantity); the planner's choice stays
+    for twins already in a database and on different lines. Owner: a unit of another room may be used (no guard).
 - Hosted demo re-set-up for area_status v2: no code (owner chose the easy way; the state engine, kernel 1110, never
   changes an aggregate's machine version, so areas move to v2 by running the demo set-up again).
 
