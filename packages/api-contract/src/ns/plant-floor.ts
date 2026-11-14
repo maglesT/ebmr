@@ -38,6 +38,12 @@ export const PlantEntryAct = z.discriminatedUnion('act', [
 ]);
 export type PlantEntryAct = z.infer<typeof PlantEntryAct>;
 const Reference = z.string().trim().min(1).max(200);
+/**
+ * Owner decision of 13 November 2026 (demo report bug 4): why a use is ended. The Plant screen always sends one; the step
+ * screen's end of a running batch's use sends none; the database requires one once the batch has finished (recipe-core
+ * 1926, EBMR-PLANT-065).
+ */
+const EndReason = z.string().trim().min(1).max(500);
 const Counts = z.strictObject({ upper: z.string().regex(/^[0-9]{1,4}$/), lower: z.string().regex(/^[0-9]{1,4}$/), dies: z.string().regex(/^[0-9]{1,4}$/) });
 
 export const OccupancyView = z.strictObject({
@@ -47,8 +53,8 @@ export const OccupancyView = z.strictObject({
   stage: z.string(),
   startedBy: PersonRef,
   startedAt: Instant,
-  /** Ended, by whom and when; null while the batch uses the area. */
-  ended: z.strictObject({ by: PersonRef, at: Instant }).nullable(),
+  /** Ended, by whom and when, with the reason the person gave (recipe-core 1926); null while the batch uses the area. */
+  ended: z.strictObject({ by: PersonRef, at: Instant, reason: z.string().optional() }).nullable(),
 });
 export type OccupancyView = z.infer<typeof OccupancyView>;
 
@@ -61,7 +67,8 @@ export const PlantUseView = z.strictObject({
   startedBy: PersonRef,
   startedAt: Instant,
   plannedEnd: Instant,
-  ended: z.strictObject({ by: PersonRef, at: Instant }).nullable(),
+  /** Ended, by whom and when, with the reason the person gave (recipe-core 1926). */
+  ended: z.strictObject({ by: PersonRef, at: Instant, reason: z.string().optional() }).nullable(),
 });
 export type PlantUseView = z.infer<typeof PlantUseView>;
 
@@ -181,7 +188,25 @@ export const plantFloor = {
     { areaCode: Code, batchId: Uuid, stage: z.string().trim().min(1).max(64), order: z.string().trim().min(1).max(64).optional(), artworkSet: z.string().trim().min(1).max(64).optional() },
     OccupancyView,
   ),
-  endAreaOccupancy: post('plant.endAreaOccupancy', '/api/plant/occupancies/:occupancyId/end', 'End the use of a room or line by a batch (STEP.EXECUTE); the area is released when no use remains', { occupancyId: Uuid }, {}, OccupancyView),
+  /** Owner decision of 13 November 2026 (demo report bug 4): every room's or line's use not ended, of any batch, for the Plant screen. */
+  openAreaOccupancies: defineRoute({
+    id: 'plant.openAreaOccupancies',
+    method: 'GET',
+    path: '/api/plant/occupancies',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The rooms and lines in use now: every occupancy not ended, of any batch, oldest first',
+    response: z.strictObject({ occupancies: z.array(OccupancyView.extend({ mine: z.boolean() })) }),
+  }),
+  endAreaOccupancy: post(
+    'plant.endAreaOccupancy',
+    '/api/plant/occupancies/:occupancyId/end',
+    'End the use of a room or line by a batch, with the reason (required once the batch has finished) (STEP.EXECUTE; DI-22); the area is released when no use remains',
+    { occupancyId: Uuid },
+    { reason: EndReason.optional() },
+    OccupancyView,
+  ),
   recordInstrumentCheck: post(
     'plant.recordInstrumentCheck',
     '/api/plant/instruments/:code/checks',
@@ -206,7 +231,31 @@ export const plantFloor = {
     { batchId: Uuid, plannedHours: PlannedHours },
     PlantUseView,
   ),
-  endEquipmentUse: post('plant.endEquipmentUse', '/api/plant/equipment-uses/:useId/end', 'End the use of a process unit: it becomes dirty and its dirty-hold clock starts (STEP.EXECUTE)', { useId: Uuid }, {}, PlantUseView),
+  /**
+   * Demo report of 13 November 2026 (bug 4): a unit's use started on the Plant screen for a batch whose master binds no
+   * step to the unit had no screen to end it, so the unit stayed in use and every later batch was refused
+   * (EBMR-PLANT-061). This lists every process unit's use not ended, of any batch whatever its state (a finished,
+   * stuck or abandoned batch included), oldest first, so the Plant screen offers each one's end (endEquipmentUse: the
+   * same act, rights and audit as on the step screen). `mine`: the viewer started it.
+   */
+  openEquipmentUses: defineRoute({
+    id: 'plant.openEquipmentUses',
+    method: 'GET',
+    path: '/api/plant/equipment-uses',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The process units in use now: every equipment use not ended, of any batch, oldest first',
+    response: z.strictObject({ uses: z.array(PlantUseView.extend({ mine: z.boolean() })) }),
+  }),
+  endEquipmentUse: post(
+    'plant.endEquipmentUse',
+    '/api/plant/equipment-uses/:useId/end',
+    'End the use of a process unit, with the reason (required once the batch has finished): it becomes dirty and its dirty-hold clock starts (STEP.EXECUTE; DI-22)',
+    { useId: Uuid },
+    { reason: EndReason.optional() },
+    PlantUseView,
+  ),
   chargeContainer: post(
     'plant.chargeContainer',
     '/api/plant/charges',

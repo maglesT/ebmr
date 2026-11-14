@@ -376,6 +376,32 @@ export const designer = {
     body: z.strictObject({ reason: Reason }),
     response: VersionView,
   }),
+  deriveVersion: defineRoute({
+    id: 'designer.deriveVersion',
+    method: 'POST',
+    path: '/api/mbr/versions/:versionId/derive',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    summary:
+      "Start the next version of an APPROVED or RETIRED master as a new DRAFT derived from it, with the author's own reason (PR-06; recipe.derive_version); the approved version stays in force",
+    params: z.strictObject({ versionId: Uuid }),
+    body: z.strictObject({ reason: Reason }),
+    response: VersionView,
+  }),
+  returnToDraft: defineRoute({
+    id: 'designer.returnToDraft',
+    method: 'POST',
+    path: '/api/mbr/versions/:versionId/return-to-draft',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    summary:
+      "Return a version IN_VERIFICATION, SUBMITTED or CHECKED to DRAFT with the person's own reason (recipe.return_to_draft): a new draft cycle supersedes every signature (DI-22, DI-37)",
+    params: z.strictObject({ versionId: Uuid }),
+    body: z.strictObject({ reason: Reason }),
+    response: VersionView,
+  }),
   testPackage: defineRoute({
     id: 'designer.testPackage',
     method: 'POST',

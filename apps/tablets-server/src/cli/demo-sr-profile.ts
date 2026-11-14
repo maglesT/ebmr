@@ -26,7 +26,7 @@ import { GBT02_BATCH_KG, GBT02_BOM, GBT02_LOTS } from '../features/execution/see
 import { DEMO_LICENCE_HOLDER } from '../features/india/index.ts';
 import { DemoApp, DemoBatch, value, type DemoBrowser } from './demo-app.ts';
 import { BOTTLE_LINE, BOTTLE_SIZE_ID, BOTTLES, bottleMasterContent, bottlesKg, dcMasterContent, GBT02_SIZE_ID } from './golden-gb-t-02.ts';
-import { approve, BALANCES, bottleOrder, KIOSKS, net, reviewRecord, type FloorKit } from './release-path.ts';
+import { approve, BALANCES, bottleOrder, KIOSKS, net, reviewRecord, FINISHED_REASON, type FloorKit } from './release-path.ts';
 
 type Json = Record<string, unknown>;
 
@@ -183,9 +183,10 @@ async function run(app: DemoApp, opts: SrProfileOptions, processingOrder: string
     return app.dbAs<string>(who, 'select plant.record_instrument_use($1, $2::uuid, clock_timestamp() + make_interval(hours => 12)) as r', [code, b.batchId]);
   };
   const unitUse = (who: DemoBrowser, code: string, b: DemoBatch) => app.dbAs<string>(who, 'select plant.start_equipment_use($1, $2, clock_timestamp() + make_interval(hours => 12)) as r', [code, b.batchId]);
-  const end = async (who: DemoBrowser, uses: string[], occupancies: string[]): Promise<void> => {
-    for (const u of uses) await app.dbAs(who, 'select plant.end_equipment_use($1) as r', [u]);
-    for (const o of occupancies) await app.dbAs(who, 'select plant.end_area_occupancy($1) as r', [o]);
+  // recipe-core 1926 (owner decision of 13 November 2026): the use of a finished batch ends only with the reason.
+  const end = async (who: DemoBrowser, uses: string[], occupancies: string[], reason: string | null = null): Promise<void> => {
+    for (const u of uses) await app.dbAs(who, 'select plant.end_equipment_use($1, $2) as r', [u, reason]);
+    for (const o of occupancies) await app.dbAs(who, 'select plant.end_area_occupancy($1, $2) as r', [o, reason]);
   };
   const kit: FloorKit = { clean, floor, clearAndOccupy, instrumentUse, unitUse, end };
 
@@ -305,7 +306,7 @@ async function run(app: DemoApp, opts: SrProfileOptions, processingOrder: string
   await batch.step('p-comp-yield@', f.op1, f.ver, [data('p-comp-yield@', 'compGood', '19.500', 'kg'), data('p-comp-yield@', 'compResidue', '0.150', 'kg'), data('p-comp-yield@', 'compRejects', '0.200', 'kg')]);
   await batch.signed(f.qa, { type: 'DISPOSITION_HOLD_POINT', stepKey: 'H-PACK@', disposition: 'APPROVED', comment: 'Bulk released for packing' });
   await batch.closeStage('S-COMP@', f.qa, f.sup);
-  await end(f.op1, [press], [occ]);
+  await end(f.op1, [press], [occ], FINISHED_REASON);
 
   // Two bottle orders, one small container each; their finished lots posted in quarantine.
   const orders: DemoBatch[] = [];

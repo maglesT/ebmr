@@ -7,7 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { seedAdministration } from '../../../kernel/test/identity/seed.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
 import * as plant from '../../src/plant/index.ts';
-import { dbIn, DAY, PlantWorld, seedPlantCast, sleep, tag } from './support.ts';
+import { dbIn, DAY, finishBatch, PlantWorld, seedPlantCast, sleep, tag } from './support.ts';
 import { asTimeTraveller, run } from '../../../kernel/test/esig/helpers.ts';
 import { withSecondRole } from '../lifecycle/support.ts';
 
@@ -42,6 +42,59 @@ describe('cleanliness and the use guard of PROCESS equipment', () => {
     });
     expect(await w.state('equipment', press.id)).toBe('DIRTY');
     await expect(w.startUse(press.code, 'B-2', product)).rejects.toThrow(/DIRTY: to be cleaned/);
+  });
+
+  // Demo report 13 November 2026 (bug 4): a use no step of its batch names is ended from the Plant screen by whoever is on
+  // the floor, not only by the person who started it; the right stays STEP.EXECUTE, whatever the batch's state.
+  it('[INV-12][IN-25][DI-17] an open use is ended by any person holding STEP.EXECUTE for its product, not only the one who started it; a person without it is refused and the use stays open; ended, the unit is cleaned and used again', async () => {
+    const press = await w.press();
+    const product = await w.product();
+    await w.clean('EQUIPMENT', press.code, 'MAJOR');
+    const use = await w.startUse(press.code, 'B-1', product);
+    await expect(w.run(w.cast.verifier, (c) => plant.endEquipmentUse(c, use))).rejects.toThrow(/EBMR-IAM-040/);
+    expect(await w.state('equipment', press.id)).toBe('IN_PRODUCT');
+    await expect(w.startUse(press.code, 'B-2', product)).rejects.toThrow(/EBMR-PLANT-061/);
+    await w.run(w.cast.operator2, (c) => plant.endEquipmentUse(c, use));
+    const { rows } = await db.admin.query<{ ended_by: string }>('select ended_by::text from plant.equipment_use_end where use_id = $1', [use]);
+    expect(rows).toEqual([{ ended_by: w.cast.operator2.personId }]);
+    await expect(w.run(w.cast.operator, (c) => plant.endEquipmentUse(c, use))).rejects.toThrow(/EBMR-PLANT-063/);
+    await w.clean('EQUIPMENT', press.code, 'MAJOR');
+    expect(await w.startUse(press.code, 'B-2', product)).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  // Owner decision of 13 November 2026 on demo report bug 4: ending a use records the person's reason (recipe-core 1926).
+  it('[DI-22][IN-25][INV-12] a use ended with a reason keeps it on its end row and in the audit trail; a blank reason is refused; the use of a finished or aborted batch is ended only with a reason; the application cannot write the reason around the command', async () => {
+    const press = await w.press();
+    const product = await w.product();
+    await w.clean('EQUIPMENT', press.code, 'MAJOR');
+    const use = await w.startUse(press.code, 'B-R1', product);
+    const endWith = (who: typeof w.cast.operator, reason: string | null) => w.run(who, (c) => c.query('select plant.end_equipment_use($1, $2) as r', [use, reason]));
+    await expect(endWith(w.cast.operator2, '   ')).rejects.toThrow(/EBMR-PLANT-065/);
+    // The batch is finished (test setup: the execution state as the engine leaves it at EXECUTION_COMPLETE).
+    await finishBatch(db, (await w.batch('B-R1', product)).id, 'EXECUTION_COMPLETE');
+    await expect(w.run(w.cast.operator2, (c) => plant.endEquipmentUse(c, use))).rejects.toThrow(/batch TEST-B-R1-\w+ is EXECUTION_COMPLETE.*EBMR-PLANT-065/);
+    expect(await w.state('equipment', press.id)).toBe('IN_PRODUCT');
+    await endWith(w.cast.operator2, 'Batch finished; the use was left open on the Plant screen');
+    const { rows } = await db.admin.query<{ reason: string; ended_by: string }>('select reason, ended_by::text from plant.equipment_use_end where use_id = $1', [use]);
+    expect(rows).toEqual([{ reason: 'Batch finished; the use was left open on the Plant screen', ended_by: w.cast.operator2.personId }]);
+    const audit = await db.admin.query<{ message: string; reason: string; person: string }>(
+      `select payload -> 'body' ->> 'message' as message, payload -> 'body' -> 'details' ->> 'reason' as reason, payload -> 'actor' ->> 'person_id' as person
+         from kernel.audit_event where action = 'BUSINESS' and chain_key = $1 and payload -> 'body' -> 'details' ->> 'use_id' = $2`,
+      [`plant_equipment:${press.id}`, use],
+    );
+    expect(audit.rows).toHaveLength(1);
+    expect(audit.rows[0]).toMatchObject({ reason: 'Batch finished; the use was left open on the Plant screen', person: w.cast.operator2.personId });
+    expect(audit.rows[0]?.message).toContain(press.code);
+    // The reason is written only by the command: the application role cannot insert or change an end row.
+    await expect(w.run(w.cast.operator, (c) => c.query("update plant.equipment_use_end set reason = 'other' where use_id = $1", [use]))).rejects.toThrow(/permission denied|EBMR-AUDIT-004/);
+    // A use of a batch still running is ended without a reason, as the step screen does.
+    await w.clean('EQUIPMENT', press.code, 'MAJOR');
+    const next = await w.startUse(press.code, 'B-R2', product);
+    await w.run(w.cast.operator, (c) => plant.endEquipmentUse(c, next));
+    await finishBatch(db, (await w.batch('B-R3', product)).id, 'ABORTED');
+    await w.clean('EQUIPMENT', press.code, 'MAJOR');
+    const aborted = await w.startUse(press.code, 'B-R3', product);
+    await expect(w.run(w.cast.operator, (c) => plant.endEquipmentUse(c, aborted))).rejects.toThrow(/is ABORTED.*EBMR-PLANT-065/);
   });
 
   it('[INV-12] overlapping occupancies of one PROCESS unit are refused by the database even for owner-level writes: the use chain admits one open use, and the exclusion constraint refuses overlapping closed intervals with every trigger off', async () => {

@@ -45,6 +45,30 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 ## Where things stand
 
+**Demo report r13 bugs 2 and 3 (13-14 November 2026, branch fix-revise-approved-master).** "Start a new version…"
+(designer.deriveVersion, recipe.derive_version) derives a DRAFT from an APPROVED or RETIRED master; "Return to draft…"
+(designer.returnToDraft) takes a version out of verification with a reason, superseding every signature; golden cases are
+edited in a DRAFT. One version in preparation per family: server 409 DESIGNER_OPEN_VERSION and database rule (owner,
+13 November; recipe-core 1925, EBMR-RCP-436; new versions only, no row changed).
+
+**Fix: a unit or room in use that no step names can be ended, with a reason (demo report 13 November 2026, bug 4; branch fix-end-equipment-use).**
+A unit's use started on the Plant screen for a batch whose master binds no step to the unit had no screen to end it, so
+the unit stayed in use and every later batch was refused (EBMR-PLANT-061). The stage sign-off offered "End the use" to
+the supervisor, whom the database refuses (STEP.EXECUTE is the operator's).
+- New read `plant.openEquipmentUses` (GET /api/plant/equipment-uses): every process unit's use not ended, of any batch in
+  any state. The Plant screen's "Units in use" lists them and offers the operator the existing end act
+  (`plant.endEquipmentUse`: same right, fresh badge tap, audit row). No database change: `plant.end_equipment_use` never
+  read the batch's state, so a finished or abandoned batch's use was always endable there.
+- The stage sign-off offers "End the use" only to a role holding STEP.EXECUTE (web `STEP_EXECUTE` group); others are told
+  who ends it and where. The presenter-floor E2E now checks that instead of the supervisor's refusal.
+- Owner decisions (13 November): (1) the shift supervisor gets no right to end a use (kept hidden); (2) ending a use
+  records a reason; (3) rooms get the same Plant-screen list and end. Done in recipe-core 1926:
+  `plant.end_equipment_use(use, reason)` and `plant.end_area_occupancy(occupancy, reason)` store the reason on the
+  insert-only end row and write a business audit entry naming unit or room, batch and reason. A blank reason is refused
+  (EBMR-PLANT-065), and a use whose batch is EXECUTION_COMPLETE, ABORTED or CANCELLED is ended only with a reason. The
+  one-argument functions (step screen, demo loaders) still end a running batch's use without one. New read
+  `plant.openAreaOccupancies`; both end routes take an optional `reason`, and the Plant screen always asks for it.
+
 **Demo fix: an equipment status step that checks no unit (r13 bug 1, 13 November 2026; branch fix-validator-stage-equipment).**
 A stage added with the designer binds rooms but no equipment, and its G-09@2 step checked nothing; the validator passed it
 and on the floor the step could never be signed (G09-INCOMPLETE, EBMR-EXE-210). New validator rule
@@ -113,12 +137,14 @@ D-0 to D-4, R-flow and R-rest; the capsules edition; the injectables plan and I-
     unique-violation error (review pass residual; not needed now).
   - Owner question pending: the Tablets v1.0.0 tag.
 - **Demo:** fresh install after the I-6 merges (lead ruling on #245).
-- **Next (I-6):** (1) the review-pass PR (`docs/build-plan/injectables/review-pass.md`): the [DI-20] 64-bit endpoint
-  codes, the renderer watchdog, and the Demotab 12 and reserve-lot races. (2) The kernel content-extension point
-  (`esig.content_extension`) so the plant module adds the APS lines to a change record's signed content without
-  changing the provider row (lead ruling on the DI-48 drill, 14 November 2026). (3) The expected-answer database
-  re-check PR, on the lead's conditions: 1862's body carried forward with a diff showing nothing removed, an
-  engine/database parity test on every seeded expected answer including hidden fields, and SQL mutation coverage.
+- **Next (I-6):** the review pass merged (#258). (1) The kernel content-extension point (this PR: kernel 1407,
+  `platform.content_extension` with `esig.register_content_extension` and `esig.extend_content`; tablets 1914 registers
+  the plant APS-lines extension; the `config_change_record` provider row unchanged; lead ruling on the DI-48 drill,
+  14 November 2026). (2) The expected-answer database re-check PR (recipe-core 1924, built on
+  `inj/i6-expected-answer-db`), on the lead's conditions: 1862's body carried forward with a diff showing nothing
+  removed, an engine/database parity test on every seeded expected answer including hidden fields, and SQL mutation
+  coverage. (3) Its follow-up: the database refuses a value in a field its condition hides (LIB-ENTRY-HIDDEN), with a
+  parity test over every seeded condition, a bypass test and a mutation group.
 
 - Residual of SITE-995 (lead, 11 November): an intermediate lot cannot be retested to a new date (its material code is
   the product code, which has no ERP material retest interval).
