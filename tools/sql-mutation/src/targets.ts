@@ -1820,4 +1820,12 @@ export const TARGETS: Target[] = [
     tests: [k('esig/content-extension.test.ts'), s('config/aps-required.test.ts')],
     threshold: 90,
   },
+  // ADR 0023 PR 2: the functions packages/rules generates (recipe-core 1930): the SQL primitives and the library rules,
+  // killed by the conformance suite, which runs them against the TypeScript interpreter. No guard calls them yet.
+  {
+    group: 'rules-generated',
+    functions: ['recipe.rules_key', 'recipe.rules_member', 'recipe.rules_decimal', 'recipe.rule_library_field_shown', 'recipe.rule_library_unexpected_answer'],
+    tests: ['packages/rules/test/conformance.test.ts'],
+    threshold: 90,
+  },
 ];

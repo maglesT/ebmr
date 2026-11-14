@@ -1,8 +1,7 @@
 # eBMR: current state
 
 Keep this page short (under 150 lines): the current state, the rules in force and the next steps. Append history to
-`docs/progress/history.md` (search it; do not read it whole). Last updated: 14 November 2026 (session 17, injectables
-edition exit and review pass).
+`docs/progress/history.md` (search it; do not read it whole). Last updated: 14 November 2026 (session 20, ADR 0023 PR 2).
 
 ## What this is
 
@@ -44,6 +43,16 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
   maglesT/deep-learning-for-earth-observation for this project.
 
 ## Where things stand
+
+**ADR 0023 PR 2: the rule SQL generator (14 November 2026, session 20; branch build-speed/rules-generator, stacked on #267).**
+`pnpm rules:generate` writes `packages/rules` definitions as plain SQL (recipe-core 1930: the primitives
+`recipe.rules_key`, `rules_member`, `rules_decimal`, and `recipe.rule_library_field_shown`,
+`recipe.rule_library_unexpected_answer`), deterministic, each block headed with its source, sha256 and generator version.
+`rules:check` is in the static checks. The conformance suite (`packages/rules/test/conformance.test.ts`) runs named
+cases, a fixed-seed corpus of 2,500 trees and the two rules through the interpreter and PostgreSQL 16: zero
+differences. Stryker on the package: 100 %, no survivor (CI job `rules-mutation`); SQL mutation group `rules-generated`
+100 % with two recorded equivalents. No guard calls the generated functions yet; the family switch-overs (6.1 after
+recipe-core 1928, then 6.2) come next, each with the differential harness.
 
 **Demo report r13 bugs 2 and 3 (13-14 November 2026, branch fix-revise-approved-master).** "Start a new version…"
 (designer.deriveVersion, recipe.derive_version) derives a DRAFT from an APPROVED or RETIRED master; "Return to draft…"
