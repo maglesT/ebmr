@@ -11,6 +11,7 @@ import type { FullConfig } from '@playwright/test';
 import { buildWeb, freeStackPorts, REPO_ROOT, setupStack, startStack, WEB_DIST } from '@ebmr/demo';
 import { dropDatabase } from '@ebmr/test-kit';
 import type { E2eState } from './fixtures/state.ts';
+import { RECORDS_GROUPS } from './groups.ts';
 
 export default async function globalSetup(config: FullConfig): Promise<() => Promise<void>> {
   const hex = randomBytes(5).toString('hex');
@@ -23,12 +24,17 @@ export default async function globalSetup(config: FullConfig): Promise<() => Pro
   const echo = process.env['EBMR_E2E_ECHO'] === '1';
   // The review specs (Phase 4 slice 1c) review the DEMO-ONLY batch record the set-up builds (gmp-review-batch.json); the
   // packaging-order spec (Phase 4 slice 2c) plans and fills the packaging order of its second batch.
-  // Slice 7p (D-7p-8): the SR profile demo product only where sr-profile.spec.ts runs (no group, or the 'rest' group).
+  // Slice 7p (D-7p-8): the SR profile demo product only where sr-profile.spec.ts runs (no group, or now 'records').
   // Slice 7s (D-7s-1): P3 rabeprazole ready for the presenter only where p3-demo.spec.ts runs (no group, or 'p3-demo').
+  // Session 19 (E2E speed): the review batch and the SR profile product only for the group whose specs use them
+  // ('records', groups.ts) or a run of every spec. The packaging option stays on for every group: its release path
+  // (tablets-server cli/release-path.ts) also builds the GMP demo plant's units and classes, which the library and
+  // route groups name (found on #264's first run: the press class was missing in library-rabe-ec).
   const group = process.env['EBMR_E2E_GROUP'];
+  const records = group === undefined || RECORDS_GROUPS.includes(group);
   await setupStack({
-    databases, keysDir, exchangeDir, personaSets: workers + 1, echo, gmpReviewBatch: true, gmpPackaging: true,
-    gmpSrProfile: group === undefined || group === 'rest', gmpP3Demo: group === undefined || group === 'p3-demo',
+    databases, keysDir, exchangeDir, personaSets: workers + 1, echo, gmpReviewBatch: records, gmpPackaging: true,
+    gmpSrProfile: records, gmpP3Demo: group === undefined || group === 'p3-demo',
   });
   await buildWeb(echo);
   const ports = { ...(await freeStackPorts()) };

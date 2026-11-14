@@ -15,6 +15,7 @@ import { load } from '../phase7/own-product-flow.ts';
 import {
   balanceOf, baseOf, cleanForBatch, clearance, clearanceStep, closeStage, closeTyped, explained, floorKiosk, holdPoint, openContainer, releasePlant, statusStep, step, unitOf, type Floor,
 } from '../phase7/own-product-floor.ts';
+import { waitFor } from '../../fixtures/waits.ts';
 export interface OwnMaterial {
   code: string;
   name: string;
@@ -224,14 +225,14 @@ export async function skeletonRun(f: Floor, p: SkeletonPlan): Promise<{ containe
   await step(f, blend, 'p-blend@');
   await startStep(blend, op2);
   await saveBlock(blend, 'BLEND_START', op2);
-  await blend.waitForTimeout(65_000);
+  await waitFor(blend, 65_000, 'process-timer');
   await saveBlock(blend, 'BLEND_END', op2);
   await saveBlock(blend, 'LUBRICANT_ADDED', op2, async (form) => {
     const q = form.getByTestId('block-object-quantity');
     await q.getByRole('textbox', { name: 'Value' }).fill(p.lubricantKg);
     await q.getByRole('textbox', { name: 'Unit' }).fill('kg');
   });
-  await blend.waitForTimeout(35_000);
+  await waitFor(blend, 35_000, 'process-timer');
   await saveBlock(blend, 'LUBRICATION_END', op2);
   await performAndCheck(blend, op2, verifier, op2);
   await completed(blend);
