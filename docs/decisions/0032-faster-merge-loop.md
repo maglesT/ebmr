@@ -19,7 +19,12 @@
    - the Vitest tests of every package the change touches, of every package that depends on one of them, and of every
      package whose files name a changed path (`tools/ci/src/select.ts`). A SQL change therefore runs every database test
      of its package and of its dependents;
-   - the SQL mutation harness on the guard functions a changed migration defines, at their group's threshold;
+   - the SQL mutation harness on the guard functions a changed migration defines. It fails on a **new surviving
+     mutant**, not on a group's threshold (the lead, 14 November 2026: a threshold such as governance-change-control's
+     72.7 % would block every pull request that touches it). A survivor at the head is old debt only when the same
+     mutation (function, operator, original and replacement) survives, or is reviewed equivalent, at the merge base.
+     Every survivor of a function new in the pull request is new. So new code may add no survivor, which is stricter
+     than decision 0008, and old debt does not block. Thresholds stay deployment work;
    - the golden batches whenever the tablets server's tests are selected (the engine, recipe-core, edition SQL or
      anything they depend on changed);
    - the end-to-end groups that `tools/ci/e2e-map.json` maps the changed paths to. A changed path no rule maps runs

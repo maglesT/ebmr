@@ -566,8 +566,11 @@ jobs:
           if-no-files-found: ignore
 
   # Decision 0032: a pull request that changes a migration runs the SQL mutation harness on the guard functions it
-  # defines that a mutation target holds (tools/ci/src/select.ts), each in the groups that hold it, at that group's
-  # threshold. The full SQL mutation run stays mutation.yml's (weekly and by hand).
+  # defines that a mutation target holds (tools/ci/src/select.ts), each in the groups that hold it. It fails on a new
+  # surviving mutant, not on a group's threshold (thresholds stay deployment work, decision 0008): a head survivor is old
+  # debt only when the same mutation survives (or is reviewed equivalent) at the merge base, which is run only when the
+  # head has survivors, one function at a time (a function new in this pull request has no base run, so its survivors
+  # are all new). The full SQL mutation run stays mutation.yml's (weekly and by hand).
   sql-mutation:
     name: SQL mutation of the changed guards
     needs: [changes]
@@ -589,13 +592,38 @@ jobs:
       EBMR_PG_ADMIN_URL: postgres://ebmr_dev:ebmr_dev@localhost:5432/postgres
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          filter: blob:none
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm mutation:sql --functions "${{ needs.changes.outputs.sql_functions }}" --workers 2 --own-cluster --out .reports/sql-mutation/gate
+      - name: Mutants of the changed guards at the head
+        run: pnpm mutation:sql --functions "${{ needs.changes.outputs.sql_functions }}" --workers 2 --own-cluster --no-threshold --out .reports/sql-mutation/gate/head
+      - name: The same functions at the merge base, when the head has survivors
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          FUNCTIONS: ${{ needs.changes.outputs.sql_functions }}
+        run: |
+          set -euo pipefail
+          out="$GITHUB_WORKSPACE/.reports/sql-mutation/gate"
+          if ! node -e 'process.exit(require(process.argv[1]).some((r) => r.status === "SURVIVED") ? 0 : 1)' "$out/head/report.json"; then
+            echo "no survivor at the head"; exit 0
+          fi
+          git fetch --no-tags origin "$BASE"
+          mb=$(git merge-base "$BASE" HEAD)
+          git worktree add --detach "$RUNNER_TEMP/base" "$mb"
+          cd "$RUNNER_TEMP/base"
+          pnpm install --frozen-lockfile
+          for f in $(echo "$FUNCTIONS" | tr ',' ' '); do
+            # A function the base does not have (or whose base run fails) leaves no report: its survivors count as new.
+            pnpm mutation:sql --functions "$f" --workers 2 --own-cluster --no-threshold --out "$out/base/$f" || echo "::warning::no base run for $f"
+          done
+      - name: No new surviving mutant
+        run: pnpm -s exec tsx tools/sql-mutation/src/new-survivors.ts --head .reports/sql-mutation/gate/head/report.json $(for f in .reports/sql-mutation/gate/base/*/report.json; do [ -f "$f" ] && printf -- '--base %s ' "$f"; done)
       - name: Keep the mutation report
         if: always()
         uses: actions/upload-artifact@v4
