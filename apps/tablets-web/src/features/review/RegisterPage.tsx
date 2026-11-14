@@ -172,8 +172,18 @@ function ItemDetail({ batchId, batchNumber, item, onChanged }: { batchId: string
           ) : null}
         </>
       ) : null}
-      <Respond batchId={batchId} item={item} onChanged={onChanged} />
-      <Disposition batchId={batchId} batchNumber={batchNumber} item={item} onChanged={onChanged} />
+      {/* The answer and the disposition are offered once the opening has settled, never while the detail above them is
+          still to come: rendered on arrival above them, it moved the choices under the person's pointer between the
+          press and the release, and the tap was lost (E2E review, November 2026; the E2E pressed Accept and found it
+          unchecked). The register is read again before the opening settles, so nothing above moves after. */}
+      {opened.isPending ? (
+        <p data-testid="item-opening">Opening the item…</p>
+      ) : (
+        <>
+          <Respond batchId={batchId} item={item} onChanged={onChanged} />
+          <Disposition batchId={batchId} batchNumber={batchNumber} item={item} onChanged={onChanged} />
+        </>
+      )}
     </Section>
   );
 }

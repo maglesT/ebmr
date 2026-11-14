@@ -89,8 +89,9 @@ describe('a lot\'s reservations and stock-location exceptions', () => {
     const reserve = within(form).getByRole('button', { name: 'Reserve the lot' });
     expect(reserve.hasAttribute('disabled')).toBe(true);
     await userEvent.click(await within(form).findByRole('radio', { name: /^B26-0009/ }));
-    await userEvent.type(within(form).getByRole('textbox', { name: `Quantity (${base.unit})` }), '12.500');
-    await userEvent.click(reserve);
+    // The controls are offered again once the batch's potency preview has settled (they never move under a press).
+    await userEvent.type(await within(form).findByRole('textbox', { name: `Quantity (${base.unit})` }), '12.500');
+    await userEvent.click(within(form).getByRole('button', { name: 'Reserve the lot' }));
     await waitFor(() => expect(ui.posts(`/api/lots/${base.lotId}/reservations`)).toHaveLength(1));
     expect(ui.posts(`/api/lots/${base.lotId}/reservations`)[0]?.body).toEqual({ batchNumber: 'B26-0009', quantity: '12.500' });
   });

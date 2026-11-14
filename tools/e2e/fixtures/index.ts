@@ -16,7 +16,9 @@
  *  - `dcMiniPackage.get()`: a dc-mini test package exported from GMP by this worker's MBR author through the real
  *    designer API, in the sandbox exchange inbox (worker-scoped; see test-package.ts);
  *  - `withSimulator(state, work)`: the shared scale simulator, one spec at a time across workers;
- *  - CSP violations collected from every page (`cspViolations(page)`).
+ *  - CSP violations collected from every page (`cspViolations(page)`);
+ *  - every page of the office and kiosk contexts watched for a stuck renderer (`watchPages`, renderer-watchdog.ts): a
+ *    page whose renderer stops answering fails the pending action about 30 s later, not at the test timeout.
  */
 import { mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
@@ -24,6 +26,7 @@ import { AxeBuilder } from '@axe-core/playwright';
 import { test as base, expect, type Browser, type Page } from '@playwright/test';
 import { createApiClient, type ApiClient, type FetchLike } from '@ebmr/api-contract';
 import type { SeededPersona, SiteSeed } from '@ebmr/test-kit';
+import { watchPages } from './renderer-watchdog.ts';
 import { readSeeds, readState, workerPersona, type E2eState } from './state.ts';
 import { cachedPackage, exportDcMiniPackage, packageTag, type DcMiniPackages } from './test-package.ts';
 
@@ -56,6 +59,7 @@ export interface E2eWorld {
 async function newPage(browser: Browser, viewport: { width: number; height: number }, videoDir?: string): Promise<Page> {
   const context = await browser.newContext({ viewport, locale: 'en-IN', timezoneId: 'Asia/Kolkata', ...(videoDir ? { recordVideo: { dir: videoDir, size: viewport } } : {}) });
   await context.addInitScript(CSP_LISTENER);
+  watchPages(context);
   return context.newPage();
 }
 
