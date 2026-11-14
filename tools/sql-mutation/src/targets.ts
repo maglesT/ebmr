@@ -1038,6 +1038,15 @@ export const TARGETS: Target[] = [
     tests: [s('injectables/gas-filter-gate.test.ts')],
     threshold: 90,
   },
+  // ---- Injectables I-6, INV-23 (b): QA's approval of an aseptic fill is refused without its environmental monitoring
+  // during the operation and its counts after the fill (21 CFR 211.42(c)(10)(iv); editions/injectables/sql 3080; read by
+  // role, not block code). The trigger function only calls it. ----
+  {
+    group: 'inj-aseptic-em',
+    functions: ['injectables.aseptic_em_problem'],
+    tests: [s('injectables/aseptic-em-approval.test.ts')],
+    threshold: 90,
+  },
   // ---- Injectables lean item 6: a library block with the role PACK_EXAMINATION completes a packaging record (recipe-core
   // 1892; editions/injectables/sql 3020 redefines injectables.grel_pack_examination, which stays in inj-release-items). ----
   {

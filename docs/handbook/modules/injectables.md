@@ -46,6 +46,11 @@ The edition is data on the shared kernel (library blocks, formulations, masters)
   snapshot, not block codes (lead ruling on B5): the overlay is a field marked `gasOverlayApplied` holding the marked
   answer, the test a step whose block has the role `GAS_FILTER_INTEGRITY`, its result the NUMBER field marked
   `postUseIntegrity`; a firm's own blocks gate release the same way.
+- 3080: QA's approval of a master that fills aseptically (a step of the role `FILLING`, none of the role
+  `TERMINAL_STERILISATION`) is refused with EBMR-RCP-439 unless it has a step monitoring the environment during the
+  operation (`EM_IN_OPERATION`) and one after the fill entering the counts (`EM_COUNTS`), on every market (INV-23 (b); 21
+  CFR 211.42(c)(10)(iv)). The validator's rule INJ-ASEPTIC-EM refuses the same on screen. A terminally sterilised master
+  is not concerned. Read by role: INJ-FILL, INJ-TERMINAL-STERILISE, INJ-EM and INJ-EM-COUNTS carry the roles.
 
 ## Pharma context: why a second edition
 
