@@ -511,7 +511,7 @@ export const TARGETS: Target[] = [
             r('library/expected-answer-db.test.ts')],
     threshold: 90,
   },
-  // ---- Follow-up to injectables review pass item 3 (recipe-core 1925): a value in a field its condition hides -------
+  // ---- Follow-up to injectables review pass item 3 (recipe-core 1927): a value in a field its condition hides -------
   {
     group: 'library-entry-hidden',
     functions: ['recipe.library_hidden_problem', 'recipe.library_hidden_check'],

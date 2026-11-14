@@ -1,6 +1,6 @@
 /**
  * The database refuses a library entry that stores a value in a field its condition hides, as the engine does
- * (recipe-core 1925; follow-up to injectables review pass item 3, lead's ruling of 14 November 2026).
+ * (recipe-core 1927; follow-up to injectables review pass item 3, lead's ruling of 14 November 2026).
  *
  * Parity: every field of the seed catalogue that carries a condition (showWhen), other than a calculated field (1862
  * judges those through `computed`) and a timer, is recorded through the engine (the generic handler, block-version.ts)
@@ -88,7 +88,7 @@ async function problem(content: Json, old: Json, next: Json): Promise<string | n
   return rows[0]?.p ?? null;
 }
 
-describe('the database refuses a value in a field its condition hides, as the engine does (recipe-core 1925)', () => {
+describe('the database refuses a value in a field its condition hides, as the engine does (recipe-core 1927)', () => {
   it('[PR-03][PR-29] parity over every condition of the seed catalogue: with it met and not met the engine\'s row is accepted; not met, the engine refuses a value in the field (LIB-ENTRY-HIDDEN) and the database refuses the engine\'s row with that value put back, naming the field', async () => {
     // The catalogue holds 36 conditions (14 November 2026), none on a calculated field or a timer; every one is swept.
     expect(CASES.length).toBeGreaterThanOrEqual(36);

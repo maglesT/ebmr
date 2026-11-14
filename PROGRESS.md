@@ -52,7 +52,7 @@ its condition hides and a loop's YES_NO endpoint are not judged, as in the engin
 `library_limits_check` are carried forward from 1862 with nothing removed (`docs/build-plan/injectables/expected-answer-db-1862.diff`,
 and a test compares the bodies). Parity sweep (`packages/recipe-core/test/library/expected-answer-db.test.ts`) over the
 catalogue's 197 expected answers and 4 not-allowed choices, hidden fields included. One 1862 test changed: it held that an
-answer exception is not judged. Follow-up (branch inj/i6-entry-hidden-db): recipe-core 1925 refuses a value stored in a
+answer exception is not judged. Follow-up (branch inj/i6-entry-hidden-db): recipe-core 1927 refuses a value stored in a
 field its condition hides (EBMR-LIB-025, LIB-ENTRY-HIDDEN), with a parity test over every seeded condition, a bypass test
 and the SQL mutation group `library-entry-hidden` (`docs/build-plan/injectables/review-pass.md`).
 
@@ -130,7 +130,7 @@ D-0 to D-4, R-flow and R-rest; the capsules edition; the injectables plan and I-
   changing the provider row (lead ruling on the DI-48 drill, 14 November 2026). (3) The expected-answer database
   re-check PR, on the lead's conditions: 1862's body carried forward with a diff showing nothing removed, an
   engine/database parity test on every seeded expected answer including hidden fields, and SQL mutation coverage. (4) The
-  hidden-field follow-up (recipe-core 1925, LIB-ENTRY-HIDDEN), its own PR after (3).
+  hidden-field follow-up (recipe-core 1927, LIB-ENTRY-HIDDEN), its own PR after (3).
 
 - Residual of SITE-995 (lead, 11 November): an intermediate lot cannot be retested to a new date (its material code is
   the product code, which has no ERP material retest interval).

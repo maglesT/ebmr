@@ -245,7 +245,7 @@ const KDEF: Json = {
         { id: 'rel', label: 'Released', type: 'TEST_RESULT', unit: '%', replicatesSlot: 'v', perPoint: true, required: false, statistics: [{ statistic: 'MEAN', limitSlot: 'relMean' }] },
       ],
     },
-    // recipe-core 1925: a field with a condition (LIB-ENTRY-HIDDEN).
+    // recipe-core 1927: a field with a condition (LIB-ENTRY-HIDDEN).
     {
       id: 'rework',
       title: 'Rework',
@@ -928,7 +928,7 @@ describe('expected answers and allowed choices in the database (recipe-core 1924
   });
 });
 
-describe('a value in a field its condition hides is refused in the database (recipe-core 1925)', () => {
+describe('a value in a field its condition hides is refused in the database (recipe-core 1927)', () => {
   it('[PR-03][PR-29] the trigger itself refuses a library entry that stores a value in a field its condition hides (EBMR-LIB-025, LIB-ENTRY-HIDDEN), its condition answered otherwise or not at all, also as JSON null and in a changed entry; a shown field, a hidden field left empty and a row that adds or changes no entry are not refused', async () => {
     await inCommand(gmp, 'author', async (c) => {
       const t = await batchState(c, { steps: STEPS, entries: {}, exceptions: {} }, 'zzh_library_entry_hidden');

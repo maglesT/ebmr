@@ -135,7 +135,7 @@ leaves them out.
 - A parity test shows the engine and the database agree on every seeded expected answer, hidden-field cases included.
 - The SQL mutation group covers the new branch.
 
-## Item 3 follow-up: a value in a field its condition hides (recipe-core 1925)
+## Item 3 follow-up: a value in a field its condition hides (recipe-core 1927)
 
 **Gap.** The engine refuses an entry that gives a value to a field its condition (`showWhen`) hides (LIB-ENTRY-HIDDEN,
 "leave it empty"). 1924 judges answers only in fields the entry shows and 1862 refuses a hidden calculated value, but no
