@@ -43,7 +43,10 @@ was rejected. 1914 left this PR. The next PR builds a kernel extension point ins
 - the pre-1914 hash test kept, and a test that the APS lines reach the signed content;
 - the drill passing unchanged.
 
-The text below records the first build, kept on branch `inj/i6-content-extension`.
+**Built (content-extension PR):** kernel 1407 adds `platform.content_extension` (a kernel table; the drill requires
+every `esig` table to be MATCH or ADDED_ONLY, so the table sits in `platform`, lead approved),
+`esig.register_content_extension` and `esig.extend_content`; tablets 1914 registers the plant APS-lines extension. 1910
+no longer defines the kernel function's final text. The text below records the first build, kept on branch `inj/i6-content-extension`.
 
 **Finding.** Tablets 1910 replaced the kernel's provider function (kernel 1195) with a copy that reads the plant module's
 table. This gives two problems. First, the kernel's database object depends on an edition table, which is the layering
