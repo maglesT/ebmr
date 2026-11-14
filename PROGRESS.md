@@ -126,6 +126,9 @@ D-0 to D-4, R-flow and R-rest; the capsules edition; the injectables plan and I-
   GB-I-01 takes the aseptic vial to a released lot with sterility by the validated rapid method; the lot result shows
   the method the QA-approved specification fixes (IN-33).
 - **Owner residuals and questions (injectables):**
+  - INV-23 (b) built (lead ruling, 14 November): an aseptic fill (a FILLING step, no TERMINAL_STERILISATION step) needs
+    EM during the operation and the counts after it; validator INJ-ASEPTIC-EM and the database at QA approval
+    (injectables 3080, EBMR-RCP-439); GB-I-01 rebaselined with its INJ-EM step (the gap was real).
   - INV-23, INV-36, INV-44: owner residuals (the exit list supersedes outline 11's); INV-37 by ST-68, INV-45 by ST-64.
   - Decision 0031: PR-26 clause 2 (transfer-route scan) and PR-28 clause 2 (EM excursion at certification) are owner
     questions, deferred to phase 8 (register: phase 8 = an open owner question, citing a decision record).
@@ -133,7 +136,8 @@ D-0 to D-4, R-flow and R-rest; the capsules edition; the injectables plan and I-
   - B5: masters do not declare isolator/RABS, so the glove test and VHP are not required automatically for EU; EU
     radiation-sterilised product waits for Annex 12 to be extracted.
   - Upgrading an existing install needs a sterile v2 rule table and a library v2 publish: B1 and B5 edit sterile.v1 and
-    INJ-EM, INJ-FILL, INJ-COMPOUND and INJ-GAS-FILTER v1 in place (an existing database refuses the new sterile v1 with
+    INJ-EM, INJ-FILL, INJ-COMPOUND and INJ-GAS-FILTER v1 in place, and INV-23 (b) gives INJ-FILL, INJ-TERMINAL-STERILISE,
+    INJ-EM and INJ-EM-COUNTS v1 their roles FILLING, TERMINAL_STERILISATION, EM_IN_OPERATION and EM_COUNTS in place (an existing database refuses the new sterile v1 with
     EBMR-MKT-035 and keeps the old library v1).
   - Kernel: `iam.register_device` should report a duplicate device code with an `EBMR-IAM-` message, not the raw
     unique-violation error (review pass residual; not needed now).
