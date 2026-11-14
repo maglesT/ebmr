@@ -24,6 +24,15 @@ session's `Claude-Session` line.
 - **Gate selection:** on the last 12 PRs, 10 still select all 24 groups, because they touch shared code. The speed
   comes from the seed, Ubicloud and fewer runner-minutes (the account's concurrent-job limit is the queue).
 
+## Open finding on the seed (#268, replaces #265)
+
+A logical seed (`pg_dump`/`pg_restore`) changes the database incarnation (`continuity.current_incarnation()`, kernel
+0600: system identifier, WAL timeline, database and table oids). The continuity control (DI-45/INV-27) then refuses
+numbers from any numbering rule whose ceiling was reserved during set-up: rest's `[IN-53]` was refused while planning a
+GB-T-01 batch. This is correct behaviour. The restore procedure is not run in the groups, and the incarnation is not
+faked. The fix is a physical snapshot of the cluster (its data directory, plus keys and exchange), unpacked in place by
+`tools/ci/start-postgres.sh --from-seed`, on the same runner image. The lead is assigning it.
+
 ## Rulings to keep
 
 - Keep every E2E group for shared code: option (a) in decision 0032; (b), a core subset, is the owner's to choose.
