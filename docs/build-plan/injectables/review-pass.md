@@ -150,6 +150,13 @@ the same content and the same e-signature content hash (`esig.content_hash_of`) 
   elsewhere. A person's tap would be lost the same way. The answer and disposition controls now appear only once the
   item has finished opening. A component test fails without the fix and passes with it.
 
+- **The same race in the reserve-lot form (fixed).** The exit PR's run (#255, own-demotab, Demotab 6) failed on
+  "Reserve the lot": the call log says the Quantity label intercepted the press, then the click held to the test
+  timeout (the freeze above). Choosing a batch loads the potency preview (`PotencyPreview`) above the quantity and the
+  button, and its arrival pushed them down under the pointer. `LotHandling.tsx` now offers the quantity, the reserve
+  date and the button only once the chosen batch's preview has arrived (the same query, one request). A component test
+  in `test/receipt/potency.test.tsx` holds the preview's response: it fails without the fix and passes with it.
+
 ## Residuals
 
 - Browser tests: find what freezes the renderer, using the stack the watchdog attaches at the next freeze.
