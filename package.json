@@ -31,6 +31,7 @@
     "validation:oq": "tsx tools/validation/src/cli.ts oq",
     "trace": "tsx tools/register/src/cli.ts trace --results .reports/vitest.json --golden .reports/vitest-golden.json --playwright .reports/playwright.json",
     "trace:e2e": "tsx tools/register/src/cli.ts trace --results .reports/vitest.json --golden .reports/vitest-golden.json --playwright .reports/playwright.json --require-playwright --require-golden",
+    "trace:gate": "tsx tools/register/src/cli.ts trace --partial --results .reports/vitest.json --golden .reports/vitest-golden.json --playwright .reports/playwright.json",
     "register:sort-tests": "tsx tools/register/src/cli.ts sort-tests",
     "register:sync-tests": "tsx tools/register/src/cli.ts sync-tests --results .reports/vitest.json --golden .reports/vitest-golden.json --playwright .reports/playwright.json",
     "pins:check": "tsx tools/register/src/cli.ts pins",

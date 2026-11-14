@@ -50,6 +50,9 @@ describe('CI runner labels', () => {
       e2e: 4,
       'e2e-report': 'github',
       traceability: 'github',
+      // Decision 0032: a pull request's SQL mutation of its changed guards, sized as mutation.yml's groups (long).
+      'sql-mutation': 8,
+      // Decision 0032: main-green.yml's check is a separate workflow.
     });
   });
 

@@ -147,6 +147,13 @@ export interface TraceOptions {
   declared?: (file: string) => readonly DeclaredTest[] | null;
   /** The editions the gate covers (phase.yaml `editions`, decision 0010); default both. */
   editions?: readonly EditionName[];
+  /**
+   * A pull request's gate (decision 0032): the run holds only the selected tests, so a control, a listed test or a
+   * clause none of whose test files ran is not checked here; the full run on main checks it. Everything about the
+   * files that did run is checked as in a full run (failures, unknown controls, unlisted passing tests, a listed test
+   * its file did not report).
+   */
+  partial?: boolean;
 }
 
 const isE2e = (entry: string): boolean => fileOfEntry(entry).startsWith(E2E_DIR);
@@ -205,6 +212,9 @@ export function buildTrace(controls: ControlRecord[], results: TestResult[], pha
     return r.status === 'skipped' && entry !== undefined && (declared(fileOfEntry(entry)) ?? []).some((d) => d.runs === 'conditionally' && names(entry, d));
   };
   const passed = (entry: string): boolean => checked(entry) && resultsNamed(entry, byFile).some((r) => r.status === 'passed');
+  /** Partial runs only: whether any of these listed tests' files is in the run. */
+  const anyRan = (entries: readonly string[]): boolean => entries.some((e) => checked(e) && byFile.has(fileOfEntry(e)));
+  const partial = options.partial === true;
 
   for (const row of byId.values()) {
     const c = row.control;
@@ -215,7 +225,7 @@ export function buildTrace(controls: ControlRecord[], results: TestResult[], pha
     // that has not started has nothing due to prove yet; it shows DEFERRED in the matrix. One clause not deferred, or
     // deferred to a phase that has started (refused below), and it needs its passing tests again.
     const fullyDeferred = (c.clauses ?? []).length > 0 && (c.clauses ?? []).every((k) => k.deferred !== undefined && !started(k.deferred.phase) && k.deferred.reason.trim() !== '');
-    if (due && row.passing.length === 0 && !fullyDeferred) {
+    if (due && row.passing.length === 0 && !fullyDeferred && !(partial && row.failing.length === 0 && !anyRan(c.tests))) {
       errors.push(`${c.id} (target phase ${c.target_phase}) has no passing test`);
     }
     if (rejected && row.passing.length > 0) errors.push(`${c.id} is DONT_FOLLOW but tests still prove enforcement`);
@@ -225,7 +235,9 @@ export function buildTrace(controls: ControlRecord[], results: TestResult[], pha
     // allows (review F15, round 3).
     for (const entry of c.tests.filter(checked)) {
       const named = resultsNamed(entry, byFile);
-      if (named.length === 0) errors.push(`${c.id} lists a test the run did not report: "${entry}"`);
+      if (named.length === 0) {
+        if (!(partial && !byFile.has(fileOfEntry(entry)))) errors.push(`${c.id} lists a test the run did not report: "${entry}"`);
+      }
       else if (!named.some((r) => r.status === 'passed' || r.status === 'failed')) {
         if (named.some(skippedAsDeclared)) skipped.push(`${c.id}: ${entry}`);
         else errors.push(`${c.id} lists a test that did not run (${named[0]?.status ?? ''}): "${entry}"`);
@@ -257,7 +269,7 @@ export function buildTrace(controls: ControlRecord[], results: TestResult[], pha
       const deferred = k.clause.deferred;
       if (gated && deferred && started(deferred.phase)) {
         errors.push(`${c.id} clause ${i + 1} is deferred to phase ${deferred.phase}, which has started: "${k.clause.clause}"`);
-      } else if (due && k.state === 'NO_TEST') {
+      } else if (due && k.state === 'NO_TEST' && !(partial && !anyRan(k.clause.tests ?? []))) {
         const onlyE2e = (k.clause.tests ?? []).every(isE2e) && options.e2e !== true;
         errors.push(`${c.id} clause ${i + 1} has no passing test${onlyE2e ? ' (only end-to-end tests are listed, and they are not in this run)' : ''} and no deferral: "${k.clause.clause}"`);
       }
