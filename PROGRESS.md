@@ -150,7 +150,7 @@ the capsules edition; the injectables plan and I-1 to I-4; the dynamic library S
     EBMR-MKT-035 and keeps the old library v1).
   - Kernel: `iam.register_device` should report a duplicate device code with an `EBMR-IAM-` message, not the raw
     unique-violation error (review pass residual; not needed now).
-  - Owner questions pending: the Tablets v1.0.0 tag, and whether PR #251 is the owner's.
+  - Owner question pending: the Tablets v1.0.0 tag.
 - **Demo:** fresh install after the I-6 merges (lead ruling on #245).
 - **Next (I-6):** (1) the review-pass PR (`docs/build-plan/injectables/review-pass.md`): `inj/i6-review-db` (tablets
   migration 1914, the `plant.change_record_content` provider for the APS lines, and the [DI-20] 64-bit endpoint codes)
