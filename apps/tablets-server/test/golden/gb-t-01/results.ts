@@ -28,7 +28,7 @@ export interface BatchResults {
   trueCopy: { sha256: string; normalised: string };
 }
 
-async function one<T>(w: GoldenWorld, sql: string, params: unknown[]): Promise<T> {
+async function one<T>(w: Pick<GoldenWorld, 'server'>, sql: string, params: unknown[]): Promise<T> {
   const { rows } = await w.server.db.admin.query<{ r: T }>(sql, params);
   return rows[0]?.r as T;
 }
@@ -90,7 +90,7 @@ export function normalise(head: unknown, issueUs: bigint, batchNumbers: readonly
 const textOf = (v: Json): string => (typeof v['value'] === 'string' ? v['value'] : JSON.stringify(v['value'] ?? v['values'] ?? ''));
 
 /** The outputs of batch `batchId` (`batchNumbers`: every batch of the scenario, in order; `sinceUs`: its start). */
-export async function resultsOf(w: GoldenWorld, batchId: string, batchNumbers: readonly string[], sinceUs: bigint): Promise<BatchResults> {
+export async function resultsOf(w: Pick<GoldenWorld, 'server'>, batchId: string, batchNumbers: readonly string[], sinceUs: bigint): Promise<BatchResults> {
   const state = await one<Json & { status: string; header: Json & { batchNumber: string; issuedAt: { $u: string } }; steps: Record<string, Json>; stages: Record<string, Json>; exceptions: Record<string, Json>; points: Record<string, Json>; derived: Record<string, Json>; entries: Record<string, Json> }>(
     w,
     'select state as r from recipe.execution_state where batch_id = $1',

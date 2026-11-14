@@ -1,0 +1,136 @@
+{
+ "worksheet": {
+  "loads": [
+   "4900",
+   "4820"
+  ],
+  "lot": "9600",
+  "reserve": "66",
+  "results": {
+   "ENDOTOXIN": "0.10 [EU]/mL PASS APPROVED",
+   "PARTICULATE_MATTER": "850 1 PASS APPROVED",
+   "STERILITY": "0 1 PASS APPROVED"
+  }
+ },
+ "fromTheRun": {
+  "batch": {
+   "states": {
+    "batch": "EXECUTION_COMPLETE",
+    "stages": {
+     "S-EM@": "SIGNED_OFF",
+     "S-FILL@": "SIGNED_OFF",
+     "S-RELEASE@": "SIGNED_OFF"
+    },
+    "containers": {
+     "FILLED/-/01": "CLOSED",
+     "FILLED/-/02": "CLOSED"
+    },
+    "notCompleted": []
+   },
+   "consumptions": [],
+   "containers": [
+    "FILLED/- 4900",
+    "FILLED/- 4820"
+   ],
+   "exceptions": [],
+   "signatures": 11,
+   "normalisedTrueCopySha256": "e3572a874e644f100a2fc832d4d47d96b4acd365384154f770b39323a60a5df2"
+  },
+  "order": {
+   "states": {
+    "batch": "EXECUTION_COMPLETE",
+    "stages": {
+     "S-PACK@": "SIGNED_OFF"
+    },
+    "containers": {},
+    "notCompleted": []
+   },
+   "consumptions": [],
+   "containers": [],
+   "exceptions": [],
+   "signatures": 4,
+   "normalisedTrueCopySha256": "373bf042165969de86a40541349f3de7dd04e0b88a56c24aeca99177559e5778"
+  },
+  "lot": {
+   "state": "RELEASED",
+   "quantity": "9600 1",
+   "markets": [
+    "IN"
+   ],
+   "dispositions": {
+    "IN": "RELEASED",
+    "US": null,
+    "EU": null
+   },
+   "results": [
+    "ENDOTOXIN 0.10 [EU]/mL PASS APPROVED",
+    "PARTICULATE_MATTER 850 1 PASS APPROVED",
+    "STERILITY 0 1 PASS APPROVED"
+   ],
+   "samples": [
+    "RESERVE 66 1"
+   ],
+   "grel": {
+    "IN": [
+     "G1.REVIEW_1 GREEN",
+     "G1.REVIEW_2 GREEN",
+     "G2.DEVIATIONS GREEN",
+     "G2.REGISTRATION NA",
+     "G2.CHANGE_NOTIFICATION NA",
+     "G3.LIMS GREEN",
+     "G3.EXTRA_TESTING GREEN",
+     "G3.SAMPLES GREEN",
+     "G5.MATERIALS GREEN",
+     "G6.VALIDATION_BASIS GREEN",
+     "G6.POST_CHANGE NA",
+     "G6.PPQ NA",
+     "G6.LICENCE GREEN",
+     "G7.INCIDENTS GREEN",
+     "G8.MARKET_ADD NA",
+     "E.RECONCILIATION_PRINTED NA",
+     "E.RECONCILIATION_YIELD GREEN",
+     "E.PACK_EXAMINATION GREEN",
+     "E.GAS_FILTER NA",
+     "E.HELD_CONTAINERS GREEN",
+     "E.CONTAINER_RELEASE GREEN",
+     "E.RULE_SETS_VERIFIED NA",
+     "E.WHOLE_BATCH_PARENTS NA"
+    ]
+   }
+  },
+  "release": {
+   "otherMethod": {
+    "status": 422,
+    "code": "EBMR-SITE-412"
+   },
+   "ready": {
+    "state": "READY",
+    "items": {
+     "G1.REVIEW_1": "GREEN",
+     "G1.REVIEW_2": "GREEN",
+     "G2.DEVIATIONS": "GREEN",
+     "G2.REGISTRATION": "NA",
+     "G2.CHANGE_NOTIFICATION": "NA",
+     "G3.LIMS": "GREEN",
+     "G3.EXTRA_TESTING": "GREEN",
+     "G3.SAMPLES": "GREEN",
+     "G5.MATERIALS": "GREEN",
+     "G6.VALIDATION_BASIS": "GREEN",
+     "G6.POST_CHANGE": "NA",
+     "G6.PPQ": "NA",
+     "G6.LICENCE": "GREEN",
+     "G7.INCIDENTS": "GREEN",
+     "G8.MARKET_ADD": "NA",
+     "E.RECONCILIATION_PRINTED": "NA",
+     "E.RECONCILIATION_YIELD": "GREEN",
+     "E.PACK_EXAMINATION": "GREEN",
+     "E.GAS_FILTER": "NA",
+     "E.HELD_CONTAINERS": "GREEN",
+     "E.CONTAINER_RELEASE": "GREEN",
+     "E.RULE_SETS_VERIFIED": "NA",
+     "E.WHOLE_BATCH_PARENTS": "NA"
+    }
+   }
+  }
+ }
+}
