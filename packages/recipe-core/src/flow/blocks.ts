@@ -42,6 +42,14 @@ export const BLOCK_ROLES = [
   // whose record marks an overlay applied is released only with a passing result of a library block with this role
   // (ST-28; injectables 3040), so a firm's own QA-approved test block counts without software.
   'GAS_FILTER_INTEGRITY',
+  // INV-23 (b) (lead ruling, 14 November 2026; 21 CFR 211.42(c)(10)(iv)): a master with a filling step (FILLING) and no
+  // terminal sterilisation step (TERMINAL_STERILISATION) is an aseptic fill, so it monitors the environment during the
+  // operation (EM_IN_OPERATION) and enters the counts after the filling (EM_COUNTS). Read by role, never by block code,
+  // by the validator (INJ-ASEPTIC-EM) and by the database at QA approval (injectables 3080).
+  'FILLING',
+  'TERMINAL_STERILISATION',
+  'EM_IN_OPERATION',
+  'EM_COUNTS',
 ] as const;
 export type BlockRole = (typeof BLOCK_ROLES)[number];
 

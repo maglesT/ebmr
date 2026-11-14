@@ -859,8 +859,44 @@ const requiredBlocks = defineRule('MKT-REQUIRED-BLOCKS', 'A master carries the b
   return out;
 });
 
+/**
+ * INV-23 (b) (lead ruling, 14 November 2026; 21 CFR 211.42(c)(10)(iv): an aseptic processing area has a system for
+ * monitoring its environmental conditions): on every market, a master with a filling step (role FILLING) and no terminal
+ * sterilisation step (role TERMINAL_STERILISATION) fills aseptically, so it has a step that monitors the environment
+ * during the operation (role EM_IN_OPERATION) and, after the filling on every path, a step that enters the counts
+ * (role EM_COUNTS). Read by role, never by block code, so a firm's own blocks count; the database re-checks the same rule
+ * at QA approval (injectables 3080, EBMR-RCP-439). A terminally sterilised master is not refused (the clause binds
+ * aseptic processing only; Schedule M 4.8's facility monitoring is the room logbook the owner deferred).
+ */
+const asepticEm = defineRule('INJ-ASEPTIC-EM', 'An aseptic fill monitors its environment during the operation and enters the counts after it', ['INV-23'], (a) => {
+  const fills = a.phases.filter((p) => a.hasRole(p, 'FILLING'));
+  if (fills.length === 0 || a.phases.some((p) => a.hasRole(p, 'TERMINAL_STERILISATION'))) return [];
+  const out: RuleFinding[] = [];
+  const during = a.phases.filter((p) => a.hasRole(p, 'EM_IN_OPERATION'));
+  const counts = a.phases.filter((p) => a.hasRole(p, 'EM_COUNTS'));
+  // The fills that ran on every path to each task.
+  const facts = a.mustBefore([], (n) => {
+    const p = a.phaseOf(n);
+    return p !== undefined && a.hasRole(p, 'FILLING') ? [p.id] : [];
+  });
+  for (const f of fills) {
+    if (during.length === 0) {
+      out.push(error(f.id, `${label(a, f.id)} fills aseptically (the master has no terminal sterilisation step), and the master has no step that monitors the environment during the operation (a block with the role EM_IN_OPERATION) (INV-23; 21 CFR 211.42(c)(10)(iv))`));
+    }
+    const after = counts.some((c) => {
+      const t = a.taskOf(c.id);
+      return t !== undefined && facts?.get(t.id)?.has(f.id) === true;
+    });
+    if (!after) {
+      out.push(error(f.id, `${label(a, f.id)} fills aseptically, and no step after it on every path enters the environmental monitoring counts (a block with the role EM_COUNTS) (INV-23; 21 CFR 211.42(c)(10)(iv))`));
+    }
+  }
+  return out;
+});
+
 export const CONTENT_RULES: readonly Rule[] = [
   requiredBlocks,
+  asepticEm,
   header,
   plantClasses,
   typedFields,

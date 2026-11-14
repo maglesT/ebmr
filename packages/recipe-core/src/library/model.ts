@@ -295,7 +295,7 @@ export type ExternalInput =
  * `postUseIntegrity`: a batch whose record marks an overlay applied (`gasOverlayApplied`) is not released without a
  * passing result of it (ST-28, injectables 3040), whatever the blocks' codes.
  */
-export const LIBRARY_ROLES = ['INSTRUCTION', 'PARAMETER_RECORD', 'OBSERVATION', 'IPC', 'SAMPLING', 'CLEARANCE', 'EQUIPMENT_STATUS_CHECK', 'ENVIRONMENT_CHECK', 'VERIFICATION', 'YIELD_RECONCILIATION', 'SIGN_OFF', 'CALCULATION', 'PACK_EXAMINATION', 'APS_READING', 'GAS_FILTER_INTEGRITY'] as const;
+export const LIBRARY_ROLES = ['INSTRUCTION', 'PARAMETER_RECORD', 'OBSERVATION', 'IPC', 'SAMPLING', 'CLEARANCE', 'EQUIPMENT_STATUS_CHECK', 'ENVIRONMENT_CHECK', 'VERIFICATION', 'YIELD_RECONCILIATION', 'SIGN_OFF', 'CALCULATION', 'PACK_EXAMINATION', 'APS_READING', 'GAS_FILTER_INTEGRITY', 'FILLING', 'TERMINAL_STERILISATION', 'EM_IN_OPERATION', 'EM_COUNTS'] as const;
 export type LibraryRole = (typeof LIBRARY_ROLES)[number];
 
 /**

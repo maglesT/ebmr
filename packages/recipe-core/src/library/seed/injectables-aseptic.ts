@@ -488,7 +488,7 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
       title: 'Environmental monitoring during the batch (sampling and particles)',
       category: 'CONTROL',
       edition: EDITION,
-      roles: ['ENVIRONMENT_CHECK'],
+      roles: ['ENVIRONMENT_CHECK', 'EM_IN_OPERATION'],
       description: 'INJ-32. The released media lot of the plates; each viable location of the formulation\'s sampling plan (air, settle plate, contact plate, glove print) with the plates taken, and each particle location with its counts per size typed from the counter report and checked by a second person. The counts of the plates after incubation are entered in the step "Environmental monitoring: counts after incubation".',
       instructions: 'Sample each location of the plan during the operation and label the plates with the batch, the location and the time. Settle plates are exposed no longer than their limit. Type the particle counts from the counter report and attach it.',
       sections: [
@@ -630,7 +630,7 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
       title: 'Environmental monitoring: counts after incubation',
       category: 'CONTROL',
       edition: EDITION,
-      roles: ['ENVIRONMENT_CHECK'],
+      roles: ['ENVIRONMENT_CHECK', 'EM_COUNTS'],
       description: 'INJ-32. The count of each viable location of the sampling plan after incubation, judged against the site\'s alert level and the grade\'s action limit (Schedule M Table 3; for the EU market Annex 1 Table 6). A count above the action limit stops the step until a deviation is opened; the release gate waits for the step and for the deviation.',
       instructions: 'Read the plates taken during the batch at the end of their incubation. Enter each location\'s count; send any growth above the alert level for identification.',
       sections: [

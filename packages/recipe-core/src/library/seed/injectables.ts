@@ -347,6 +347,8 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
       title: 'Filling and stoppering (vials and ampoules)',
       category: 'PROCESS',
       edition: EDITION,
+      // INV-23 (b): read by role at QA approval (injectables 3080); v1 edit in place (lead ruling).
+      roles: ['PARAMETER_RECORD', 'FILLING'],
       description: 'INJ-15. The filling line in its room, the format, the closures checked at each round (the fill weights are recorded in the fill weight check), the stopper-height check for vials, the filled trays registered as containers (each later one sterilisation load or part of one), and each intervention, stoppage, glove change or alarm when it happens.',
       instructions: 'Set the line for the format. Check the closures at each round; the fill weights are recorded in the fill weight check. Register each filled tray as a container. Record each intervention, stoppage, glove change or alarm when it is over (the record keeps that time as its end) with how long it lasted; one not on the formulation\'s list is raised for QA.',
       sections: [
@@ -558,6 +560,8 @@ export const INJECTABLE_SEEDS: readonly SeedItem[] = [
       title: 'Terminal sterilisation by moist heat (per load)',
       category: 'PROCESS',
       edition: EDITION,
+      // INV-23 (b): read by role at QA approval (injectables 3080); v1 edit in place (lead ruling).
+      roles: ['PARAMETER_RECORD', 'TERMINAL_STERILISATION'],
       description: 'INJ-21. Each load is a container of the batch: every filled tray is consumed into its numbered load; each load records its cycle values typed from the printout once (checked by a second person) and the load\'s sterility samples, and registers the sterilised load.',
       instructions: 'Load to the validated pattern. For each load, read the values from its cycle printout and attach it, take the load\'s sterility samples from the coldest positions, and register the sterilised load.',
       sections: [
