@@ -129,7 +129,7 @@ D-0 to D-4, R-flow and R-rest; the capsules edition; the injectables plan and I-
   - INV-23 (b) built (lead ruling, 14 November): an aseptic fill (a FILLING step, no TERMINAL_STERILISATION step) needs
     EM during the operation and the counts after it; validator INJ-ASEPTIC-EM and the database at QA approval
     (injectables 3080, EBMR-RCP-439); GB-I-01 rebaselined with its INJ-EM step (the gap was real).
-  - INV-23 (c) built (lead rulings, 14 and 15 November; tablets 1915, recipe-core 1916, EBMR-PLANT-090 to 094): a line
+  - INV-23 (c) built (lead rulings, 14 and 15 November; tablets 1915, recipe-core 1929, EBMR-PLANT-090 to 094): a line
     fills an aseptic GMP batch only while its last passing media fill plus the firm's QA-approved interval for the line
     (no default) is not past. A lapse during the fill refuses no later entry; at the step's sign-off the server reads the
     line's validity (plant.aps_sign_off_facts, stated in the command as PerformFacts) and the engine raises
