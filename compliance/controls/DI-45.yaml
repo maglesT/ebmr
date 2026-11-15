@@ -120,6 +120,7 @@ tests:
   - "packages/kernel/test/review/f57.test.ts > F57: an approved restore event must not cover changed (not lost) anchored history > [INV-08][DI-45][DI-23] a FAILOVER event on a never-restored database does not turn a rewritten anchored event into COVERED"
   - "tools/drills/test/drills.test.ts > restore drill with its record (slice 7d) > [DI-02][IN-09][DI-45] restore a backup to an isolated test instance: chains and anchors verified, the signed restore event recorded, a batch renders completely; the exported batch restores in an isolated environment"
   - "tools/e2e/specs/operations/operations.spec.ts > [DI-45] a backup is taken from the screen with a reason and listed with its size, time and hash; a copy is offered to save @office"
+  - "tools/e2e/test/seed-snapshot.test.ts > the end-to-end seed as a physical snapshot (start-postgres.sh snapshot, start --from-seed) > [DI-45] a cluster started from the seed's snapshot is the seed job's database incarnation and goes on issuing numbers, through the same ledger, above every number reserved before the snapshot; a logical copy is another incarnation and is refused them"
 clauses:
   - clause: "Restore into an isolated environment and hash-compare records, audit trails and signatures with production."
     tests:
