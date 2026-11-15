@@ -41,6 +41,11 @@ export interface Plan {
   /** The test directories to run when unitAll is false (e.g. packages/kernel/test). */
   unitPaths: string[];
   golden: boolean;
+  /**
+   * Stryker on packages/rules (ADR 0023, decision 9; CI job rules-mutation): when every test runs or the package's tests
+   * are selected (it changed, a dependency changed, or a path its code names changed, recipe-core's migrations among them).
+   */
+  rulesMutation: boolean;
   e2eGroups: string[];
   /** Guard functions (schema.name) the change defines that a mutation target holds. */
   sqlFunctions: string[];
@@ -209,7 +214,7 @@ export function select(input: SelectInput): Plan {
 
   if (input.changed.length === 0) {
     reasons.push('no changed files could be read: everything runs');
-    return { unitAll: true, unitPaths: [], golden: true, e2eGroups: [...ALL_E2E_GROUPS], sqlFunctions: [...(input.sqlFunctions ?? [])], reasons };
+    return { unitAll: true, unitPaths: [], golden: true, rulesMutation: true, e2eGroups: [...ALL_E2E_GROUPS], sqlFunctions: [...(input.sqlFunctions ?? [])], reasons };
   }
   for (const path of input.changed) {
     const owner = input.workspaces.find((w) => under(path, w.dir));
@@ -247,14 +252,27 @@ export function select(input: SelectInput): Plan {
   const unitPaths = unitAll ? [] : [...selected].sort().filter((d) => existsSync(join(ROOT, d, 'test'))).map((d) => `${d}/test`);
   const golden = unitAll || selected.has('apps/tablets-server');
   if (golden) reasons.push('the tablets server is among the tested packages: the golden batches run');
+  const rulesMutation = unitAll || selected.has('packages/rules');
+  if (rulesMutation) reasons.push('packages/rules is among the tested packages: Stryker runs on it (rules-mutation)');
   const e2eGroups = e2eAll ? [...ALL_E2E_GROUPS] : ALL_E2E_GROUPS.filter((g) => e2e.has(g));
-  return { unitAll, unitPaths, golden, e2eGroups, sqlFunctions: [...(input.sqlFunctions ?? [])], reasons };
+  return { unitAll, unitPaths, golden, rulesMutation, e2eGroups, sqlFunctions: [...(input.sqlFunctions ?? [])], reasons };
 }
 
-/** The files a pull request changes: the diff from the merge base of base and head (a merge of main adds none). */
+/**
+ * The files a pull request changes: the diff from the merge base of base and head (a merge of main adds none). Where git
+ * finds no merge base (a shallow clone), the plain diff of the two commits is used instead: it holds every file the pull
+ * request changes plus any that main changed since, so it selects more, never less. Throws when neither can be read.
+ */
 export function changedFiles(base: string, head: string, root: string = ROOT): string[] {
-  const out = execFileSync('git', ['diff', '--name-only', '--no-renames', `${base}...${head}`], { cwd: root, encoding: 'utf8' });
-  return out.split('\n').map((s) => s.trim()).filter(Boolean);
+  const diff = (range: string[]): string[] =>
+    execFileSync('git', ['diff', '--name-only', '--no-renames', ...range], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
+      .split('\n').map((s) => s.trim()).filter(Boolean);
+  try {
+    return diff([`${base}...${head}`]);
+  } catch {
+    console.log(`no merge base of ${base} and ${head}: the plain diff of the two commits is used (a superset)`);
+    return diff([base, head]);
+  }
 }
 
 function main(args: string[]): void {
@@ -267,8 +285,10 @@ function main(args: string[]): void {
     if (filesArg) changed = readFileSync(filesArg, 'utf8').split('\n').map((s) => s.trim()).filter(Boolean);
     else if (base && head) changed = changedFiles(base, head);
   } catch (e) {
-    console.error(`could not read the changed files (${String(e)}): everything runs`);
-    changed = [];
+    // Everything would run but the SQL mutation of the changed guards, which cannot be chosen without the changed files
+    // (all of them is the weekly run's hours): fail, so the gap is seen and the run repeated, never a silent skip.
+    console.error(`::error::could not read the changed files of ${base}...${head} (${String(e)}): the gate cannot be selected`);
+    process.exit(1);
   }
   const workspaces = readWorkspaces();
   const plan = select({ changed, workspaces, references: readReferences(workspaces), e2eRules: readE2eRules(), sqlFunctions: sqlFunctionsOf(changed) });
@@ -281,6 +301,7 @@ function main(args: string[]): void {
       `unit_all=${plan.unitAll}`,
       `unit_paths=${plan.unitPaths.join(' ')}`,
       `golden=${plan.golden}`,
+      `rules_mutation=${plan.rulesMutation}`,
       `groups=${JSON.stringify(plan.e2eGroups)}`,
       `sql_functions=${plan.sqlFunctions.join(',')}`,
       '',

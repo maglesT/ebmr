@@ -1,8 +1,7 @@
 # eBMR: current state
 
 Keep this page short (under 150 lines): the current state, the rules in force and the next steps. Append history to
-`docs/progress/history.md` (search it; do not read it whole). Last updated: 14 November 2026 (session 17, injectables
-edition exit and review pass).
+`docs/progress/history.md` (search it; do not read it whole). Last updated: 14 November 2026 (session 20, ADR 0023 PR 2).
 
 ## What this is
 
@@ -46,6 +45,19 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
   maglesT/deep-learning-for-earth-observation for this project.
 
 ## Where things stand
+
+**ADR 0023 PR 2: the rule SQL generator (14 November 2026, session 20; branch build-speed/rules-generator, stacked on #267).**
+`pnpm rules:generate` writes `packages/rules` definitions as plain SQL (recipe-core 1930: the primitives
+`recipe.rules_key`, `rules_member`, `rules_decimal`, and `recipe.rule_library_field_shown`,
+`recipe.rule_library_unexpected_answer`), deterministic, each block headed with its source, sha256 and generator version.
+`rules:check` is in the static checks. The conformance suite (`packages/rules/test/conformance.test.ts`) runs named
+cases, a fixed-seed corpus of 2,500 trees and the two rules through the interpreter and PostgreSQL 16: zero
+differences. Stryker on the package: 100 %, no survivor (CI job `rules-mutation`); SQL mutation group `rules-generated`
+100 % with two recorded equivalents. No guard calls the generated functions yet; the family switch-overs (6.1 after
+recipe-core 1928, then 6.2) come next, each with the differential harness.
+Before 6.1 (lead's audit advisory on #267): the interpreter reads a JSON number through `Dec.parse(String(n))`, after
+JSON.parse has already rounded it to a double; GMP decimals must reach the rules as strings. Add a test that a JS number
+in a GMP decimal position is refused or flagged, or document that the engine never passes one.
 
 **Demo report r13 bugs 2 and 3 (13-14 November 2026, branch fix-revise-approved-master).** "Start a new version…"
 (designer.deriveVersion, recipe.derive_version) derives a DRAFT from an APPROVED or RETIRED master; "Return to draft…"
@@ -129,15 +141,20 @@ D-0 to D-4, R-flow and R-rest; the capsules edition; the injectables plan and I-
   - INV-23 (b) built (lead ruling, 14 November): an aseptic fill (a FILLING step, no TERMINAL_STERILISATION step) needs
     EM during the operation and the counts after it; validator INJ-ASEPTIC-EM and the database at QA approval
     (injectables 3080, EBMR-RCP-439); GB-I-01 rebaselined with its INJ-EM step (the gap was real).
-  - INV-23, INV-36, INV-44: owner residuals (the exit list supersedes outline 11's); INV-37 by ST-68, INV-45 by ST-64.
+  - INV-36 built to its binding clause (Schedule M Part II 6.11.2.7): the release item `E.STERILE_FILTER` (injectables 3060)
+    is RED unless every sterilising filter step (role STERILE_FILTER_INTEGRITY) is completed with passing pre-use and
+    post-use results, the post-use one recorded after the step's other data entries (timer entries not counted). The
+    housing, redundant and serial trains (Annex 1 "should") are a write-up, not built (lead ruling, 14 November).
+  - INV-23, INV-44: owner residuals (the exit list supersedes outline 11's); INV-37 by ST-68, INV-45 by ST-64.
   - Decision 0031: PR-26 clause 2 (transfer-route scan) and PR-28 clause 2 (EM excursion at certification) are owner
     questions, deferred to phase 8 (register: phase 8 = an open owner question, citing a decision record).
   - The room-level EM logbook between batches: deferred by the owner ("not now", 13 November 2026); not built.
   - B5: masters do not declare isolator/RABS, so the glove test and VHP are not required automatically for EU; EU
     radiation-sterilised product waits for Annex 12 to be extracted.
   - Upgrading an existing install needs a sterile v2 rule table and a library v2 publish: B1 and B5 edit sterile.v1 and
-    INJ-EM, INJ-FILL, INJ-COMPOUND and INJ-GAS-FILTER v1 in place, and INV-23 (b) gives INJ-FILL, INJ-TERMINAL-STERILISE,
-    INJ-EM and INJ-EM-COUNTS v1 their roles FILLING, TERMINAL_STERILISATION, EM_IN_OPERATION and EM_COUNTS in place (an existing database refuses the new sterile v1 with
+    INJ-EM, INJ-FILL, INJ-COMPOUND, INJ-GAS-FILTER and INJ-STERILE-FILTER (INV-36: its role and integrity marks) v1 in place, and INV-23 (b) gives INJ-FILL,
+    INJ-TERMINAL-STERILISE, INJ-EM and INJ-EM-COUNTS v1 their roles FILLING, TERMINAL_STERILISATION, EM_IN_OPERATION
+    and EM_COUNTS in place (an existing database refuses the new sterile v1 with
     EBMR-MKT-035 and keeps the old library v1).
   - Kernel: `iam.register_device` should report a duplicate device code with an `EBMR-IAM-` message, not the raw
     unique-violation error (review pass residual; not needed now).

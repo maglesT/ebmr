@@ -2,8 +2,9 @@
  * The pull-request gate's selection (decision 0032): it may run more than a change needs, never less. A path no package
  * or rule accounts for runs everything; a changed package runs with every package that depends on it or reads it.
  */
-import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -18,6 +19,7 @@ import {
   readWorkspaces,
   ROOT,
   select,
+  changedFiles,
   sqlFunctionsOf,
   withDependents,
   type References,
@@ -102,6 +104,17 @@ describe('unit and database tests', () => {
     expect(plan().e2eGroups).toEqual(ALL_E2E_GROUPS);
   });
 
+  it('[meta] Stryker on packages/rules runs when the package\'s tests do: a change to it, to @ebmr/expr or to recipe-core\'s migrations, or a full run', () => {
+    expect(plan('packages/rules/src/interpret.ts').rulesMutation).toBe(true);
+    expect(plan('packages/expr/src/index.ts').rulesMutation).toBe(true);
+    expect(plan('packages/recipe-core/sql/1930_rules_generated.sql').rulesMutation).toBe(true);
+    expect(plan('stryker.rules.config.mjs').rulesMutation).toBe(true);
+    expect(plan().rulesMutation).toBe(true);
+    expect(plan('apps/tablets-web/src/main.tsx').rulesMutation).toBe(false);
+    expect(plan('docs/reviews/x.md').rulesMutation).toBe(false);
+    expect(plan('packages/rules/src/interpret.ts').reasons).toContain('packages/rules is among the tested packages: Stryker runs on it (rules-mutation)');
+  });
+
   it('[meta] documentation alone runs no test, but the packages that read it run theirs', () => {
     const p = plan('docs/decisions/0032-faster-merge-loop.md', 'PROGRESS.md');
     expect(p.unitAll).toBe(false);
@@ -175,5 +188,42 @@ describe('SQL mutation of the changed guards', () => {
     const fns = sqlFunctionsOf(['packages/recipe-core/sql/1862_library_limits_judgement.sql']);
     expect(fns).toContain('recipe.library_limits_problem');
     expect(sqlFunctionsOf(['packages/recipe-core/sql/9999_gone.sql', 'docs/a.md'])).toEqual([]);
+  });
+
+  // Decision 0032 gate, found on #261: changes.sh fetched the base and head with --depth=1 into the full clone, which
+  // made both shallow roots; the merge-base diff then failed, the plan fell back to "everything runs" with no changed
+  // files, and so selected no guard function: the SQL mutation of a pull request's changed guards was skipped.
+  it('[meta] with no merge base (a shallow clone) the changed files are the plain diff of the two commits, so a changed migration still selects its guards', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'select-shallow-'));
+    try {
+      const git = (cwd: string, ...a: string[]): string =>
+        execFileSync('git', ['-c', 'user.email=ci@example.invalid', '-c', 'user.name=ci', ...a], { cwd, encoding: 'utf8' }).trim();
+      const origin = join(dir, 'origin');
+      execFileSync('git', ['init', '-q', '-b', 'main', origin]);
+      writeFileSync(join(origin, 'a.txt'), 'a\n');
+      git(origin, 'add', '.');
+      git(origin, 'commit', '-q', '-m', 'base');
+      const base = git(origin, 'rev-parse', 'HEAD');
+      writeFileSync(join(origin, 'b.sql'), 'select 1;\n');
+      git(origin, 'add', '.');
+      git(origin, 'commit', '-q', '-m', 'head');
+      const head = git(origin, 'rev-parse', 'HEAD');
+      const clone = join(dir, 'clone');
+      execFileSync('git', ['clone', '-q', '--depth=1', `file://${origin}`, clone]);
+      git(clone, 'fetch', '-q', '--depth=1', 'origin', base);
+      expect(spawnSync('git', ['merge-base', base, head], { cwd: clone }).status).not.toBe(0);
+      expect(changedFiles(base, head, clone)).toEqual(['b.sql']);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('[meta] a gate whose changed files cannot be read fails instead of skipping the SQL mutation', () => {
+    const none = '0'.repeat(40);
+    const r = spawnSync(process.execPath, ['--import', 'tsx', join(ROOT, 'tools/ci/src/select.ts'), '--base', none, '--head', none], {
+      cwd: ROOT, encoding: 'utf8',
+    });
+    expect(r.status).toBe(1);
+    expect(r.stderr).toMatch(/::error::could not read the changed files/);
   });
 });

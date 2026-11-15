@@ -32,12 +32,20 @@
    - the trace gate on what the gate ran (`register trace --partial`). A failing test, an unknown control, an unlisted
      passing test, and a listed test that its file no longer reports all fail the gate, as in a full run.
 
-   Any doubt selects more: a root configuration file, a path in no package that no package names, or a diff that cannot
-   be read runs every test.
+   Any doubt selects more: a root configuration file or a path in no package that no package names runs every test.
+   With no merge base (a shallow clone), the plain diff of the base and head commits is used, which holds more files,
+   never fewer. A diff that cannot be read at all fails the gate, because the SQL mutation of the changed guards could
+   not be chosen (lead amendment, 14 November 2026: every gate from #263 to this fix ran with no readable diff and so
+   skipped that mutation).
 2. **After merging main into a pull request, only its gate runs again.** The selection diffs the pull request against
    its merge base with main, so the merge itself adds nothing to it.
-3. **A full run on main after every merge, plus a nightly full run.** A newer merge no longer cancels the full run of
-   an earlier one.
+3. **Every merge on main is contained in a completed, green full run, and there is a nightly full run.** A newer merge
+   never cancels a full run that has started. GitHub keeps only one waiting run per concurrency group, though, so when
+   merges queue up, an older waiting run is replaced by the newer one, which contains it. So a merge is proven by the
+   next full run that completes, not always by a run of its own (lead's ruling, 14 November 2026). When a full run is
+   red, a run by hand bisects the merges it contains, and the `fixes-main` rule (item 4) applies as before. One
+   concurrency group per commit, so that every merge gets a full run of its own, comes back once `E2E_RUNNER=ubicloud`
+   is set and runner time is no longer the bottleneck.
 4. **A red main stops every merge** until it is fixed or reverted. The workflow `main-green.yml` fails a pull request
    while the newest finished full run on main failed. The pull request that fixes or reverts main carries the label
    `fixes-main`. It still needs its own gate green.
@@ -47,6 +55,15 @@
    the validation evidence come from those full runs, never from a gate.
 7. **No test is skipped, quarantined or weakened.** The gate chooses which tests run before the merge. Main's full run
    runs all of them.
+
+## Where the long jobs run (owner, 14 November 2026)
+
+The owner approved Ubicloud for the end-to-end groups and the golden batches ("yes go on … it can be there with it",
+relayed by the lead). The repository variable `E2E_RUNNER=ubicloud` puts only the end-to-end groups, their seed job and
+the golden batches on Ubicloud's `ubuntu-2404` runners (4 vCPUs, 8 for the golden batches). The static checks, the test
+shards and the trace stay on GitHub-hosted runners. Unset, every job stays on GitHub. The reason is the account's limit
+on concurrent GitHub-hosted jobs: one full run has about 36 jobs, so a single run filled every runner and the other
+runs queued behind it. `CI_RUNNER` (`pod`, or `ubicloud` on 22.04) keeps its meaning and takes precedence.
 
 ## What it is expected to save, and what it does not
 

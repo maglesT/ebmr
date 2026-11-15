@@ -1038,6 +1038,15 @@ export const TARGETS: Target[] = [
     tests: [s('injectables/gas-filter-gate.test.ts')],
     threshold: 90,
   },
+  // ---- Injectables I-6, INV-36: a sterilising filter integrity step needs a passing pre-use and a passing post-use result,
+  // the post-use one recorded after the filtration, for release (Schedule M Part II 6.11.2.7; editions/injectables/sql
+  // 3060, which also redefines injectables.grel_edition_items, kept in inj-release-items; it reads a role and marks). ----
+  {
+    group: 'inj-sterile-filter',
+    functions: ['injectables.grel_sterile_filter'],
+    tests: [s('injectables/sterile-filter-gate.test.ts')],
+    threshold: 90,
+  },
   // ---- Injectables I-6, INV-23 (b): QA's approval of an aseptic fill is refused without its environmental monitoring
   // during the operation and its counts after the fill (21 CFR 211.42(c)(10)(iv); editions/injectables/sql 3080; read by
   // role, not block code). The trigger function only calls it. ----
@@ -1827,6 +1836,14 @@ export const TARGETS: Target[] = [
     group: 'esig-content-extension',
     functions: ['esig.content_extension_guard', 'esig.register_content_extension', 'esig.extend_content', 'plant.change_record_aps_lines'],
     tests: [k('esig/content-extension.test.ts'), s('config/aps-required.test.ts')],
+    threshold: 90,
+  },
+  // ADR 0023 PR 2: the functions packages/rules generates (recipe-core 1930): the SQL primitives and the library rules,
+  // killed by the conformance suite, which runs them against the TypeScript interpreter. No guard calls them yet.
+  {
+    group: 'rules-generated',
+    functions: ['recipe.rules_key', 'recipe.rules_member', 'recipe.rules_decimal', 'recipe.rule_library_field_shown', 'recipe.rule_library_unexpected_answer'],
+    tests: ['packages/rules/test/conformance.test.ts'],
     threshold: 90,
   },
 ];

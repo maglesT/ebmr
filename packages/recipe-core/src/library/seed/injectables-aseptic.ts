@@ -330,6 +330,9 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
       title: 'Sterilising filtration and filter integrity',
       category: 'PROCESS',
       edition: EDITION,
+      // INV-36 (injectables 3060; lead ruling, 14 November 2026, v1 edit in place): the release item E.STERILE_FILTER
+      // reads this block by its role and its results by the marks preUseIntegrity and postUseIntegrity, never by code.
+      roles: ['PARAMETER_RECORD', 'STERILE_FILTER_INTEGRITY'],
       description: 'INJ-13. The sterilising filter (its released lot, named where it is used; a second person verifies it is the filter registered for the product; whether it is used for the first time today and, if not, the reference of the validation of its longer use), its integrity tested before use and after use, each against its limit; the filtration pressure and the filtration time. The test after sterilisation before use (PUPSIT) is the block INJ-PUPSIT.',
       instructions: 'Use only the filter registered for the product. A filter first used on an earlier day may be used only where that longer use is validated: give the validation\'s reference. Test its integrity by the method of the formulation before use; filter; then test it again after use before removing it.',
       sections: [
@@ -348,8 +351,8 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
           title: 'Integrity before use',
           fields: [
             { id: 'preMethod', label: 'Test method (of the formulation)', type: 'CHOICE', options: ['Bubble point', 'Diffusion'] },
-            { id: 'preBubblePoint', label: 'Bubble point before use', type: 'NUMBER', unit: 'bar', decimals: 2, limitSlot: 'bubblePointPre', critical: true, showWhen: { field: 'preMethod', equals: 'Bubble point' } },
-            { id: 'preDiffusion', label: 'Diffusion before use', type: 'NUMBER', unit: 'mL/min', decimals: 1, limitSlot: 'diffusionPre', critical: true, showWhen: { field: 'preMethod', equals: 'Diffusion' } },
+            { id: 'preBubblePoint', label: 'Bubble point before use', type: 'NUMBER', unit: 'bar', decimals: 2, limitSlot: 'bubblePointPre', critical: true, preUseIntegrity: true, showWhen: { field: 'preMethod', equals: 'Bubble point' } },
+            { id: 'preDiffusion', label: 'Diffusion before use', type: 'NUMBER', unit: 'mL/min', decimals: 1, limitSlot: 'diffusionPre', critical: true, preUseIntegrity: true, showWhen: { field: 'preMethod', equals: 'Diffusion' } },
           ],
         },
         {
@@ -365,8 +368,8 @@ export const INJECTABLE_ASEPTIC_SEEDS: readonly SeedItem[] = [
           title: 'Integrity after use',
           fields: [
             { id: 'postMethod', label: 'Test method (of the formulation)', type: 'CHOICE', options: ['Bubble point', 'Diffusion'] },
-            { id: 'postBubblePoint', label: 'Bubble point after use', type: 'NUMBER', unit: 'bar', decimals: 2, limitSlot: 'bubblePointPost', critical: true, showWhen: { field: 'postMethod', equals: 'Bubble point' } },
-            { id: 'postDiffusion', label: 'Diffusion after use', type: 'NUMBER', unit: 'mL/min', decimals: 1, limitSlot: 'diffusionPost', critical: true, showWhen: { field: 'postMethod', equals: 'Diffusion' } },
+            { id: 'postBubblePoint', label: 'Bubble point after use', type: 'NUMBER', unit: 'bar', decimals: 2, limitSlot: 'bubblePointPost', critical: true, postUseIntegrity: true, showWhen: { field: 'postMethod', equals: 'Bubble point' } },
+            { id: 'postDiffusion', label: 'Diffusion after use', type: 'NUMBER', unit: 'mL/min', decimals: 1, limitSlot: 'diffusionPost', critical: true, postUseIntegrity: true, showWhen: { field: 'postMethod', equals: 'Diffusion' } },
           ],
         },
       ],

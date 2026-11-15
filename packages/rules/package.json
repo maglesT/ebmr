@@ -1,0 +1,17 @@
+{
+  "name": "@ebmr/rules",
+  "version": "0.2.0",
+  "private": true,
+  "description": "GMP entry rules written once as data (ADR 0023): the vocabulary, the TypeScript interpreter and, later, the SQL generator",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@ebmr/expr": "workspace:0.2.0"
+  },
+  "devDependencies": {
+    "pg": "8.23.0",
+    "@types/pg": "8.23.1"
+  }
+}

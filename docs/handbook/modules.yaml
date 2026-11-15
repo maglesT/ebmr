@@ -1226,6 +1226,15 @@ modules:
     src: [packages/expr/src]
     tests: ['packages/expr/test/**']
 
+  - id: rules
+    title: GMP entry rules written once
+    page: modules/rules.md
+    package: packages/rules
+    migrations:
+      packages/recipe-core/sql: ['^\d{4}_rules_']
+    src: [packages/rules/src]
+    tests: ['packages/rules/test/**']
+
   - id: integration-sdk
     title: Integration SDK (device drivers)
     page: modules/integrations.md

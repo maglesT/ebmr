@@ -94,9 +94,16 @@ export interface NumberField extends FieldBase {
   /**
    * The post-use integrity result of the gas filter of a product's gas overlay (ST-28): only on a block with the role
    * GAS_FILTER_INTEGRITY, which has exactly one such field, critical and with a limit slot. The database reads the result
-   * by this mark and judges it against the step's limit (injectables 3040), never by a block code or field id.
+   * by this mark and judges it against the step's limit (injectables 3040), never by a block code or field id. Also the
+   * post-use result of a sterilising filter, on a block with the role STERILE_FILTER_INTEGRITY (INV-36, injectables 3060).
    */
   postUseIntegrity?: true;
+  /**
+   * The pre-use integrity result of the product's sterilising filter (INV-36): only on a block with the role
+   * STERILE_FILTER_INTEGRITY, which marks at least one such field and one `postUseIntegrity` field (one per test method),
+   * each critical and with a limit slot. The database reads both by these marks (injectables 3060).
+   */
+  preUseIntegrity?: true;
 }
 
 export interface TextField extends FieldBase {
@@ -295,7 +302,7 @@ export type ExternalInput =
  * `postUseIntegrity`: a batch whose record marks an overlay applied (`gasOverlayApplied`) is not released without a
  * passing result of it (ST-28, injectables 3040), whatever the blocks' codes.
  */
-export const LIBRARY_ROLES = ['INSTRUCTION', 'PARAMETER_RECORD', 'OBSERVATION', 'IPC', 'SAMPLING', 'CLEARANCE', 'EQUIPMENT_STATUS_CHECK', 'ENVIRONMENT_CHECK', 'VERIFICATION', 'YIELD_RECONCILIATION', 'SIGN_OFF', 'CALCULATION', 'PACK_EXAMINATION', 'APS_READING', 'GAS_FILTER_INTEGRITY', 'FILLING', 'TERMINAL_STERILISATION', 'EM_IN_OPERATION', 'EM_COUNTS'] as const;
+export const LIBRARY_ROLES = ['INSTRUCTION', 'PARAMETER_RECORD', 'OBSERVATION', 'IPC', 'SAMPLING', 'CLEARANCE', 'EQUIPMENT_STATUS_CHECK', 'ENVIRONMENT_CHECK', 'VERIFICATION', 'YIELD_RECONCILIATION', 'SIGN_OFF', 'CALCULATION', 'PACK_EXAMINATION', 'APS_READING', 'GAS_FILTER_INTEGRITY', 'STERILE_FILTER_INTEGRITY', 'FILLING', 'TERMINAL_STERILISATION', 'EM_IN_OPERATION', 'EM_COUNTS'] as const;
 export type LibraryRole = (typeof LIBRARY_ROLES)[number];
 
 /**
