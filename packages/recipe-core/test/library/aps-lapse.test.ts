@@ -109,4 +109,22 @@ describe('the engine raises the APS lapse at the filling step\'s sign-off (INV-2
     expect(apsLapseExceptions(fill(), view(fill(), { line: 'FL-1', pump: 'PU-1' })).map((e) => e.item)).toEqual(['p.line']);
     expect(apsLapseExceptions(fill(), { ...view(fill(), { line: 'FL-1' }), facts: {} })).toEqual([]);
   });
+
+  it('[INV-23] one exception per lapsed line: two entries naming the same line raise one; a second lapsed line raises its own, also when the step already holds the first line\'s', () => {
+    const def = fill();
+    const view = (entries: Record<string, unknown>[], held: { type: string; title: string }[] = []) => ({
+      phase: { kind: 'phase', id: 'p' } as never,
+      nowUs: 100n,
+      entries: (kind?: string) => (kind === 'setup' ? entries.map((data) => ({ data }) as never) : []),
+      exceptions: () => held as never,
+      facts: { apsValidUntilUs: { 'FL-1': 50n, 'FL-2': null } },
+    });
+    const twice = apsLapseExceptions(def, view([{ line: 'FL-1' }, { line: 'FL-1' }]));
+    expect(twice.map((e) => e.title.match(/line (FL-\d)/)?.[1])).toEqual(['FL-1']);
+    const both = apsLapseExceptions(def, view([{ line: 'FL-1' }, { line: 'FL-2' }]));
+    expect(both.map((e) => e.title.match(/line (FL-\d)/)?.[1])).toEqual(['FL-1', 'FL-2']);
+    // The step holds FL-1's exception: only FL-2's is raised; an exception of another type with the same text is not FL-1's.
+    expect(apsLapseExceptions(def, view([{ line: 'FL-1' }, { line: 'FL-2' }], [both[0]!])).map((e) => e.title)).toEqual([both[1]!.title]);
+    expect(apsLapseExceptions(def, view([{ line: 'FL-1' }], [{ type: 'OPERATOR_RAISED', title: both[0]!.title }]))).toHaveLength(1);
+  });
 });
