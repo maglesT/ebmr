@@ -72,6 +72,24 @@ Session 20 (session_01PybpFvK34ypWZV83eSdnDU) did ADR 0023 PR 2 and the physical
   `sudo pg_ctlcluster 16 main start` and, if needed, `sudo -u postgres psql -c "create role ebmr_dev superuser login
   password 'ebmr_dev'"`.
 
+## Session 22 handover (15 November 2026): family 6.1
+
+Session 22 (session_01PybpFuPWAkrnUh4Tdhqquq) owns **#275** (branch rules/family-6-1-showwhen, draft).
+- **Done (commit 5084a51):**
+  - the engine's `shown` calls `holds(FIELD_SHOWN.body, ...)`;
+  - the differential harness `packages/recipe-core/test/library/field-shown-differential.ts` (+ `.test.ts`, and
+    `storedDifferences` in `library-batch-gmp.test.ts`): zero differences;
+  - `packages/rules/src/policy.ts` and `test/policy.test.ts`: the decimal-input guard;
+  - Stryker on rules: 100 %.
+- **Left:** the guard migration, after #261 (1927) and #271 (1928) merge.
+  - Take the next free recipe-core number above main and the open PRs, and check it again before pushing.
+  - CREATE OR REPLACE from the latest text: `library_limits_problem` (1927's), `library_answer_records` (1927) and
+    `library_hidden_problem` (1928). In each, the visibility clause becomes `recipe.rule_library_field_shown(f, data)`.
+  - 1927's copy uses `=` (it hides a condition that has no `equals`); add it to the harness as a legacy clause.
+  - Add the harness and the bypass tests to the SQL mutation group `rules-generated`, and fix its comment "No guard calls
+    them yet". Compare its score with the old groups: no new survivor.
+  - Then run `pnpm run ci`, mark #275 ready and send the lead "ready for audit".
+
 ## Numbers to keep
 
 - **Before:** median 4.2 h from first push to merge; a full run takes about 94 min and 960 runner-minutes, 85 % of it E2E.
