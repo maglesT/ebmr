@@ -35,6 +35,8 @@
     "register:sort-tests": "tsx tools/register/src/cli.ts sort-tests",
     "register:sync-tests": "tsx tools/register/src/cli.ts sync-tests --results .reports/vitest.json --golden .reports/vitest-golden.json --playwright .reports/playwright.json",
     "pins:check": "tsx tools/register/src/cli.ts pins",
+    "rules:check": "tsx packages/rules/src/generate/cli.ts check",
+    "rules:generate": "tsx packages/rules/src/generate/cli.ts generate",
     "handbook": "tsx tools/handbook/src/cli.ts generate",
     "handbook:check": "tsx tools/handbook/src/cli.ts check",
     "guides:lists": "tsx tools/guides/src/cli.ts lists",
@@ -48,7 +50,8 @@
     "security:verify": "tsx tools/security/src/cli.ts verify",
     "drills": "tsx tools/drills/src/cli.ts",
     "load": "tsx tools/load/src/cli.ts",
-    "ci": "pnpm typecheck && pnpm lint && pnpm deps:check && pnpm pins:check && pnpm register:validate && pnpm build:web && pnpm test:json && pnpm trace"
+    "ci": "pnpm typecheck && pnpm lint && pnpm deps:check && pnpm pins:check && pnpm rules:check && pnpm register:validate && pnpm build:web && pnpm test:json && pnpm trace",
+    "mutation:rules": "stryker run stryker.rules.config.mjs"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

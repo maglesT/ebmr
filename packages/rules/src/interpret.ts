@@ -1,7 +1,7 @@
 /**
  * The TypeScript backend of ADR 0023: evaluates a vocabulary tree (vocabulary.ts) over JSON inputs. Its meaning of each
- * node is the one vocabulary.ts states in SQL terms; the conformance suite (a later PR) runs the same cases through
- * PostgreSQL 16 and requires the same answers.
+ * node is the one vocabulary.ts states in SQL terms; the conformance suite (test/conformance.test.ts) runs the same
+ * cases through PostgreSQL 16 and requires the same answers.
  */
 import { Dec } from '@ebmr/expr';
 import type { FieldRule, Node, Raise } from './vocabulary.ts';
@@ -14,28 +14,29 @@ export type Inputs = Readonly<Record<string, Json | undefined>>;
 
 const isObject = (v: Value): v is { readonly [k: string]: Json } => typeof v === 'object' && v !== null && !Array.isArray(v);
 
-/** jsonb equality: objects by key set and values, arrays in order, numbers numerically, strings exactly. */
-function jsonEqual(a: Json, b: Json): boolean {
-  if (typeof a === 'number' && typeof b === 'number') return Dec.parse(String(a)).eq(Dec.parse(String(b)));
-  if (Array.isArray(a) || Array.isArray(b)) {
-    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+/**
+ * jsonb equality: arrays element by element in order, objects by their own keys and values (whatever the order), and
+ * every other value by `===`. A JSON number here is a double, so `===` is numeric equality (0 and -0 included), as
+ * jsonb's is on the shortest decimal form the database receives. Anything else (ABSENT among them) is equal only to
+ * itself.
+ */
+function jsonEqual(a: Value, b: Value): boolean {
+  if (Array.isArray(a) && Array.isArray(b)) {
     const bs: readonly Json[] = b;
-    return (a as readonly Json[]).every((x: Json, i) => jsonEqual(x, bs[i] as Json));
+    return a.length === bs.length && (a as readonly Json[]).every((x: Json, i) => jsonEqual(x, bs[i] as Json));
   }
-  if (isObject(a) || isObject(b)) {
-    if (!isObject(a) || !isObject(b)) return false;
-    const ka = Object.keys(a).sort();
-    const kb = Object.keys(b).sort();
-    return ka.length === kb.length && ka.every((k, i) => k === kb[i] && jsonEqual(a[k] as Json, b[k] as Json));
+  if (isObject(a) && isObject(b)) {
+    const keys = Object.keys(a);
+    // Own keys only: a key that b only inherits (`__proto__`, `constructor`) is not one of its keys.
+    return keys.length === Object.keys(b).length && keys.every((k) => Object.prototype.hasOwnProperty.call(b, k) && jsonEqual(a[k] as Json, b[k] as Json));
   }
   return a === b;
 }
 
-/** A decimal from a JSON string or number (SQL: `(x #>> '{}')::numeric`); undefined when it is not one. */
+/** A decimal from a JSON number or a string Dec.parse accepts (SQL: recipe.rules_decimal); undefined otherwise. */
 function decimal(v: Value): Dec | undefined {
   if (typeof v === 'number') return Dec.parse(String(v));
-  if (typeof v === 'string' && Dec.isValid(v)) return Dec.parse(v);
-  return undefined;
+  return Dec.isValid(v) ? Dec.parse(v as string) : undefined;
 }
 
 const truth = (v: Value): boolean => v === true;
@@ -45,12 +46,13 @@ export function evaluate(node: Node, inputs: Inputs): Value {
     case 'lit':
       return node.value;
     case 'path': {
-      let v: Value = node.root in inputs && inputs[node.root] !== undefined ? (inputs[node.root] as Json) : ABSENT;
+      // An input is there when it is an own key of the inputs and not undefined (an optional argument left out).
+      let v: Value = Object.prototype.hasOwnProperty.call(inputs, node.root) && inputs[node.root] !== undefined ? (inputs[node.root] as Json) : ABSENT;
       for (const step of node.steps) {
         const key = typeof step === 'string' ? step : evaluate(step, inputs);
-        if (v === ABSENT) return ABSENT;
+        // A key is a string and reaches into an object only (SQL: `jsonb -> text`, NULL on an array or a scalar); a key
+        // computed as anything else is no key (SQL: recipe.rules_key gives NULL). Arrays are not indexed.
         if (isObject(v) && typeof key === 'string') v = Object.prototype.hasOwnProperty.call(v, key) ? (v[key] as Json) : ABSENT;
-        else if (Array.isArray(v) && typeof key === 'number' && Number.isInteger(key)) v = key >= 0 && key < v.length ? (v[key] as Json) : ABSENT;
         else return ABSENT;
       }
       return v;
@@ -58,10 +60,8 @@ export function evaluate(node: Node, inputs: Inputs): Value {
     case 'present':
       return evaluate(node.of, inputs) !== ABSENT;
     case 'same': {
-      const a = evaluate(node.a, inputs);
-      const b = evaluate(node.b, inputs);
-      if (a === ABSENT || b === ABSENT) return a === b;
-      return jsonEqual(a, b);
+      // ABSENT is equal only to ABSENT (jsonEqual's last line), as SQL's `is not distinct from` NULL.
+      return jsonEqual(evaluate(node.a, inputs), evaluate(node.b, inputs));
     }
     case 'lt':
     case 'lte':
@@ -81,7 +81,8 @@ export function evaluate(node: Node, inputs: Inputs): Value {
     case 'in': {
       const v = evaluate(node.value, inputs);
       const list = evaluate(node.list, inputs);
-      if (v === ABSENT || !Array.isArray(list)) return false;
+      // An element is never ABSENT, so ABSENT is in no list.
+      if (!Array.isArray(list)) return false;
       return (list as readonly Json[]).some((x: Json) => jsonEqual(x, v));
     }
   }

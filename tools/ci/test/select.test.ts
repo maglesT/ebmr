@@ -104,6 +104,17 @@ describe('unit and database tests', () => {
     expect(plan().e2eGroups).toEqual(ALL_E2E_GROUPS);
   });
 
+  it('[meta] Stryker on packages/rules runs when the package\'s tests do: a change to it, to @ebmr/expr or to recipe-core\'s migrations, or a full run', () => {
+    expect(plan('packages/rules/src/interpret.ts').rulesMutation).toBe(true);
+    expect(plan('packages/expr/src/index.ts').rulesMutation).toBe(true);
+    expect(plan('packages/recipe-core/sql/1930_rules_generated.sql').rulesMutation).toBe(true);
+    expect(plan('stryker.rules.config.mjs').rulesMutation).toBe(true);
+    expect(plan().rulesMutation).toBe(true);
+    expect(plan('apps/tablets-web/src/main.tsx').rulesMutation).toBe(false);
+    expect(plan('docs/reviews/x.md').rulesMutation).toBe(false);
+    expect(plan('packages/rules/src/interpret.ts').reasons).toContain('packages/rules is among the tested packages: Stryker runs on it (rules-mutation)');
+  });
+
   it('[meta] documentation alone runs no test, but the packages that read it run theirs', () => {
     const p = plan('docs/decisions/0032-faster-merge-loop.md', 'PROGRESS.md');
     expect(p.unitAll).toBe(false);

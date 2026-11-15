@@ -1,6 +1,6 @@
 /**
  * The vocabulary of a rule (ADR 0023, decision 1): a typed tree that both backends give one meaning. The TypeScript
- * interpreter (interpret.ts) evaluates it; the SQL generator (a later PR) writes it as plain SQL over jsonb. So every node
+ * interpreter (interpret.ts) evaluates it; the SQL generator (src/generate) writes it as plain SQL over jsonb. So every node
  * here has an exact SQL reading, stated beside it, and nothing reads a clock, a sequence or a session.
  *
  * Values are JSON values as stored in jsonb, or ABSENT (a key that is not there: SQL NULL from `->`). A decimal is a JSON
@@ -16,18 +16,27 @@ export type Step = string | Node;
 export type Node =
   /** A JSON literal. SQL: a jsonb literal. */
   | { op: 'lit'; value: string | boolean | null }
-  /** The value at a path from a named input; ABSENT when any step is missing. SQL: `input -> step -> ...`. */
+  /**
+   * The value at a path from a named input; ABSENT when any step is missing, steps into a non-object, or is computed as
+   * anything but a string. SQL: `input -> 'key' -> recipe.rules_key(step) ...`.
+   */
   | { op: 'path'; root: Root; steps: readonly Step[] }
   /** Whether a value is there (not ABSENT; JSON null is there). SQL: `x is not null`. */
   | { op: 'present'; of: Node }
   /** Equal, ABSENT counted as a value of its own (equal only to ABSENT). SQL: `a is not distinct from b` on jsonb. */
   | { op: 'same'; a: Node; b: Node }
-  /** Exact decimal order; false when either side is ABSENT or not a decimal. SQL: `(a #>> '{}')::numeric < ...`. */
+  /**
+   * Exact decimal order; false when either side is ABSENT or not a decimal (a JSON number, or a string `Dec.parse`
+   * accepts). SQL: `coalesce(recipe.rules_decimal(a) < recipe.rules_decimal(b), false)`.
+   */
   | { op: 'lt' | 'lte' | 'gt' | 'gte'; a: Node; b: Node }
   /** Boolean logic over truth values (a value is true only when it is JSON true). SQL: and, or, not. */
   | { op: 'and' | 'or'; of: readonly Node[] }
   | { op: 'not'; of: Node }
-  /** Whether a JSON array contains a value (false when either is ABSENT). SQL: `list @> jsonb_build_array(x)`. */
+  /**
+   * Whether a JSON array has an element equal to a value (false when either is ABSENT or the list is not an array). SQL:
+   * recipe.rules_member, an element-wise `=`; not `@>`, which is containment (`[[1,2]]` contains `[[1]]`).
+   */
   | { op: 'in'; value: Node; list: Node };
 
 /** A named predicate: a truth value of its inputs, with its own documentation and version. */
