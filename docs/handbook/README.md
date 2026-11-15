@@ -51,6 +51,7 @@ The module list behind the generated pages is [modules.yaml](modules.yaml). Writ
 | [kernel](modules/kernel.md) | `packages/kernel`: identity, access, e-signatures, audit trail, time, records, market rules, sandbox |
 | [site-services](modules/site-services.md) | `packages/site-services`: batch numbers, lots, deviations, specifications, LIMS-lite, ERP masters |
 | [expr](modules/expr.md) | `packages/expr`: the calculation language (exact decimals, units, rounding) |
+| [rules](modules/rules.md) | `packages/rules`: GMP entry rules written once, interpreted in TypeScript and (later) generated as SQL (ADR 0023) |
 | [recipe-core](modules/recipe-core.md) | `packages/recipe-core`: flows, validator, execution, limits, MBR life cycle, review, release |
 | [api-contract](modules/api-contract.md) | `packages/api-contract`: the route table and the request and response shapes |
 | [tablets-server](modules/tablets-server.md) | `apps/tablets-server`: the Tablets edition's server, its features and its migrations |
