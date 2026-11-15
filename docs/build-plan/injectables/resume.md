@@ -53,6 +53,116 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
 - **Merging:** no merge queue. Merge each PR yourself on green, after a lead audit (ping the lead). Merge main in only
   on a conflict. Report each merge in 2 lines.
 
+### Session 21 handover (15 November 2026, about 06:15): session 23 continues here
+
+Session 21 was session_01PybpFuJqP4hQevvyU4YWWS. The lead is session_01PybpFrP72XuwyG8S3H3NJS; report with send_message.
+Session 22 works on ADR family 6.1 and needs #271's final migration number: tell the lead as soon as #271 merges.
+
+**Merge loop:** decision 0032, as in session 18's handover.
+- Squash with the full expectedHeadSha.
+- The body ends "Lead audit passed <date>; gate green on <sha> containing main", followed by the plain trailers.
+- Narrow exception (lead): if main moved only by PRs with no file overlap, check the clean merge, typecheck and
+  register:validate, then merge without another CI round. Note it in the commit body.
+- At most 3 PRs open. Order: #261, then #271, then INV-23 (b), then (c).
+
+**Merged in session 21:** #273, INV-36 (squash d5af4da). It adds injectables 3060 `E.STERILE_FILTER`, the library rule
+LIB-STERILE-FILTER and the INJ-STERILE-FILTER v1 role and marks. inj-sterile-filter scores 100 % (30/30).
+
+**Open, in order:**
+1. **#261** (`inj/i6-expected-answer-db`), head **e642aede**, which contains main 230a98c. Its gate was running at
+   06:10.
+   - The lead's content audit passed (15 November).
+   - The gate mutation on the earlier head was 100 % (148/148) for recipe.library_answer_records, library_limits_check
+     and library_limits_problem.
+   - Renumbered 1927 → **1931**, references included: equivalent.json `1931:190`/`1931:373`, the test names
+     "(recipe-core 1931)" and their lines in the PR-08 and PR-29 YAML (title renames, lead OK), and modules.yaml `^1931_`.
+   - On a green gate whose head contains main, squash-merge it.
+2. **#271** (`inj/i6-entry-hidden-db`, head ed9a5bdc) is stacked on #261.
+   - After #261 lands, merge main 3-way, using #261's old head 73f2eb50 as the base.
+   - Renumber 1928 → **1932**: every reference, including `1928_` file names, test names, control YAML and
+     modules.yaml. `\b1928\b` does not match before `_`.
+   - Green gate with SQL mutation, then "#271 ready for audit". Tell the lead its final number for session 22.
+3. **INV-23 (b)**: `inj/i6-inv23b-em-with-fill`, head 09a53e16, not yet merged with main. Its PR body is
+   `docs/build-plan/injectables/pr-drafts/inv23b.md`.
+   - It conflicts with main (INV-36 added lines in the same places) in mutation.yml, PROGRESS.md, targets.ts,
+     equivalent.json, modules/injectables.md, flow/blocks.ts and library/model.ts. Each conflict is two additions: keep
+     both. The role lists get both STERILE_FILTER_INTEGRITY and FILLING, TERMINAL_STERILISATION, EM_IN_OPERATION,
+     EM_COUNTS.
+   - Contents:
+     - roles FILLING, TERMINAL_STERILISATION, EM_IN_OPERATION and EM_COUNTS, as v1 edits in place on INJ-FILL,
+       INJ-TERMINAL-STERILISE, INJ-EM and INJ-EM-COUNTS. Each keeps its old role; absent roles default to
+       PARAMETER_RECORD (library/integration.ts:42);
+     - validator INJ-ASEPTIC-EM;
+     - injectables **3080** (`injectables.aseptic_em_problem`, APPROVE trigger, EBMR-RCP-439).
+   - Tests:
+     - recipe-core `test/validator/aseptic-em.test.ts`, 5 `[INV-23]`, fail-first;
+     - `apps/tablets-server/test/injectables/aseptic-em-approval.test.ts`, 3 `[INV-23]`, the bypass with stub evidence,
+       fail-first without 3080;
+     - INJ-EM added to aps-failure, aseptic-gate, unit-account-gate and GB-I-01. The injectables tests pass (7 files,
+       36 tests).
+   - inj-aseptic-em scores 100 % (11/11). One equivalent is recorded: #15, flow_reaches p_inside with a phase anchor.
+   - **GB-I-01 is rebaselined** (lead OK): only `signatures` 11 → 13 and the batch's normalisedTrueCopySha256 change; the
+     packaging hash is unchanged. It passed 9/9 twice locally.
+4. **INV-23 (c)**: `inj/i6-inv23c-aps-interval`, head **c9ff0a2e**, on top of (b), with (b) merged in at 09a53e16.
+   Open it after (b). It needs main merged too, with the same kind of conflicts.
+   - Tablets **1915** (`plant.aps_interval` and its approval, trigger `ad_plant_aps_interval`, `plant.aps_sign_off_facts`,
+     EBMR-PLANT-090 to -094).
+   - Recipe-core **1933** (the optional `facts` member in the command shape). It was 1916, then 1929; 1931 and 1932 are
+     #261 and #271. Check again against main before opening.
+   - Engine: `LIB_APS_LAPSED` from `apsLapseExceptions` (library/block-version.ts), via the new hook
+     `performFactExceptions` in engine/steps.ts. Its facts come from `facts.apsValidUntilUs`, read by the server at
+     SIGN_PERFORMED and PREPARE (signable.ts, intents.ts) and stored in the command for replay.
+   - Tests:
+     - 10 `[INV-23]` in aps-interval-gate.test.ts, fail-first, including a RECORD_ENTRY bypass and a SIGN_PERFORMED
+       bypass (-094);
+     - 6 `[INV-23]` in recipe-core test/library/aps-lapse.test.ts;
+     - `[INV-23][DI-05]` in aps-sandbox-exempt.test.ts;
+     - injectables server 48/48 and recipe-core engine, library and validator 752.
+   - Mutation: inj-aps-interval 100 % (85/85, two equivalents); focused Stryker on the TypeScript 92.5 % (the survivors
+     are equivalent).
+   - E2E run locally: library-inj-aseptic 19/19 and library-inj-lyo 18/18. Each spec now runs the line's media fill
+     first; inj-media-fill.spec.ts is folded in and groups.ts updated. The steward proposes a 182-day interval and
+     qaInvestigator approves it.
+   - Not run: GB-I-01 (a valid APS raises nothing) and the full ci. Check that the gate selects both E2E groups. If it
+     does not, ask the lead to run them by hand.
+   - The PR body still has to be written. Put the rulings below in it, as lead rulings the owner may veto.
+
+**Lead rulings of this session (14 and 15 November), for the PR bodies:**
+- INV-36: "after the step's other entries" counts data entries only, not TIMER_START/STOP. Housing, redundant and serial
+  trains are a write-up.
+- INV-23 (b):
+  - **Scope (2):** aseptic fills only. A master with a TERMINAL_STERILISATION step is not concerned: 211.42(c)(10)(iv)
+    binds aseptic processing, and Schedule M 4.8 is the deferred room logbook.
+  - The rule keys on roles, not codes, and the in-place v1 role edits are accepted.
+  - INJ-EM sits right after INJ-FILL in the same stage. "Before the fill" was a default, not a clause.
+  - INJ-EM-COUNTS alone does not count.
+  - GB-I-01 is rebaselined because the gap was real.
+- INV-23 (c):
+  - Key on EQUIPMENT fields of kind LINE, not on FILLING. Scope: injectables edition, recordKind PROCESSING, no
+    TERMINAL_STERILISATION step, not a process-simulation batch (1896), GMP_BATCH only.
+  - Skip LINE fields of steps of category PACKAGING. A block's category is the firm's, fixed by library approval, so
+    miscategorising one is a change-control matter.
+  - The last passing APS is max(used_us) over good_aps.
+  - A lapse during the fill does not refuse entries. At sign-off the engine raises LIB_APS_LAPSED (ACTION, deviation
+    required), which is **strict**: it holds the step until QA dispositions it under the linked deviation. -094 is the
+    database backstop. Its messages cite 21 CFR 211.22 and 211.192 (QA disposition) besides Schedule M Part II 5.5 and
+    211.113(b).
+  - The APS batch is exempt. The existing test [IN-45][ST-29] (recipe-core test/release/india.test.ts) proves a process
+    simulation is never released as product.
+- **INV-44** is a write-up only (Annex 1 9.41, 9.47 are "should"; ST-32's catalogue clause is not_required). So are
+  INV-23 (a), (d) and (f). In the INV-23 PR, record the narrowing in the outline's INV notes or control-decisions.md so
+  that the trace gate expects no `[INV-44]` test.
+
+**Local notes:**
+- Worktrees: /home/user/wt-261 (#261), /home/user/wt-inv36 (merged, can be removed), /home/user/wt-inv23 (b) and
+  /home/user/wt-inv23c (c). Each has its own `pnpm install`.
+- PostgreSQL main is on 5432. Start it with `sudo pg_ctlcluster 16 main start`; the role is ebmr_dev/ebmr_dev.
+- GB-I-01 needs a golden-clock cluster (tools/ci/start-postgres.sh start --golden, or a private initdb on a spare port).
+- The local Playwright 1.56.1 looks for browser revision 1194 and the machine has 1243. The E2E runs used a temporary
+  symlink; never run `playwright install`.
+- Gate logs: `gh api repos/maglesT/ebmr/actions/jobs/<id>/logs | grep -E "score |mutants in|FUNCTIONS:"` gives the
+  mutation summary in a few lines.
+
 ### Session 17 handover (14 November 2026, about 12:30): session 18 continues here
 
 Session 17 was session_01PybpFuhBnYXh9yvdSzZcJc. The lead is session_01PybpFrP72XuwyG8S3H3NJS: report there with
