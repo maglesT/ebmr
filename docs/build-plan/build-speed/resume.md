@@ -14,6 +14,21 @@ session's `Claude-Session` line.
 | #265 | build-speed/e2e-seed (base #264) | the E2E set-up built once per run (`tools/e2e/seed.ts`, `seed-cli.ts`, `e2e-seed` and `seed-check` jobs); `E2E_RUNNER=ubicloud` (owner) | CI running; not yet audited |
 | #266 | build-speed/adr-rules | ADR 0023 (accepted by the lead, with additions 9 to 12); these notes | docs; the squash message must carry this session's Claude-Session line (commit b16e8fea has the lead's by mistake) |
 
+## Session 19 handover (15 November 2026)
+
+Session 19 is done. Final states:
+- **Merged:** #263 (0f7341b), #264 (aa4e439), #266 (f88b88b), #267 (6de00cd, by the lead); #272 (this note and the
+  0032 item 3 wording) once green.
+- **Lead's PR:** #270 fixed my gate's shallow-fetch bug (PR gates ran everything, and the SQL mutation gate was
+  skipped, until it merged).
+- **Closed:** #265, replaced by #268, which session 20 owns: the physical cluster snapshot, see the finding below.
+- **Still open:** #262 (the review) is waiting for the lead.
+- **Main's first full run under 0032:** 43633589463, green; it contains #263 and #264.
+- **Still open from the plan:**
+  - the Ubicloud run by hand, once the owner sets `E2E_RUNNER`;
+  - `packages/rules` PR 2 onward (session 20);
+  - rebalancing test shard 7.
+
 ## Numbers to keep
 
 - **Before:** median 4.2 h from first push to merge; a full run takes about 94 min and 960 runner-minutes, 85 % of it E2E.
