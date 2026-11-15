@@ -81,11 +81,21 @@ Session 22 (session_01PybpFuPWAkrnUh4Tdhqquq) owns **#275** (branch rules/family
     `storedDifferences` in `library-batch-gmp.test.ts`): zero differences;
   - `packages/rules/src/policy.ts` and `test/policy.test.ts`: the decimal-input guard;
   - Stryker on rules: 100 %.
-- **Left:** the guard migration, after #261 (1927) and #271 (1928) merge.
-  - Take the next free recipe-core number above main and the open PRs, and check it again before pushing.
-  - CREATE OR REPLACE from the latest text: `library_limits_problem` (1927's), `library_answer_records` (1927) and
-    `library_hidden_problem` (1928). In each, the visibility clause becomes `recipe.rule_library_field_shown(f, data)`.
-  - 1927's copy uses `=` (it hides a condition that has no `equals`); add it to the harness as a legacy clause.
+- **Lead:** session_01PybpFvF4SWgYSyQDHAVFb6 since 15 November (the old lead has stopped). Send it the PR number,
+  the 40-character head sha and the gate result.
+- **Numbers (lead):** #261 is now recipe-core 1931 and #271 is 1932; 1933 is session 21's INV-23 (c). **This guard is
+  1934.**
+- **Lead rulings:**
+  - move all three copies, 1931's included;
+  - add a control-ID test that pins the three copies as one shared function;
+  - both pinned differences are accepted (a numeric key hides the field; `showWhen: null` is no condition); note them
+    in the PR body;
+  - keep #275 a draft until #271 merges.
+- **Left:** the guard migration, after #261 (1931) and #271 (1932) merge.
+  - Use 1934 (the lead's number), and check it again before pushing.
+  - CREATE OR REPLACE from the latest text: `library_limits_problem` (1931's), `library_answer_records` (1931) and
+    `library_hidden_problem` (1932). In each, the visibility clause becomes `recipe.rule_library_field_shown(f, data)`.
+  - 1931's copy uses `=` (it hides a condition that has no `equals`); add it to the harness as a legacy clause.
   - Add the harness and the bypass tests to the SQL mutation group `rules-generated`, and fix its comment "No guard calls
     them yet". Compare its score with the old groups: no new survivor.
   - Then run `pnpm run ci`, mark #275 ready and send the lead "ready for audit".
