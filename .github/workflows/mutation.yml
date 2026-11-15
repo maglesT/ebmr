@@ -110,7 +110,7 @@ jobs:
                 first-run-setup, operations-acts, operations-demo-backups,
                 iq-record, validation-records-reads, operations-drills-restore, own-product-masters, specification-profiles, deviations-reader-views,
                 platform-identity, platform-master-facts, platform-deviation-numbers, aps-line-qualification,
-                esig-content-extension]
+                esig-content-extension, rules-generated]
     services:
       postgres:
         image: postgres:16

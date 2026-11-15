@@ -80,6 +80,7 @@ export default tseslint.config(
       'stryker.config.mjs',
       'stryker.phase6.config.mjs',
       'stryker.phase7.config.mjs',
+      'stryker.rules.config.mjs',
       '.stryker-tmp/**',
       '.stryker-tmp-*/**',
       '**/node_modules/**',

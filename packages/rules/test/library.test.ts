@@ -4,6 +4,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { fieldRuleRaise, holds } from '../src/interpret.ts';
+import { lit } from '../src/vocabulary.ts';
 import { FIELD_SHOWN, UNEXPECTED_ANSWER } from '../src/library.ts';
 
 describe('library rules', () => {
@@ -29,5 +30,13 @@ describe('library rules', () => {
     const hidden = { ...field, showWhen: { field: 'used', equals: true } };
     expect(fieldRuleRaise(UNEXPECTED_ANSWER, { field: hidden, values: { used: false, clean: false } })).toBeUndefined();
     expect(fieldRuleRaise(UNEXPECTED_ANSWER, { field: hidden, values: { used: true, clean: false } })?.type).toBe('LIB_UNEXPECTED_ANSWER');
+  });
+
+  it('[meta] a field rule requires nothing when no entry of its raise list holds (every entry has a `when`)', () => {
+    const first = UNEXPECTED_ANSWER.raise[0];
+    if (first === undefined) throw new Error('UNEXPECTED_ANSWER has no raise entry');
+    const onlyWhen = { ...UNEXPECTED_ANSWER, raise: [{ when: lit(false), then: first.then }] };
+    expect(fieldRuleRaise(onlyWhen, { field: { id: 'clean', type: 'YES_NO', expected: true }, values: { clean: false } })).toBeUndefined();
+    expect(fieldRuleRaise({ ...onlyWhen, raise: [{ when: lit(true), then: first.then }] }, { field: { id: 'clean', type: 'YES_NO', expected: true }, values: { clean: false } })).toEqual(first.then);
   });
 });
