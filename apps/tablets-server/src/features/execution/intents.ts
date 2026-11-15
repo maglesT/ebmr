@@ -751,6 +751,27 @@ export function signedMeaning(def: engine.BatchDefinition | undefined, state: en
   }
 }
 
+
+/**
+ * INV-23 (c) (lead ruling, 15 November 2026): the facts the server reads for a PERFORMED attempt of step `stepKey`, stated
+ * in the SIGN_PERFORMED command and its PREPARE target (engine PerformFacts): each filling line the step's entries name in
+ * an aseptic GMP fill, with the end of its APS validity at `nowUs` (tablets 1915 plant.aps_sign_off_facts). The engine
+ * raises LIB_APS_LAPSED from them; the database refuses the sign-off of a lapsed line without it (EBMR-PLANT-094).
+ * Undefined when there is nothing to state (a batch or step out of scope), so other commands stay as they were.
+ */
+export async function performFacts(client: pg.Pool | pg.PoolClient, batchId: string, state: engine.BatchState, stepKey: string, nowUs: bigint): Promise<engine.PerformFacts | undefined> {
+  if (!state.steps[stepKey]) return undefined;
+  const { step } = stepTarget(state, stepKey);
+  const { rows } = await client.query<{ f: Record<string, string | null> }>('select plant.aps_sign_off_facts($1::uuid, $2, $3, $4::bigint) as f', [batchId, step, stepKey, nowUs.toString()]);
+  const lines = Object.entries(rows[0]?.f ?? {});
+  if (lines.length === 0) return undefined;
+  return { apsValidUntilUs: Object.fromEntries(lines.map(([code, until]) => [code, until === null ? null : BigInt(until)])) };
+}
+
+/** A SIGN_PERFORMED command or target with the server-read facts of its attempt (performFacts); others unchanged. */
+export function withPerformFacts<T extends engine.Command | engine.SignatureTarget>(c: T, facts: engine.PerformFacts | undefined): T {
+  return facts !== undefined && c.type === 'SIGN_PERFORMED' ? { ...c, facts } : c;
+}
 /** The engine command of a signed intent with a signature (the placeholder for the dry run, the real one to apply). */
 export function signedCommand(
   state: engine.BatchState,

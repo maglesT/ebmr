@@ -61,9 +61,11 @@ Edition-scoped, in the tablets server's migrations (`apps/tablets-server/sql`):
   PLANT_RULE.APPROVE); versions are insert-only and audited, and only the latest approved one is in force. The entry
   that names a line (an EQUIPMENT field of kind LINE, not of a PACKAGING block) in a GMP batch of an injectables
   processing master with no `TERMINAL_STERILISATION` step, other than a media fill, is refused without an interval in
-  force (EBMR-PLANT-092) or a valid APS (EBMR-PLANT-093). A lapse during the fill refuses no later entry; the step's
-  sign-off is refused (EBMR-PLANT-094) until an ACTION exception raised at the step after the lapse is dispositioned by
-  QA under its linked deviation. A test that fills such a batch arranges a passing media fill and the interval
+  force (EBMR-PLANT-092) or a valid APS (EBMR-PLANT-093). A lapse during the fill refuses no later entry; at the step's
+  sign-off the system raises an ACTION exception requiring a deviation (`LIB_APS_LAPSED`, lead ruling of 15 November:
+  the server reads the line's validity with `plant.aps_sign_off_facts` and states it in the command, the engine raises
+  it), which holds the step and those after it until QA dispositions it under its linked deviation. The database
+  refuses a sign-off written without such an exception (EBMR-PLANT-094, the backstop). A test that fills such a batch arranges a passing media fill and the interval
   (`apps/tablets-server/test/support/aps-validity.ts`).
 
 ## Pharma context: why a second edition

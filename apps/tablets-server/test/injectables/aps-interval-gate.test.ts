@@ -5,8 +5,10 @@
  * fill read with no contaminated unit, as ST-33 reads it, tablets 1912) plus the interval the firm sets for the line,
  * with QA's approval and no default. The database refuses the entry that names the line in an injectables processing
  * batch with no terminal sterilisation step: with no interval in force (EBMR-PLANT-092), with no passing APS or one
- * whose validity has ended (EBMR-PLANT-093). A lapse during the fill does not refuse later entries: the step's sign-off
- * waits for an ACTION exception, its deviation and QA's disposition (EBMR-PLANT-094). A media fill (a process
+ * whose validity has ended (EBMR-PLANT-093). A lapse during the fill does not refuse later entries: at the step's sign-off
+ * the system raises an ACTION exception requiring a deviation (lead ruling, 15 November 2026: the server reads the
+ * line's validity, plant.aps_sign_off_facts, and the engine raises LIB_APS_LAPSED), and the sign-off waits for QA's
+ * disposition under the linked deviation; the database refuses the sign-off without it (EBMR-PLANT-094). A media fill (a process
  * simulation), a terminally sterilised master, a packaging block's line and a tablets master are not checked.
  *
  * The passage of time is arranged by moving a media fill's recorded line use into the past (test arrangement of the
@@ -385,7 +387,7 @@ describe('the line fills an aseptic batch only while its APS is valid (INV-23; S
     await signed(s.d, 'p-fill@');
   });
 
-  it('[INV-23] a lapse during the fill: the later entries are accepted; at the sign-off the step waits for an ACTION exception requiring a deviation, which blocks it until QA dispositions it under the linked deviation', async () => {
+  it('[INV-23] a lapse during the fill: the later entries are accepted; at the sign-off the system raises an ACTION exception requiring a deviation (LIB_APS_LAPSED), naming the line, when its validity ended and the clauses, once; it holds the step until QA dispositions it under the linked deviation', async () => {
     const units = await arrangeUnits();
     const mf = await passingMediaFill(units);
     await setInterval(units.line, 30);
@@ -400,27 +402,67 @@ describe('the line fills an aseptic batch only while its APS is valid (INV-23; S
       if (kind === 'tray') data['trayOut'] = `TRAY-${randomUUID().slice(0, 8)}`;
       await d.ok('operator1', libraryEntry('p-fill@', kind, data));
     }
+    // The facts the server states for the attempt: the line with the end of its validity, which has passed.
+    const facts = async (batchId: string) =>
+      (await gmp.db.admin.query<{ f: Record<string, string | null> }>("select plant.aps_sign_off_facts($1, 'p-fill', 'p-fill@', tab.now_micros()::bigint) as f", [batchId])).rows[0]!.f;
+    const until = (await facts(s.batchId))[units.line];
+    expect(BigInt(until!) <= BigInt((await gmp.db.admin.query<{ n: string }>('select tab.now_micros()::text as n')).rows[0]!.n)).toBe(true);
+    expect(await facts(mf.batchId)).toEqual({});
+    const lapsed = async () =>
+      (await gmp.db.admin.query<{ id: string; severity: string; dev: boolean; title: string }>(
+        "select exception_id as id, severity, deviation_required as dev, title from recipe.exception_register where batch_id = $1 and exception_type = 'LIB_APS_LAPSED'",
+        [s.batchId],
+      )).rows;
+    expect(await lapsed()).toEqual([]);
     const first = await d.sign('operator1', { type: 'SIGN_PERFORMED', stepKey: 'p-fill@' });
     expect(first.result.ok).toBe(false);
-    expect(JSON.stringify(first.result.ok ? null : first.result.error)).toMatch(/EBMR-PLANT-094.*the aseptic process simulation of the filling line .* was valid until .* during the filling of step p-fill@: raise an ACTION exception/);
-    await d.ok('operator1', { type: 'RAISE_EXCEPTION', stepKey: 'p-fill@', description: `APS of ${units.line} lapsed during the fill`, severity: 'ACTION' });
-    const { rows } = await gmp.db.admin.query<{ id: string; severity: string; dev: boolean }>(
-      "select exception_id as id, severity, deviation_required as dev from recipe.exception_register where batch_id = $1 and exception_type = 'OPERATOR_RAISED'",
-      [s.batchId],
-    );
-    expect(rows.map(({ severity, dev }) => ({ severity, dev }))).toEqual([{ severity: 'ACTION', dev: true }]);
-    const exceptionId = rows[0]!.id;
-    // Raised but not yet dispositioned under its deviation: the step is still not signed.
-    const open = await d.sign('operator1', { type: 'SIGN_PERFORMED', stepKey: 'p-fill@' });
-    expect(JSON.stringify(open.result.ok ? null : open.result.error)).toMatch(/EBMR-PLANT-094/);
+    const raised = await lapsed();
+    expect(raised.map(({ severity, dev }) => ({ severity, dev }))).toEqual([{ severity: 'ACTION', dev: true }]);
+    expect(raised[0]!.title).toContain(`filling line ${units.line} was valid until `);
+    expect(raised[0]!.title).toMatch(/a deviation is required.*\(Schedule M Part II 5\.5; 21 CFR 211\.113\(b\)\)$/);
+    const exceptionId = raised[0]!.id;
+    // Another attempt raises nothing new; the step waits for the disposition.
+    expect((await d.sign('operator1', { type: 'SIGN_PERFORMED', stepKey: 'p-fill@' })).result.ok).toBe(false);
+    expect(await lapsed()).toHaveLength(1);
     const qaInv = await gmp.asPersona('qaInvestigator');
     const dev = valueOf(await qaInv.call(routes.quality.raiseDeviation, { body: { kind: 'DEVIATION', title: `APS of ${units.line} lapsed during a fill`, classification: 'MAJOR', riskRationale: 'The line filled past the validity of its media fill; sterility assurance to be assessed.' } }));
     valueOf(await qaInv.call(routes.quality.linkDeviation, { params: { deviationId: dev.deviationId }, body: { subjectKind: 'BATCH', subjectId: s.batchId } }));
     await d.ok('supervisor1', { type: 'ATTACH_DEVIATION', exception: exceptionId, deviationRef: dev.ref });
-    const linked = await d.sign('operator1', { type: 'SIGN_PERFORMED', stepKey: 'p-fill@' });
-    expect(JSON.stringify(linked.result.ok ? null : linked.result.error)).toMatch(/EBMR-PLANT-094/);
+    expect((await d.sign('operator1', { type: 'SIGN_PERFORMED', stepKey: 'p-fill@' })).result.ok).toBe(false);
     await d.signed('qa1', { type: 'DISPOSITION_EXCEPTION', exception: exceptionId, outcome: 'DEVIATION_RAISED', justification: `Deviation ${dev.ref}: the batch is held until the investigation concludes` });
     await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: 'p-fill@' });
+    expect(await lapsed()).toHaveLength(1);
+  });
+
+  it('[INV-23] database bypass: after a lapse, a SIGN_PERFORMED of the filling step written straight to the execution store without the lapse exception is refused by the guard itself (EBMR-PLANT-094)', async () => {
+    const units = await arrangeUnits();
+    const mf = await passingMediaFill(units);
+    await setInterval(units.line, 30);
+    const s = await setupOn('PRODUCT', units);
+    expect(s.result.ok, errorText(s.result)).toBe(true);
+    await age(mf.batchId, 30n);
+    const c = await gmp.db.admin.connect();
+    try {
+      await c.query('begin');
+      await c.query('alter table recipe.execution_command disable trigger user');
+      await c.query('alter table recipe.execution_command enable trigger ad_plant_aps_interval');
+      const write = (type: string) => c.query(
+        `insert into recipe.execution_command
+           select batch_id, seq + 1000, kind, command_id || '-bypass-' || $2, $3, $4::jsonb, command_hash, actor_person, actor_account, actor_role, actor_legal_name, source,
+                  session_id, device_id, device_class, room_code, auth_event_id, tab.now_micros()::bigint, true, null, state_version, state_hash, events_hash, event_count, roles, signature_ids,
+                  evidence, prev_row_hash, row_hash, correlation_id, recorded_at
+             from recipe.execution_command where batch_id = $1 and command_type = 'RECORD_ENTRY' and accepted order by seq desc limit 1`,
+        [s.batchId, randomUUID(), type, JSON.stringify({ type, step: 'p-fill', context: [], signature: { id: randomUUID(), meaning: 'PERFORMED', signer: randomUUID() } })],
+      );
+      await c.query('savepoint a');
+      await expect(write('SIGN_PERFORMED')).rejects.toThrow(/EBMR-PLANT-094 the aseptic process simulation of the filling line .* was valid until .* during the filling of step p-fill@: an ACTION exception at the step \(the system raises it at the sign-off/);
+      await c.query('rollback to savepoint a');
+      // The same row as a VERIFY is not the sign-off the guard reads.
+      await expect(write('VERIFY')).resolves.toBeDefined();
+    } finally {
+      await c.query('rollback');
+      c.release();
+    }
   });
 
   it('[INV-23] database bypass: a RECORD_ENTRY naming the line written straight to the execution store, past the server, is refused by the guard itself', async () => {

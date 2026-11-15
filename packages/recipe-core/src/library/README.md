@@ -77,6 +77,11 @@ existing engine runs it with no code of its own:
   not a breach, and the step cannot be signed until it passes. The last allowed repeat without a pass raises
   `LIB_REPEAT_LIMIT_REACHED`, which holds the following steps until a deviation is linked. A PER_INTERVAL round recorded
   late raises `LIB_IPC_INTERVAL_MISSED`.
+- INV-23 (c): at a PERFORMED attempt, a filling line (an EQUIPMENT field of kind LINE, not of a PACKAGING block) whose
+  APS validity, as the server read it and stated in the command (`PerformFacts.apsValidUntilUs`, tablets 1915
+  `plant.aps_sign_off_facts`), ended at or before the sign-off raises `LIB_APS_LAPSED`: ACTION, a deviation required, QA
+  only; it holds the step and those after it until QA dispositions it. Judged at every attempt (`performFactExceptions`),
+  raised once per line and lapse. The database refuses the sign-off without it (EBMR-PLANT-094).
 - Test results need the planned number of readings, and each statistic is judged against its limit. A per-point result
   needs readings for exactly the formulation's points, each judged against that point's limits. `statistic` computes
   mean, min, max, range and the sample RSD in exact decimals.

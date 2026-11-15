@@ -20,7 +20,9 @@ import type {
   DataPoint,
   DataValue,
   EntryRecord,
+  ExceptionRecord,
   ExceptionSeverity,
+  PerformFacts,
   ReviewCategory,
 } from '../engine/types.ts';
 import type { FieldSchema, ObjectSchema } from './schema.ts';
@@ -120,6 +122,10 @@ export interface HandlerView {
   /** Containers registered in the batch. */
   containers(): readonly ContainerRecord[];
   parameter(id: string): Parameter | undefined;
+  /** The exceptions raised at this step instance, in the order raised. */
+  exceptions?(): readonly ExceptionRecord[];
+  /** At a PERFORMED attempt: the facts the server read for it (PerformFacts); absent elsewhere. */
+  readonly facts?: PerformFacts;
 }
 
 export type EntryResult =
@@ -166,6 +172,11 @@ export interface PhaseHandler {
   computeItems?(view: HandlerView): ComputedItem[];
   /** Evaluations at the PERFORMED transition that raise exceptions (tolerance, sampling shortfall). */
   onPerform?(view: HandlerView): { exceptions?: ExceptionDraft[]; notifications?: Notification[] };
+  /**
+   * Exceptions from the server-read facts of a PERFORMED attempt (`view.facts`), judged at every attempt (onPerform runs
+   * only when the step's data changed). Idempotent: raises only what the step does not hold yet (`view.exceptions`).
+   */
+  performFactExceptions?(view: HandlerView): ExceptionDraft[];
   /** Refusals at the PERFORMED transition (e.g. acknowledgement missing, containers not charged). */
   beforePerform?(view: HandlerView): HandlerProblem[];
   /**

@@ -273,6 +273,9 @@ export function finalisePerform(tx: Tx, cmd: SignPerformedCommand): void {
     raiseDrafts(tx, step, inst, eff?.exceptions);
     notify(tx, inst.key, eff?.notifications);
   }
+  // The server's facts of this attempt (INV-23 (c)) are judged at every attempt, whatever changed since the last one:
+  // the block raises only what the step does not hold yet.
+  if (handler?.performFactExceptions) raiseDrafts(tx, step, inst, handler.performFactExceptions(makeView(tx, step, inst, cmd.facts)));
 }
 
 export function signPerformed(tx: Tx, cmd: SignPerformedCommand): void {

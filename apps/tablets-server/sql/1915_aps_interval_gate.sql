@@ -52,6 +52,11 @@
 --                         requires one and stops the steps after it, engine batch.ts), the deviation linked and the
 --                         exception dispositioned DEVIATION_RAISED by QA (the register's rules, recipe-core 0440).
 --
+-- (c) The engine raises the lapse (lead ruling, 15 November 2026): at the filling step's sign-off the server reads
+--     plant.aps_sign_off_facts and states the lines' validity in the command; the engine raises LIB_APS_LAPSED, an ACTION
+--     exception requiring a deviation that holds the step and the steps after it until QA dispositions it under the
+--     linked deviation. -094 stays as the backstop for a sign-off written past the engine.
+--
 -- Messages: EBMR-PLANT-090 to EBMR-PLANT-094. PL/pgSQL, SECURITY DEFINER, search_path pinned with pg_temp last (ADR 0016).
 
 set local role ebmr_owner;
@@ -268,7 +273,7 @@ begin
                           and jsonb_typeof(x.value -> 'deviation') = 'object'
                           and x.value ->> 'status' = 'DISPOSITIONED'
                           and x.value -> 'disposition' ->> 'outcome' = 'DEVIATION_RAISED') then
-          return format('EBMR-PLANT-094 the aseptic process simulation of the filling line %s %s, during the filling of step %s: raise an ACTION exception at the step (it requires a deviation); the step is signed once QA has dispositioned it under the linked deviation (Schedule M Part II 5.5; 21 CFR 211.113(b))',
+          return format('EBMR-PLANT-094 the aseptic process simulation of the filling line %s %s, during the filling of step %s: an ACTION exception at the step (the system raises it at the sign-off; it requires a deviation) must be dispositioned by QA under the linked deviation before the step is signed (Schedule M Part II 5.5; 21 CFR 211.113(b))',
                         v_code, case when v_until is null then 'is no longer valid' else 'was valid until ' || plant.aps_us_text(v_until) end, v_key);
         end if;
       end loop;
@@ -301,10 +306,42 @@ end
 $$;
 create trigger ad_plant_aps_interval before insert on recipe.execution_command for each row execute function plant.aps_interval_check();
 
+-- (c) Lead ruling, 15 November 2026: the engine raises the lapse itself. The facts the server states in a SIGN_PERFORMED
+-- command (and its PREPARE target) for the step's PERFORMED attempt: each line the step's entries set, in a batch in
+-- scope, with the end of its APS validity at p_at_us in engine microseconds (as text; null without a valid APS). The
+-- engine raises LIB_APS_LAPSED (an ACTION exception requiring a deviation, recipe-core library/block-version.ts) for a
+-- line whose validity ended at or before the sign-off; the trigger above refuses the sign-off without it (-094), so a
+-- fact misstated by a writer is still caught here. Empty out of scope.
+create function plant.aps_sign_off_facts(p_batch uuid, p_step text, p_step_key text, p_at_us bigint) returns jsonb
+language plpgsql stable security definer set search_path = pg_catalog, plant, recipe, pg_temp as $$
+declare
+  v_content jsonb := recipe.batch_mbr_content(p_batch);
+  v_out     jsonb := '{}'::jsonb;
+  e         jsonb;
+  v_code    text;
+begin
+  if not plant.aps_interval_scope(p_batch, v_content) then
+    return v_out;
+  end if;
+  for e in select x.value from recipe.execution_state s,
+                  jsonb_each(case when jsonb_typeof(s.state -> 'entries') = 'object' then s.state -> 'entries' else '{}'::jsonb end) x
+            where s.batch_id = p_batch and x.value ->> 'stepKey' = p_step_key order by x.key loop
+    for v_code in select plant.aps_entry_lines(v_content, p_step, e ->> 'kind', e -> 'data') loop
+      if exists (select 1 from plant.equipment q where q.code = v_code) then
+        v_out := v_out || jsonb_build_object(v_code, plant.aps_valid_until_us(v_code, p_at_us)::text);
+      end if;
+    end loop;
+  end loop;
+  return v_out;
+end
+$$;
+
 revoke all on function plant.aps_interval_approval_guard(), plant.propose_aps_interval(text, integer, text), plant.approve_aps_interval(uuid),
   plant.aps_interval_days(uuid), plant.aps_valid_until_us(text, bigint), plant.aps_interval_scope(uuid, jsonb),
   plant.aps_entry_lines(jsonb, text, text, jsonb), plant.aps_us_text(bigint),
-  plant.aps_interval_problem(uuid, jsonb, text, jsonb, jsonb, bigint), plant.aps_interval_check() from public;
-grant execute on function plant.propose_aps_interval(text, integer, text), plant.approve_aps_interval(uuid) to ebmr_app;
+  plant.aps_interval_problem(uuid, jsonb, text, jsonb, jsonb, bigint), plant.aps_interval_check(),
+  plant.aps_sign_off_facts(uuid, text, text, bigint) from public;
+grant execute on function plant.propose_aps_interval(text, integer, text), plant.approve_aps_interval(uuid),
+  plant.aps_sign_off_facts(uuid, text, text, bigint) to ebmr_app;
 
 reset role;

@@ -125,7 +125,7 @@ function sweepPhase(base: Tx): void {
 
 function finalisePhase(base: Tx, target: SignatureTarget): void {
   if (target.type === 'SIGN_PERFORMED' && target.step !== undefined) {
-    finalisePerform(base, { type: 'SIGN_PERFORMED', commandId: '', actor: base.actor ?? { id: 'SYSTEM', kind: 'SYSTEM', roles: [] }, step: target.step, context: target.context ?? [] });
+    finalisePerform(base, { type: 'SIGN_PERFORMED', commandId: '', actor: base.actor ?? { id: 'SYSTEM', kind: 'SYSTEM', roles: [] }, step: target.step, context: target.context ?? [], ...(target.facts !== undefined ? { facts: target.facts } : {}) });
   }
 }
 
@@ -187,7 +187,7 @@ export function step(def: BatchDefinition, state: BatchState, command: Command, 
     if (command.expectedVersion !== undefined && command.expectedVersion !== state.version) {
       throw new RefusalError({ code: 'ENG-STALE', message: `The batch changed since this screen was loaded (version ${state.version}, expected ${command.expectedVersion}); reload and try again (ENG-STALE; DI-34)`, controls: ['DI-34'] });
     }
-    finalisePhase(base, command.type === 'SIGN_PERFORMED' ? { type: command.type, step: command.step, context: command.context ?? [] } : { type: command.type });
+    finalisePhase(base, command.type === 'SIGN_PERFORMED' ? { type: command.type, step: command.step, context: command.context ?? [], ...(command.facts !== undefined ? { facts: command.facts } : {}) } : { type: command.type });
   } catch (e) {
     if (e instanceof RefusalError) {
       resignAfterChange(state, base);

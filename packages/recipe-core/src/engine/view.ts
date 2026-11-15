@@ -4,10 +4,10 @@
 import type { HandlerView } from '../blocks/contract.ts';
 import type { StepDef } from './definition.ts';
 import { ctxKey, type Tx } from './tx.ts';
-import type { StepInstance } from './types.ts';
+import type { PerformFacts, StepInstance } from './types.ts';
 import { effectivePoint, pointsOf, resolveAt } from './values.ts';
 
-export function makeView(tx: Tx, step: StepDef, inst: StepInstance): HandlerView {
+export function makeView(tx: Tx, step: StepDef, inst: StepInstance, facts?: PerformFacts): HandlerView {
   const phase = step.node;
   if (phase.kind !== 'phase') throw new Error(`${step.id} is not a phase`);
   const s = tx.s;
@@ -50,5 +50,7 @@ export function makeView(tx: Tx, step: StepDef, inst: StepInstance): HandlerView
     },
     containers: () => Object.values(s.containers),
     parameter: (id) => def.analysis.parameters.get(id),
+    exceptions: () => Object.values(s.exceptions).filter((e) => e.source.stepKey === inst.key),
+    ...(facts !== undefined ? { facts } : {}),
   };
 }

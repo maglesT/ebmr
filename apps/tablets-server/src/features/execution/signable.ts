@@ -49,7 +49,7 @@ import type { DryRunOutcome, SignableActionHandler, SignableContext } from '../.
 import type { EsigSignableContext } from '../esig/content.ts';
 import { meaningInfo } from '../esig/views.ts';
 import { engineRefusal } from './guidance.ts';
-import { correctionApproval, signedCommand, signedMeaning, signedSubject, stepRoomRefusal, stepTarget, wireOf } from './intents.ts';
+import { correctionApproval, performFacts, signedCommand, signedMeaning, signedSubject, stepRoomRefusal, stepTarget, wireOf, withPerformFacts } from './intents.ts';
 import { peopleText } from './people-text.ts';
 import { displayPermissions, displayRoles, engineActor, engineRoles } from './roles.ts';
 import { loadRowFacts, notFound, runCache, runContext, type Db, type RunContext } from './runs.ts';
@@ -703,14 +703,17 @@ export function engineCommandHandler(app: AppContext): SignableActionHandler<Eng
   const cache = runCache(app);
 
   /** Locks the run and checks what does not depend on the command's own result (meaning, witness, version). */
-  async function open(client: pg.PoolClient, ctx: SignableContext, a: EngineAction): Promise<{ run: RunContext; tx: execution.ExecutionTx; subject: ReturnType<typeof signedSubject>; meaning: string; problem: Refusal | null }> {
+  async function open(client: pg.PoolClient, ctx: SignableContext, a: EngineAction): Promise<{ run: RunContext; tx: execution.ExecutionTx; subject: ReturnType<typeof signedSubject>; meaning: string; problem: Refusal | null; facts: engine.PerformFacts | undefined }> {
     const run = await runContext(client, a.runId);
     const tx = await execution.ExecutionTx.open(client, run.def, a.runId);
-    const subject = signedSubject(tx.state, a.intent);
+    // INV-23 (c): the facts of a PERFORMED attempt are read in the command's transaction, at its trusted time.
+    const facts = a.intent.type === 'SIGN_PERFORMED' ? await performFacts(client, a.runId, tx.state, a.intent.stepKey, tx.nowUs) : undefined;
+    const signed = signedSubject(tx.state, a.intent);
+    const subject = { ...signed, target: withPerformFacts(signed.target, facts) };
     // At the transaction's trusted time: a check due as a witness is the step's later review once no witness is possible.
     const meaning = signedMeaning(run.def, tx.state, a.intent, tx.nowUs) ?? '';
     const problem: Refusal | null = meaning !== meaningOf(ctx) ? mismatch(meaning, meaningOf(ctx)) : null;
-    return { run, tx, subject, meaning, problem };
+    return { run, tx, subject, meaning, problem, facts };
   }
 
   return {
@@ -742,7 +745,9 @@ export function engineCommandHandler(app: AppContext): SignableActionHandler<Eng
       const exists = type === 'batch_step' ? stored.state.steps[key] : type === 'batch_stage' ? stored.state.stages[key] : stored.state.exceptions[key];
       if (!exists) throw notFound('record to be signed');
       if (parsed.decision !== null && (type !== 'batch_step' || stored.state.steps[key]?.kind !== 'HOLD')) throw badIntent('a hold-point decision only for a hold point');
-      const prepared = engine.prepareForSignature(run.def, stored.state, previewTarget(run.def, stored.state, type, key, meaning.code), actor, { nowUs });
+      const target = previewTarget(run.def, stored.state, type, key, meaning.code);
+      const facts = target.type === 'SIGN_PERFORMED' ? await performFacts(db, runId, stored.state, key, nowUs) : undefined;
+      const prepared = engine.prepareForSignature(run.def, stored.state, withPerformFacts(target, facts), actor, { nowUs });
       const c = engine.aggregateContent(run.def, prepared.state, type, key);
       if (!c) throw notFound('record to be signed');
       const proposal = type === 'batch_exception' ? (parsed.proposal ? proposalOf(prepared.state, key, parsed.proposal) : null) : undefined;
@@ -799,7 +804,7 @@ export function engineCommandHandler(app: AppContext): SignableActionHandler<Eng
       await o.tx.prepare(o.subject.target, actor, roles, o.meaning);
       const placeholder: engine.SignatureRef = { id: engine.PLACEHOLDER_SIGNATURE_ID, meaning: o.meaning, signer: actor.id };
       const approval = a.intent.type === 'CORRECT_ENTRY' && a.intent.approvalSignatureId ? await correctionApproval(client, a.runId, a.intent.point, a.intent.approvalSignatureId) : undefined;
-      const command = signedCommand(o.tx.state, a.intent, actor, placeholder, `ESIG-DRY:${randomUUID()}`, a.expectedVersion, approval);
+      const command = withPerformFacts(signedCommand(o.tx.state, a.intent, actor, placeholder, `ESIG-DRY:${randomUUID()}`, a.expectedVersion, approval), o.facts);
       const dry = o.tx.dryRun(command);
       if (!dry.accepted) {
         // The refusal is part of the record: a refused COMMAND row with the placeholder (never a signature).
@@ -833,7 +838,7 @@ export function engineCommandHandler(app: AppContext): SignableActionHandler<Eng
       const actor = engineActor(ctx.actor.personId, roles);
       const before = signedHash(o.run.def, o.tx.state, o.subject.aggregateType, o.subject.key);
       const approval = a.intent.type === 'CORRECT_ENTRY' && a.intent.approvalSignatureId ? await correctionApproval(client, a.runId, a.intent.point, a.intent.approvalSignatureId) : undefined;
-      const command = signedCommand(o.tx.state, a.intent, actor, { id: signature.signatureId, meaning: signature.meaning, signer: signature.signer }, `ESIG:${signature.signatureId}`, a.expectedVersion, approval);
+      const command = withPerformFacts(signedCommand(o.tx.state, a.intent, actor, { id: signature.signatureId, meaning: signature.meaning, signer: signature.signer }, `ESIG:${signature.signatureId}`, a.expectedVersion, approval), o.facts);
       const r = await o.tx.command(command, roles, { signatureId: signature.signatureId });
       if (!r.accepted) throw new Error(`EBMR-EXE-082 the signed command was refused after its dry run was accepted (${r.refusal?.code ?? '?'}: ${r.refusal?.message ?? ''}); nothing is kept`);
       const after = signedHash(o.run.def, o.tx.state, o.subject.aggregateType, o.subject.key);

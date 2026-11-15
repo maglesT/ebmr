@@ -179,6 +179,22 @@ export interface SignPerformedCommand extends CommandBase, StepTarget {
   /** Absent only for a SYSTEM actor ending an automated phase in one-verifier mode (S5a). */
   readonly signature?: SignatureRef;
   readonly occurredAt?: OccurredAt;
+  /** The facts the server read for the PERFORMED attempt (PerformFacts); never the person's. */
+  readonly facts?: PerformFacts;
+}
+
+/**
+ * Facts the server reads from its registers for a PERFORMED attempt and states in the command (and in the PREPARE row's
+ * target), so the attempt is replayed on the same facts. The database checks them independently (INV-23 (c): tablets
+ * 1915 refuses the sign-off of a lapsed line without its exception, EBMR-PLANT-094).
+ */
+export interface PerformFacts {
+  /**
+   * INV-23 (c): each filling line the step's entries name in an aseptic GMP fill (the scope of tablets 1915), with the
+   * end of its APS validity (its last passing media fill plus the line's QA-approved interval); null when the line has
+   * no valid APS at all. A line outside the scope is not listed.
+   */
+  readonly apsValidUntilUs?: Readonly<Record<string, bigint | null>>;
 }
 
 export interface VerifyCommand extends CommandBase, StepTarget {
@@ -402,6 +418,8 @@ export interface SignatureTarget {
   readonly type: CommandType;
   readonly step?: string;
   readonly context?: readonly Frame[];
+  /** SIGN_PERFORMED: the server-read facts of the attempt, as the command states them (PerformFacts). */
+  readonly facts?: PerformFacts;
 }
 
 // ---------------------------------------------------------------------------------------------

@@ -1052,7 +1052,8 @@ export const TARGETS: Target[] = [
   {
     group: 'inj-aps-interval',
     functions: ['plant.aps_interval_approval_guard', 'plant.propose_aps_interval', 'plant.approve_aps_interval', 'plant.aps_interval_days',
-                'plant.aps_valid_until_us', 'plant.aps_interval_scope', 'plant.aps_entry_lines', 'plant.aps_interval_problem', 'plant.aps_interval_check'],
+                'plant.aps_valid_until_us', 'plant.aps_interval_scope', 'plant.aps_entry_lines', 'plant.aps_interval_problem', 'plant.aps_interval_check',
+                'plant.aps_sign_off_facts'],
     tests: [s('injectables/aps-interval-gate.test.ts')],
     threshold: 90,
   },

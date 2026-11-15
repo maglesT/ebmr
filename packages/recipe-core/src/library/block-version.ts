@@ -22,6 +22,7 @@ import type { BlockVersion, ExceptionDraft, ExceptionRule, HandlerProblem, Handl
 import type { FieldSchema, ObjectSchema } from '../blocks/schema.ts';
 import { tierDraft } from '../engine/exceptions.ts';
 import type { EntryRecord } from '../engine/types.ts';
+import { microsToIso } from '../engine/values.ts';
 import type { ExpressionService, ExprType, ExprValue } from '../flow/expression-port.ts';
 import { durationToMicros, midpointDecimal } from '../flow/decimal.ts';
 import type { JsonValue, MbrContent } from '../flow/model.ts';
@@ -47,7 +48,42 @@ export const LIBRARY_EXCEPTION_RULES: ExceptionRule[] = [
   { type: 'LIB_NOT_ALLOWED_CHOICE', category: 'OUT_OF_LIMIT', severity: 'ACTION', summary: 'A choice the formulation marks as not allowed', controls: ['PR-29', 'PR-08'] },
   { type: 'LIB_IPC_INTERVAL_MISSED', category: 'TIME_LIMIT', severity: 'ACTION', summary: 'An in-process check was recorded later than its interval', controls: ['PR-29', 'PR-30'] },
   { type: 'LIB_REPEAT_LIMIT_REACHED', category: 'OUT_OF_LIMIT', severity: 'ACTION', summary: 'The maximum number of repeats was reached without a passing value', controls: ['PR-08', 'INV-20'] },
+  { type: 'LIB_APS_LAPSED', category: 'TIME_LIMIT', severity: 'ACTION', summary: 'The aseptic process simulation of the filling line was no longer valid at the step\'s sign-off', controls: ['INV-23'] },
 ];
+
+/**
+ * INV-23 (c) (lead ruling, 15 November 2026): a lapse during the fill refuses no later entry; at the step's sign-off, each
+ * filling line its entries name (an EQUIPMENT field of kind LINE, not of a PACKAGING block) whose APS validity, as the
+ * server read it (`view.facts`, tablets 1915 plant.aps_sign_off_facts), ended at or before the sign-off raises an ACTION
+ * exception that requires a deviation. Paraphrased: Schedule M Part II 5.5 (the aseptic process is validated by process
+ * simulations repeated at set intervals) and 21 CFR 211.113(b) (every aseptic process is validated). The step is signed,
+ * and the steps after it run, once QA has dispositioned it under the linked deviation (the database refuses the
+ * sign-off without it, EBMR-PLANT-094). Raised once per line and lapse: what the step holds already is not raised again.
+ */
+export function apsLapseExceptions(def: Pick<BlockDefinition, 'title' | 'category' | 'sections'>, view: Pick<HandlerView, 'phase' | 'nowUs' | 'entries' | 'exceptions' | 'facts'>): ExceptionDraft[] {
+  const until = view.facts?.apsValidUntilUs;
+  if (until === undefined || def.category === 'PACKAGING') return [];
+  const held = view.exceptions?.() ?? [];
+  const seen = new Set<string>();
+  const out: ExceptionDraft[] = [];
+  for (const section of def.sections) {
+    for (const f of section.fields) {
+      if (f.type !== 'EQUIPMENT' || f.kind !== 'LINE') continue;
+      for (const e of view.entries(section.id)) {
+        const code = e.data[f.id];
+        if (typeof code !== 'string' || seen.has(code) || !Object.hasOwn(until, code)) continue;
+        seen.add(code);
+        const end = until[code] ?? null;
+        if (end !== null && end > view.nowUs) continue;
+        const lapse = end === null ? 'is no longer valid' : `was valid until ${microsToIso(end).slice(0, 19)}Z`;
+        const title = `${def.title}: the aseptic process simulation (media fill) of the filling line ${code} ${lapse}, before the step's sign-off; the line filled past its validation, so a deviation is required and QA dispositions it before the step is signed (Schedule M Part II 5.5; 21 CFR 211.113(b))`;
+        if (held.some((x) => x.type === 'LIB_APS_LAPSED' && x.title === title)) continue;
+        out.push({ type: 'LIB_APS_LAPSED', title, controls: ['INV-23'], severity: 'ACTION', category: 'TIME_LIMIT', item: `${view.phase.id}.${f.id}`, blocks: 'STEP_AND_DOWNSTREAM', until: 'DISPOSITION', deviationRequired: true, qaOnly: true });
+      }
+    }
+  }
+  return out;
+}
 
 type Config = Omit<BlockUse, 'block'> & { hash?: string };
 
@@ -637,6 +673,7 @@ export function libraryBlockVersion(def: BlockDefinition, expr: ExpressionServic
       onPerform: (view) => ({
         exceptions: def.sections.flatMap((s) => intervalMissed(view, s, 'the step ended later after its last check than') ?? []),
       }),
+      performFactExceptions: (view) => apsLapseExceptions(def, view),
       beforePerform: (view) => {
         const config = configOf(view);
         const out: HandlerProblem[] = [];
