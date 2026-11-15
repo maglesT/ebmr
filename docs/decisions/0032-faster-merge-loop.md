@@ -32,8 +32,11 @@
    - the trace gate on what the gate ran (`register trace --partial`). A failing test, an unknown control, an unlisted
      passing test, and a listed test that its file no longer reports all fail the gate, as in a full run.
 
-   Any doubt selects more: a root configuration file, a path in no package that no package names, or a diff that cannot
-   be read runs every test.
+   Any doubt selects more: a root configuration file or a path in no package that no package names runs every test.
+   With no merge base (a shallow clone), the plain diff of the base and head commits is used, which holds more files,
+   never fewer. A diff that cannot be read at all fails the gate, because the SQL mutation of the changed guards could
+   not be chosen (lead amendment, 14 November 2026: every gate from #263 to this fix ran with no readable diff and so
+   skipped that mutation).
 2. **After merging main into a pull request, only its gate runs again.** The selection diffs the pull request against
    its merge base with main, so the merge itself adds nothing to it.
 3. **Every merge on main is contained in a completed, green full run, and there is a nightly full run.** A newer merge

@@ -251,10 +251,21 @@ export function select(input: SelectInput): Plan {
   return { unitAll, unitPaths, golden, e2eGroups, sqlFunctions: [...(input.sqlFunctions ?? [])], reasons };
 }
 
-/** The files a pull request changes: the diff from the merge base of base and head (a merge of main adds none). */
+/**
+ * The files a pull request changes: the diff from the merge base of base and head (a merge of main adds none). Where git
+ * finds no merge base (a shallow clone), the plain diff of the two commits is used instead: it holds every file the pull
+ * request changes plus any that main changed since, so it selects more, never less. Throws when neither can be read.
+ */
 export function changedFiles(base: string, head: string, root: string = ROOT): string[] {
-  const out = execFileSync('git', ['diff', '--name-only', '--no-renames', `${base}...${head}`], { cwd: root, encoding: 'utf8' });
-  return out.split('\n').map((s) => s.trim()).filter(Boolean);
+  const diff = (range: string[]): string[] =>
+    execFileSync('git', ['diff', '--name-only', '--no-renames', ...range], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
+      .split('\n').map((s) => s.trim()).filter(Boolean);
+  try {
+    return diff([`${base}...${head}`]);
+  } catch {
+    console.log(`no merge base of ${base} and ${head}: the plain diff of the two commits is used (a superset)`);
+    return diff([base, head]);
+  }
 }
 
 function main(args: string[]): void {
@@ -267,8 +278,10 @@ function main(args: string[]): void {
     if (filesArg) changed = readFileSync(filesArg, 'utf8').split('\n').map((s) => s.trim()).filter(Boolean);
     else if (base && head) changed = changedFiles(base, head);
   } catch (e) {
-    console.error(`could not read the changed files (${String(e)}): everything runs`);
-    changed = [];
+    // Everything would run but the SQL mutation of the changed guards, which cannot be chosen without the changed files
+    // (all of them is the weekly run's hours): fail, so the gap is seen and the run repeated, never a silent skip.
+    console.error(`::error::could not read the changed files of ${base}...${head} (${String(e)}): the gate cannot be selected`);
+    process.exit(1);
   }
   const workspaces = readWorkspaces();
   const plan = select({ changed, workspaces, references: readReferences(workspaces), e2eRules: readE2eRules(), sqlFunctions: sqlFunctionsOf(changed) });
