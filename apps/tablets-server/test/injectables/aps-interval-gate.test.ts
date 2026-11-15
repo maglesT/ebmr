@@ -540,6 +540,13 @@ describe('the line fills an aseptic batch only while its APS is valid (INV-23; S
     const validUntil = async (at: bigint) => (await gmp.db.admin.query<{ v: string | null }>('select plant.aps_valid_until_us($1, $2)::text as v', [units.line, at.toString()])).rows[0]!.v;
     expect(await validUntil(used)).toBe(until.toString());
     expect(await validUntil(used - 1n)).toBeNull();
+    // The facts the server states at a sign-off: the lines of that step's entries in that batch only.
+    const facts = async (batchId: string, stepKey: string) =>
+      (await gmp.db.admin.query<{ f: unknown }>("select plant.aps_sign_off_facts($1, 'p-fill', $2, $3) as f", [batchId, stepKey, used.toString()])).rows[0]!.f;
+    const other = await issued('PRODUCT');
+    expect(await facts(s.batchId, 'p-fill@')).toEqual({ [units.line]: until.toString() });
+    expect(await facts(s.batchId, 'p-em@')).toEqual({});
+    expect(await facts(other.batchId, 'p-fill@')).toEqual({});
     const problem = async (type: string, command: Json, state: Json, now: bigint) =>
       (await gmp.db.admin.query<{ p: string | null }>('select plant.aps_interval_problem($1, recipe.batch_mbr_content($1), $2, $3::jsonb, $4::jsonb, $5) as p',
         [s.batchId, type, JSON.stringify(command), JSON.stringify(state), now.toString()])).rows[0]!.p;
