@@ -497,16 +497,24 @@ function checkApsReading(def: BlockDefinition): LibraryProblem[] {
 }
 
 /**
- * ST-28 (injectables 3040): the gas overlay and its filter's post-use test are read by marks, whatever the blocks' codes.
+ * ST-28 (injectables 3040) and INV-36 (injectables 3060): the gas overlay and the filter integrity tests are read by
+ * marks and roles, whatever the blocks' codes.
  * `gasOverlayApplied` is on a CHOICE field, naming one of its options, or on a YES_NO field as `true` (LIB-GAS-OVERLAY).
  * A block with the role GAS_FILTER_INTEGRITY marks exactly one NUMBER field `postUseIntegrity`, critical and with a
- * limit slot, so the database judges the result against the step's limit; the mark is refused on a block without the
- * role (LIB-GAS-FILTER).
+ * limit slot, so the database judges the result against the step's limit (LIB-GAS-FILTER).
+ * A block with the role STERILE_FILTER_INTEGRITY (the product's sterilising filter, Schedule M Part II 6.11.2.7) marks
+ * at least one result field `preUseIntegrity` and at least one `postUseIntegrity` (one per test method), each a critical
+ * NUMBER field with a limit slot; no section holds both, and every post-use section comes after every pre-use section,
+ * so the record shows the post-use test after the filtration (LIB-STERILE-FILTER).
+ * The marks are refused on a block without the role, and a block has at most one of the two roles.
  */
 function checkGasOverlay(def: BlockDefinition): LibraryProblem[] {
   const out: LibraryProblem[] = [];
-  const role = Array.isArray(def.roles) && def.roles.includes('GAS_FILTER_INTEGRITY');
-  const marked: { path: string; field: FieldDef }[] = [];
+  const roles = Array.isArray(def.roles) ? def.roles : [];
+  const gas = roles.includes('GAS_FILTER_INTEGRITY');
+  const sterile = roles.includes('STERILE_FILTER_INTEGRITY');
+  const post: { path: string; field: FieldDef; section: number }[] = [];
+  const pre: { path: string; field: FieldDef; section: number }[] = [];
   def.sections.forEach((s, si) =>
     (s.fields ?? []).forEach((f, fi) => {
       const fp = `sections[${si}].fields[${fi}]`;
@@ -515,20 +523,43 @@ function checkGasOverlay(def: BlockDefinition): LibraryProblem[] {
         const ok = f.type === 'CHOICE' ? typeof overlay === 'string' && f.options.includes(overlay) : f.type === 'YES_NO' && overlay === true;
         if (!ok) out.push(err('LIB-GAS-OVERLAY', `${fp}.gasOverlayApplied`, `Field ${f.id}: an applied gas overlay is marked on a choice field as one of its options, or on a yes/no field as true [ST-28]`, ['ST-28']));
       }
-      if ((f as { postUseIntegrity?: unknown }).postUseIntegrity !== undefined) marked.push({ path: `${fp}.postUseIntegrity`, field: f });
+      if ((f as { postUseIntegrity?: unknown }).postUseIntegrity !== undefined) post.push({ path: `${fp}.postUseIntegrity`, field: f, section: si });
+      if ((f as { preUseIntegrity?: unknown }).preUseIntegrity !== undefined) pre.push({ path: `${fp}.preUseIntegrity`, field: f, section: si });
     }),
   );
-  if (!role) {
-    for (const { path, field } of marked) out.push(err('LIB-GAS-FILTER', path, `Field ${field.id} marks a gas filter's post-use integrity result, which only a block with the role GAS_FILTER_INTEGRITY carries [ST-28]`, ['ST-28']));
+  const result = (field: FieldDef, mark: 'preUseIntegrity' | 'postUseIntegrity'): boolean =>
+    field.type === 'NUMBER' && field[mark] === true && field.critical === true && typeof field.limitSlot === 'string';
+  if (gas && sterile) {
+    out.push(err('LIB-STERILE-FILTER', 'roles', 'A block is either the overlay gas filter\'s test (GAS_FILTER_INTEGRITY) or the sterilising filter\'s tests (STERILE_FILTER_INTEGRITY), not both [ST-28, INV-36]', ['ST-28', 'INV-36']));
     return out;
   }
-  if (marked.length !== 1) {
-    out.push(err('LIB-GAS-FILTER', 'roles', `A gas filter's post-use integrity test (role GAS_FILTER_INTEGRITY) marks exactly one NUMBER field as its result (postUseIntegrity); this block marks ${marked.length} [ST-28]`, ['ST-28']));
+  if (!sterile) {
+    for (const { path, field } of pre) out.push(err('LIB-STERILE-FILTER', path, `Field ${field.id} marks a sterilising filter's pre-use integrity result, which only a block with the role STERILE_FILTER_INTEGRITY carries [INV-36]`, ['INV-36']));
   }
-  for (const { path, field } of marked) {
-    if (field.type !== 'NUMBER' || field.postUseIntegrity !== true || field.critical !== true || typeof field.limitSlot !== 'string') {
-      out.push(err('LIB-GAS-FILTER', path, `Field ${field.id}: the post-use integrity result is a critical NUMBER field with a limit slot, marked postUseIntegrity: true [ST-28]`, ['ST-28']));
+  if (!gas && !sterile) {
+    for (const { path, field } of post) out.push(err('LIB-GAS-FILTER', path, `Field ${field.id} marks a filter's post-use integrity result, which only a block with the role GAS_FILTER_INTEGRITY or STERILE_FILTER_INTEGRITY carries [ST-28, INV-36]`, ['ST-28', 'INV-36']));
+    return out;
+  }
+  if (gas) {
+    if (post.length !== 1) {
+      out.push(err('LIB-GAS-FILTER', 'roles', `A gas filter's post-use integrity test (role GAS_FILTER_INTEGRITY) marks exactly one NUMBER field as its result (postUseIntegrity); this block marks ${post.length} [ST-28]`, ['ST-28']));
     }
+    for (const { path, field } of post) {
+      if (!result(field, 'postUseIntegrity')) out.push(err('LIB-GAS-FILTER', path, `Field ${field.id}: the post-use integrity result is a critical NUMBER field with a limit slot, marked postUseIntegrity: true [ST-28]`, ['ST-28']));
+    }
+    return out;
+  }
+  if (pre.length === 0 || post.length === 0) {
+    out.push(err('LIB-STERILE-FILTER', 'roles', `A sterilising filter's integrity tests (role STERILE_FILTER_INTEGRITY) mark at least one result before use (preUseIntegrity) and at least one after use (postUseIntegrity); this block marks ${pre.length} and ${post.length} [INV-36]`, ['INV-36']));
+  }
+  for (const [list, mark] of [[pre, 'preUseIntegrity'], [post, 'postUseIntegrity']] as const) {
+    for (const { path, field } of list) {
+      if (!result(field, mark)) out.push(err('LIB-STERILE-FILTER', path, `Field ${field.id}: a filter integrity result is a critical NUMBER field with a limit slot, marked ${mark}: true [INV-36]`, ['INV-36']));
+    }
+  }
+  const lastPre = Math.max(-1, ...pre.map((x) => x.section));
+  for (const { path, field, section } of post) {
+    if (section <= lastPre) out.push(err('LIB-STERILE-FILTER', path, `Field ${field.id}: the post-use integrity result is in a section after every pre-use result's section, so it is recorded after the filtration [INV-36]`, ['INV-36']));
   }
   return out;
 }

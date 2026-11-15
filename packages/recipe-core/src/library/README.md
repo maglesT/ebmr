@@ -53,6 +53,7 @@ responsibility (decision 0026 point 3).
 | Conditional fields: shown when an earlier yes/no or choice field has one of its answers; a calculation reads one only under the same condition; a repeat never waits on one | LIB-SHOW-WHEN, LIB-CALC-CONDITIONAL, LIB-REPEAT-UNTIL | DI-33, INV-20 |
 | A media-fill reading (role APS_READING) marks exactly one NUMBER field, in whole units (decimals 0), as the count of contaminated units (`contaminatedCount`); the mark is refused on a block without the role (the database reads the count by it, tablets 1912) | LIB-APS-READING | ST-33 |
 | A gas overlay's filter test (role GAS_FILTER_INTEGRITY) marks exactly one critical NUMBER field with a limit slot as its post-use result (`postUseIntegrity`), refused on a block without the role; an applied overlay is marked `gasOverlayApplied` on a choice field (one of its options) or a yes/no field (`true`) | LIB-GAS-FILTER, LIB-GAS-OVERLAY | ST-28 |
+| A sterilising filter's integrity tests (role STERILE_FILTER_INTEGRITY) mark at least one result before use (`preUseIntegrity`) and one after use (`postUseIntegrity`), each a critical NUMBER field with a limit slot, the post-use results in sections after the pre-use ones; the marks are refused on a block without the role, and a block has at most one filter role (the database reads them, injectables 3060) | LIB-STERILE-FILTER | INV-36 |
 | The content hash pinned at formulation approval matches the library version (`definitionHash`) | LIB-USE-HASH | PR-05, DI-10 |
 
 ## The generic handler (`block-version.ts`, slice S2)
