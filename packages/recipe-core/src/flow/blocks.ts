@@ -42,6 +42,10 @@ export const BLOCK_ROLES = [
   // whose record marks an overlay applied is released only with a passing result of a library block with this role
   // (ST-28; injectables 3040), so a firm's own QA-approved test block counts without software.
   'GAS_FILTER_INTEGRITY',
+  // The integrity tests of the product's sterilising filter, before and after use (Schedule M Part II 6.11.2.7): a batch
+  // with a step of a library block with this role is released only when the step has a passing pre-use and a passing
+  // post-use result, the post-use one recorded after the step's other entries (INV-36; injectables 3060).
+  'STERILE_FILTER_INTEGRITY',
 ] as const;
 export type BlockRole = (typeof BLOCK_ROLES)[number];
 
