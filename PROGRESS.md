@@ -1,7 +1,7 @@
 # eBMR: current state
 
 Keep this page short (under 150 lines): the current state, the rules in force and the next steps. Append history to
-`docs/progress/history.md` (search it; do not read it whole). Last updated: 14 November 2026 (session 20, ADR 0023 PR 2).
+`docs/progress/history.md` (search it; do not read it whole). Last updated: 15 November 2026 (lead, decision 0033: feature freeze).
 
 ## What this is
 
@@ -12,6 +12,9 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 ## Rules in force (owner)
 
+- **Decision 0033 (15 November 2026): FROZEN for new features.** Real bug fixes only, and the demo keeps running.
+  Effort moves to the new product TrueBatch. #261, #271 and #275 were closed unmerged; build sessions 21 and 22 were
+  ended. Everything under "Next" is paused. See `docs/decisions/0033-feature-freeze-truebatch.md`.
 - **Decision 0026 (1 November 2026): dynamic library, freeze the extras.** Library blocks are data (forms built
   from fixed field types, QA-approved and versioned); formulations are assembled on screen and batches generated from
   them. Frozen (kept in the repo and in CI, no new work): injectables, site gateway, simulators, analytics/MSPC,
@@ -132,6 +135,8 @@ D-0 to D-4, R-flow and R-rest; the capsules edition; the injectables plan and I-
 (decision 0026); Phases 0 to 4, 6, 6A and 7 (Tablets v1.0.0-rc.1, 19 October) and the hosted-demo slices 7h to 7u.
 
 ## Next
+
+**Paused by decision 0033 (feature freeze).** The items below are kept for reference only.
 
 - **Injectables I-6, edition exit (14 November 2026).** `compliance/phase.yaml` lists `injectables`, so the trace gate
   covers both editions. Merged: B1 to B5 (#245 to #248, #252), PR-15/PR-28 (#253), GB-I-01 (#254). The golden batch
