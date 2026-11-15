@@ -53,7 +53,7 @@ describe('the engine raises the APS lapse at the filling step\'s sign-off (INV-2
     expect(x).toMatchObject({ severity: 'ACTION', category: 'TIME_LIMIT', deviationRequired: true, qaOnly: true, status: 'OPEN', controls: ['INV-23'], source: { stepKey: 'p@', item: 'p.line' }, block: { steps: ['p@'], until: 'DISPOSITION' } });
     expect(x!.block?.downstream).toBeDefined();
     expect(x!.raisedAt >= until).toBe(true);
-    expect(x!.title).toMatch(/filling line FL-1 was valid until \d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ, before the step's sign-off.*a deviation is required.*\(Schedule M Part II 5\.5; 21 CFR 211\.113\(b\)\)$/);
+    expect(x!.title).toMatch(/filling line FL-1 was valid until \d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ, before the step's sign-off.*a deviation is required.*\(Schedule M Part II 5\.5; 21 CFR 211\.113\(b\); QA reviews and dispositions it, 21 CFR 211\.22, 211\.192\)$/);
     // A second attempt on the same facts raises nothing new; the step waits for the disposition.
     expect(signWith(run, { apsValidUntilUs: { 'FL-1': until } }).accepted).toBe(false);
     expect(run.exceptions('LIB_APS_LAPSED')).toHaveLength(1);

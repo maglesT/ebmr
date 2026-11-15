@@ -76,7 +76,7 @@ export function apsLapseExceptions(def: Pick<BlockDefinition, 'title' | 'categor
         const end = until[code] ?? null;
         if (end !== null && end > view.nowUs) continue;
         const lapse = end === null ? 'is no longer valid' : `was valid until ${microsToIso(end).slice(0, 19)}Z`;
-        const title = `${def.title}: the aseptic process simulation (media fill) of the filling line ${code} ${lapse}, before the step's sign-off; the line filled past its validation, so a deviation is required and QA dispositions it before the step is signed (Schedule M Part II 5.5; 21 CFR 211.113(b))`;
+        const title = `${def.title}: the aseptic process simulation (media fill) of the filling line ${code} ${lapse}, before the step's sign-off; the line filled past its validation, so a deviation is required and QA dispositions it before the step is signed (Schedule M Part II 5.5; 21 CFR 211.113(b); QA reviews and dispositions it, 21 CFR 211.22, 211.192)`;
         if (held.some((x) => x.type === 'LIB_APS_LAPSED' && x.title === title)) continue;
         out.push({ type: 'LIB_APS_LAPSED', title, controls: ['INV-23'], severity: 'ACTION', category: 'TIME_LIMIT', item: `${view.phase.id}.${f.id}`, blocks: 'STEP_AND_DOWNSTREAM', until: 'DISPOSITION', deviationRequired: true, qaOnly: true });
       }

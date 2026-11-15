@@ -273,7 +273,7 @@ begin
                           and jsonb_typeof(x.value -> 'deviation') = 'object'
                           and x.value ->> 'status' = 'DISPOSITIONED'
                           and x.value -> 'disposition' ->> 'outcome' = 'DEVIATION_RAISED') then
-          return format('EBMR-PLANT-094 the aseptic process simulation of the filling line %s %s, during the filling of step %s: an ACTION exception at the step (the system raises it at the sign-off; it requires a deviation) must be dispositioned by QA under the linked deviation before the step is signed (Schedule M Part II 5.5; 21 CFR 211.113(b))',
+          return format('EBMR-PLANT-094 the aseptic process simulation of the filling line %s %s, during the filling of step %s: an ACTION exception at the step (the system raises it at the sign-off; it requires a deviation) must be dispositioned by QA under the linked deviation before the step is signed (Schedule M Part II 5.5; 21 CFR 211.113(b); only QA dispositions it, 21 CFR 211.22, 211.192)',
                         v_code, case when v_until is null then 'is no longer valid' else 'was valid until ' || plant.aps_us_text(v_until) end, v_key);
         end if;
       end loop;

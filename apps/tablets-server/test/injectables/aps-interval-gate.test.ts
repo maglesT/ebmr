@@ -419,7 +419,7 @@ describe('the line fills an aseptic batch only while its APS is valid (INV-23; S
     const raised = await lapsed();
     expect(raised.map(({ severity, dev }) => ({ severity, dev }))).toEqual([{ severity: 'ACTION', dev: true }]);
     expect(raised[0]!.title).toContain(`filling line ${units.line} was valid until `);
-    expect(raised[0]!.title).toMatch(/a deviation is required.*\(Schedule M Part II 5\.5; 21 CFR 211\.113\(b\)\)$/);
+    expect(raised[0]!.title).toMatch(/a deviation is required.*\(Schedule M Part II 5\.5; 21 CFR 211\.113\(b\); QA reviews and dispositions it, 21 CFR 211\.22, 211\.192\)$/);
     const exceptionId = raised[0]!.id;
     // Another attempt raises nothing new; the step waits for the disposition.
     expect((await d.sign('operator1', { type: 'SIGN_PERFORMED', stepKey: 'p-fill@' })).result.ok).toBe(false);
