@@ -55,6 +55,9 @@ cases, a fixed-seed corpus of 2,500 trees and the two rules through the interpre
 differences. Stryker on the package: 100 %, no survivor (CI job `rules-mutation`); SQL mutation group `rules-generated`
 100 % with two recorded equivalents. No guard calls the generated functions yet; the family switch-overs (6.1 after
 recipe-core 1928, then 6.2) come next, each with the differential harness.
+Before 6.1 (lead's audit advisory on #267): the interpreter reads a JSON number through `Dec.parse(String(n))`, after
+JSON.parse has already rounded it to a double; GMP decimals must reach the rules as strings. Add a test that a JS number
+in a GMP decimal position is refused or flagged, or document that the engine never passes one.
 
 **Demo report r13 bugs 2 and 3 (13-14 November 2026, branch fix-revise-approved-master).** "Start a new version…"
 (designer.deriveVersion, recipe.derive_version) derives a DRAFT from an APPROVED or RETIRED master; "Return to draft…"
