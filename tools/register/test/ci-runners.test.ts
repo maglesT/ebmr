@@ -16,10 +16,16 @@ function runsOn(workflow: string): Map<string, string> {
   return new Map(Object.entries(doc.jobs).map(([id, job]) => [id, typeof job['runs-on'] === 'string' ? job['runs-on'] : '']));
 }
 
-/** The Ubicloud size (vCPUs) a `runs-on` names, or undefined when it names none or more than one. */
+/**
+ * The Ubicloud size (vCPUs) a `runs-on` names, or undefined when it names none, or labels of different sizes. A job may
+ * name one CI_RUNNER label (ubuntu-2204) and one E2E_RUNNER label (ubuntu-2404, decision 0032) of the same size.
+ */
 function ubicloudSize(text: string): number | undefined {
-  const found = [...text.matchAll(/'ubicloud-standard-(\d+)-ubuntu-2204'/g)];
-  return found.length === 1 ? Number(found[0]?.[1]) : undefined;
+  const found = [...text.matchAll(/'ubicloud-standard-(\d+)-ubuntu-(2204|2404)'/g)];
+  const sizes = new Set(found.map((m) => m[1]));
+  const releases = found.map((m) => m[2]);
+  if (found.length === 0 || sizes.size !== 1 || new Set(releases).size !== releases.length) return undefined;
+  return Number(found[0]?.[1]);
 }
 
 describe('CI runner labels', () => {
@@ -53,6 +59,9 @@ describe('CI runner labels', () => {
       traceability: 'github',
       // Decision 0032: a pull request's SQL mutation of its changed guards, sized as mutation.yml's groups (long).
       'sql-mutation': 8,
+      // Stage C part 2: the end-to-end seed (built once per run) and its check on a full run, sized as the groups.
+      'e2e-seed': 4,
+      'seed-check': 4,
       // Decision 0032: main-green.yml's check is a separate workflow.
     });
   });
@@ -70,7 +79,20 @@ describe('CI runner labels', () => {
       expect(text, id).toMatch(/^\$\{\{ \(inputs\.runner \|\| vars\.CI_RUNNER\) == 'pod' && 'ebmr-pod' \|\|/);
       expect(text, id).toMatch(/\|\| 'ubuntu-24.04' \}\}$/);
     }
-    expect(onPod.sort()).toEqual(['e2e', 'golden']);
+    expect(onPod.sort()).toEqual(['e2e', 'e2e-seed', 'golden', 'seed-check']);
+  });
+
+  it('[meta] E2E_RUNNER=ubicloud (owner, decision 0032) moves only the end-to-end groups, their seed and the golden batches to Ubicloud ubuntu-2404, each telling the scripts it is a one-job machine', () => {
+    const doc = YAML.parse(readFileSync(join(ROOT, '.github/workflows/ci.yml'), 'utf8')) as { jobs: Record<string, { 'runs-on'?: string; env?: Record<string, string> }> };
+    const moved = Object.entries(doc.jobs).filter(([, j]) => (j['runs-on'] ?? '').includes('E2E_RUNNER')).map(([id]) => id).sort();
+    // seed-check moves with the seed job (lead ruling, 14 November 2026, #268): it starts the seed's physical snapshot,
+    // which only the same PostgreSQL build can start, and it belongs to the E2E seed the owner approved for Ubicloud.
+    expect(moved).toEqual(['e2e', 'e2e-seed', 'golden', 'seed-check']);
+    for (const id of moved) {
+      const job = doc.jobs[id];
+      expect(job?.['runs-on'], id).toMatch(/vars\.E2E_RUNNER == 'ubicloud' && 'ubicloud-standard-\d+-ubuntu-2404' \|\| 'ubuntu-24.04' \}\}$/);
+      expect(job?.env?.['EBMR_CI_HOST'], id).toContain("vars.E2E_RUNNER == 'ubicloud'");
+    }
   });
 
   it('[meta] the mutation workflow runs its jobs on Ubicloud standard-8 or GitHub-hosted, the size written out', () => {
