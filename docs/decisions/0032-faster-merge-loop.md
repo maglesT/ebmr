@@ -56,6 +56,15 @@
 7. **No test is skipped, quarantined or weakened.** The gate chooses which tests run before the merge. Main's full run
    runs all of them.
 
+## Where the long jobs run (owner, 14 November 2026)
+
+The owner approved Ubicloud for the end-to-end groups and the golden batches ("yes go on … it can be there with it",
+relayed by the lead). The repository variable `E2E_RUNNER=ubicloud` puts only the end-to-end groups, their seed job and
+the golden batches on Ubicloud's `ubuntu-2404` runners (4 vCPUs, 8 for the golden batches). The static checks, the test
+shards and the trace stay on GitHub-hosted runners. Unset, every job stays on GitHub. The reason is the account's limit
+on concurrent GitHub-hosted jobs: one full run has about 36 jobs, so a single run filled every runner and the other
+runs queued behind it. `CI_RUNNER` (`pod`, or `ubicloud` on 22.04) keeps its meaning and takes precedence.
+
 ## What it is expected to save, and what it does not
 
 - **Cancelled runs and re-runs after merging main:** about one per PR. A re-run now costs only the gate.

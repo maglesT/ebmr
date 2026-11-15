@@ -111,6 +111,7 @@ const NOT_OPERATIONS: Readonly<Record<string, string>> = {
   'tools/ci/start-postgres.sh': 'CI only: starts and stops the job\'s own PostgreSQL (systemd on a GitHub-hosted runner, a private cluster on the self-hosted pod)',
   'tools/ci/runner-env.sh': 'CI only: gives each self-hosted runner its own home and browser directory',
   'tools/ci/playwright-install.sh': 'CI only: installs the end-to-end browser, one apt run at a time on the self-hosted pod',
+  'tools/e2e/seed-cli.ts': 'CI only: builds the end-to-end set-up once per run and checks a restored copy against a fresh one',
   'tools/ci/src/groups-cli.ts': 'CI only: prints the end-to-end groups for the changes job (decision 0032)',
   'tools/ci/changes.sh': 'CI only: tells whether a pull request changes only Markdown (then the end-to-end groups are skipped)',
   'apps/tablets-server/src/cli/installation.ts': 'library of the set-up CLI and the demo data load (no entry point)',

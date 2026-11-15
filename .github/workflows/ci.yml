@@ -236,9 +236,13 @@ jobs:
     # A pull request's gate runs them when the tablets server's tests are selected (the engine, recipe-core, edition SQL
     # or anything they depend on changed); the full run always (decision 0032).
     if: ${{ (github.event_name != 'workflow_dispatch' || inputs.e2e_groups == '') && needs.changes.outputs.golden == 'true' }}
-    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'pod' && 'ebmr-pod' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-8-ubuntu-2204' || 'ubuntu-24.04' }}
+    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'pod' && 'ebmr-pod' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-8-ubuntu-2204' || vars.E2E_RUNNER == 'ubicloud' && 'ubicloud-standard-8-ubuntu-2404' || 'ubuntu-24.04' }}
     # GB-T-01 about 20 minutes on the runner, GB-T-02 about 5, GB-T-03 (slice 6j-b) about 8, GB-I-01 (injectables) about 1.5.
     timeout-minutes: 60
+    env:
+      # Decision 0032 (owner, 14 November 2026): E2E_RUNNER=ubicloud puts this job on Ubicloud, whose VMs may report
+      # RUNNER_ENVIRONMENT=self-hosted, so the scripts in tools/ci are told it is a one-job machine (EBMR_CI_HOST).
+      EBMR_CI_HOST: ${{ (inputs.runner || vars.CI_RUNNER) == 'pod' && 'pod' || ((inputs.runner || vars.CI_RUNNER) == 'ubicloud' || vars.E2E_RUNNER == 'ubicloud') && 'ubicloud' || 'github' }}
     steps:
       - uses: actions/checkout@v4
       - name: Per-runner directories (self-hosted pod)
@@ -454,11 +458,110 @@ jobs:
           echo "groups=[$json]" >> "$GITHUB_OUTPUT"
           echo "end-to-end groups: [$json]"
 
+  # Stage C part 2 (lead approval, 14 November 2026): the base end-to-end set-up (setupStack with the packaging option,
+  # about 13 minutes of signed acts) built once per run (tools/e2e/seed.ts). The seed is a physical snapshot of the
+  # cluster (lead ruling on #268): built, then PostgreSQL stopped cleanly and its data directory tarred with the keys and
+  # exchange files, so every group's cluster starts as the same database incarnation and the numbering ceilings
+  # reserved during the set-up stay valid (DI-45, INV-27; a pg_dump/pg_restore seed changed the incarnation and was
+  # refused, rightly, with EBMR-CONT-012). A full run (push to main, nightly, by hand) always builds it fresh; only a
+  # pull request's gate may take it from the cache, whose key covers everything the set-up reads plus the runner image,
+  # the kind of runner and PostgreSQL's exact version, so the evidence runs never depend on a cache. A group that finds
+  # no seed, or a snapshot its runner cannot start, builds its own set-up.
+  e2e-seed:
+    name: End-to-end set-up, built once
+    needs: [changes, e2e-plan]
+    if: ${{ needs.e2e-plan.outputs.groups != '[]' }}
+    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'pod' && 'ebmr-pod' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-4-ubuntu-2204' || vars.E2E_RUNNER == 'ubicloud' && 'ubicloud-standard-4-ubuntu-2404' || 'ubuntu-24.04' }}
+    timeout-minutes: 45
+    env:
+      # Decision 0032 (owner, 14 November 2026): E2E_RUNNER=ubicloud puts this job on Ubicloud, whose VMs may report
+      # RUNNER_ENVIRONMENT=self-hosted, so the scripts in tools/ci are told it is a one-job machine (EBMR_CI_HOST).
+      EBMR_CI_HOST: ${{ (inputs.runner || vars.CI_RUNNER) == 'pod' && 'pod' || ((inputs.runner || vars.CI_RUNNER) == 'ubicloud' || vars.E2E_RUNNER == 'ubicloud') && 'ubicloud' || 'github' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Per-runner directories (self-hosted pod)
+        run: bash tools/ci/runner-env.sh
+      - name: Start PostgreSQL 16
+        run: bash tools/ci/start-postgres.sh start
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # A physical snapshot starts only on the same kind of cluster and the same PostgreSQL build: both are in the key,
+      # with the runner image (GitHub's ImageOS and ImageVersion where set, the OS release and the machine otherwise).
+      - name: The seed's runner image and PostgreSQL version
+        id: keyparts
+        run: |
+          set -euo pipefail
+          clean() { tr -c 'A-Za-z0-9._-' '_' | cut -c1-80; }
+          echo "image=$(printf '%s-%s-%s-%s-%s' "${ImageOS:-none}" "${ImageVersion:-none}" "$(. /etc/os-release && echo "$ID$VERSION_ID")" "$(uname -m)" "${EBMR_CI_HOST}" | clean)" >> "$GITHUB_OUTPUT"
+          echo "pg=$(/usr/lib/postgresql/16/bin/postgres --version | clean)" >> "$GITHUB_OUTPUT"
+      - name: The seed from the cache (a pull request's gate only)
+        id: cache
+        if: ${{ needs.changes.outputs.mode == 'gate' }}
+        uses: actions/cache@v4
+        with:
+          path: .reports/e2e-seed
+          key: e2e-seed-v2-${{ steps.keyparts.outputs.image }}-${{ steps.keyparts.outputs.pg }}-${{ hashFiles('**/sql/**/*.sql', 'packages/*/src/**', 'packages/*/package.json', 'apps/*/src/**', 'apps/*/package.json', 'editions/**', 'compliance/rule-tables/**', 'compliance/validation/**', 'tools/demo/**', 'tools/e2e/*.ts', 'tools/e2e/fixtures/**', 'tools/e2e/package.json', 'pnpm-lock.yaml', 'package.json', '.nvmrc', 'tools/ci/start-postgres.sh') }}
+      - name: Build the seed, then stop PostgreSQL cleanly and add its snapshot
+        if: ${{ steps.cache.outputs.cache-hit != 'true' }}
+        run: |
+          set -euo pipefail
+          rm -rf .reports/e2e-seed
+          pnpm --filter @ebmr/e2e exec tsx seed-cli.ts build ../../.reports/e2e-seed
+          bash tools/ci/start-postgres.sh snapshot .reports/e2e-seed/cluster.tar
+      - name: Stop PostgreSQL
+        if: always()
+        run: bash tools/ci/start-postgres.sh stop
+      - uses: actions/upload-artifact@v4
+        with:
+          name: e2e-seed
+          path: .reports/e2e-seed
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 3
+
+  # The lead's condition 3: on a full run, a cluster started from the seed's snapshot equals the same set-up built fresh
+  # (row counts of every table, every sequence's value); the seed's own copy is checked against its incarnations and
+  # fingerprint, files included.
+  seed-check:
+    name: End-to-end seed equals a fresh set-up
+    needs: [changes, e2e-seed]
+    if: ${{ needs.changes.outputs.mode == 'full' && needs.e2e-seed.result == 'success' }}
+    # The seed job's runner (lead ruling, 14 November 2026): a snapshot starts only on the same PostgreSQL build.
+    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'pod' && 'ebmr-pod' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-4-ubuntu-2204' || vars.E2E_RUNNER == 'ubicloud' && 'ubicloud-standard-4-ubuntu-2404' || 'ubuntu-24.04' }}
+    timeout-minutes: 45
+    env:
+      EBMR_CI_HOST: ${{ (inputs.runner || vars.CI_RUNNER) == 'pod' && 'pod' || ((inputs.runner || vars.CI_RUNNER) == 'ubicloud' || vars.E2E_RUNNER == 'ubicloud') && 'ubicloud' || 'github' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Per-runner directories (self-hosted pod)
+        run: bash tools/ci/runner-env.sh
+      - uses: actions/download-artifact@v4
+        with:
+          name: e2e-seed
+          path: .reports/e2e-seed
+      - name: Start PostgreSQL 16 from the seed's snapshot
+        run: bash tools/ci/start-postgres.sh start --from-seed .reports/e2e-seed/cluster.tar
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @ebmr/e2e exec tsx seed-cli.ts check ../../.reports/e2e-seed
+      - name: Stop PostgreSQL
+        if: always()
+        run: bash tools/ci/start-postgres.sh stop
+
   e2e:
     name: End-to-end (Playwright, chromium, ${{ matrix.group }})
-    needs: [e2e-plan]
-    if: ${{ needs.e2e-plan.outputs.groups != '[]' }}
-    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'pod' && 'ebmr-pod' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-4-ubuntu-2204' || 'ubuntu-24.04' }}
+    needs: [e2e-plan, e2e-seed]
+    # Runs when the seed job failed too: a group with no seed builds its own set-up (global-setup.ts).
+    if: ${{ !cancelled() && needs.e2e-plan.result == 'success' && needs.e2e-plan.outputs.groups != '[]' }}
+    runs-on: ${{ (inputs.runner || vars.CI_RUNNER) == 'pod' && 'ebmr-pod' || (inputs.runner || vars.CI_RUNNER) == 'ubicloud' && 'ubicloud-standard-4-ubuntu-2204' || vars.E2E_RUNNER == 'ubicloud' && 'ubicloud-standard-4-ubuntu-2404' || 'ubuntu-24.04' }}
     # 45: the set-up builds the release path through real signed acts (Phase 4 slice 7b), about 10 minutes more.
     # In groups since slice 7k (P7K-5): one job passed 74 tests and still reached 75 minutes. Each group runs the global
     # set-up on its own PostgreSQL and the spec files tools/e2e/playwright.config.ts (E2E_GROUPS) names; 'rest' runs
@@ -471,6 +574,9 @@ jobs:
       matrix:
         group: ${{ fromJSON(needs.e2e-plan.outputs.groups) }}
     env:
+      # Decision 0032 (owner, 14 November 2026): E2E_RUNNER=ubicloud puts this job on Ubicloud, whose VMs may report
+      # RUNNER_ENVIRONMENT=self-hosted, so the scripts in tools/ci are told it is a one-job machine (EBMR_CI_HOST).
+      EBMR_CI_HOST: ${{ (inputs.runner || vars.CI_RUNNER) == 'pod' && 'pod' || ((inputs.runner || vars.CI_RUNNER) == 'ubicloud' || vars.E2E_RUNNER == 'ubicloud') && 'ubicloud' || 'github' }}
       CI: 'true'
       EBMR_E2E_BLOB: '1'
       EBMR_E2E_GROUP: ${{ matrix.group }}
@@ -478,9 +584,27 @@ jobs:
       - uses: actions/checkout@v4
       - name: Per-runner directories (self-hosted pod)
         run: bash tools/ci/runner-env.sh
-      # PostgreSQL 16 as in the tests job (not a service container): the runner's own, or on the pod this job's own.
-      - name: Start PostgreSQL 16
-        run: bash tools/ci/start-postgres.sh start
+      - name: The run's end-to-end seed (absent when its job failed; the group then builds its own set-up)
+        if: ${{ needs.e2e-seed.result == 'success' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-seed
+          path: .reports/e2e-seed
+      # PostgreSQL 16 as in the tests job (not a service container): the runner's own, or on the pod this job's own;
+      # started from the seed's snapshot when there is one this runner can start (the same kind of cluster and the same
+      # PostgreSQL build), which global-setup.ts then attaches (EBMR_E2E_SEED_DIR). Otherwise an empty cluster, and the
+      # group builds its own set-up.
+      - name: Start PostgreSQL 16 (from the seed's snapshot when there is one)
+        run: |
+          set -euo pipefail
+          snap=.reports/e2e-seed/cluster.tar
+          if [ -f "$snap" ] && bash tools/ci/start-postgres.sh check-seed "$snap"; then
+            bash tools/ci/start-postgres.sh start --from-seed "$snap"
+            echo "EBMR_E2E_SEED_DIR=$GITHUB_WORKSPACE/.reports/e2e-seed" >> "$GITHUB_ENV"
+          else
+            [ ! -f "$snap" ] || echo "::warning::the seed's snapshot does not fit this runner; the group builds its own set-up"
+            bash tools/ci/start-postgres.sh start
+          fi
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
