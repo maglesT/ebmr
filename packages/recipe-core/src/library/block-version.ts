@@ -18,6 +18,7 @@
  *   status checks against the plant and stores arrive in S6. Signature roles are mapped to steps in S4.
  */
 import { Dec } from '@ebmr/expr';
+import { FIELD_SHOWN, holds, type Json } from '@ebmr/rules';
 import type { BlockVersion, ExceptionDraft, ExceptionRule, HandlerProblem, HandlerView, EntryResult } from '../blocks/contract.ts';
 import type { FieldSchema, ObjectSchema } from '../blocks/schema.ts';
 import { tierDraft } from '../engine/exceptions.ts';
@@ -205,8 +206,13 @@ const isRepeating = (s: SectionDef): boolean => s.repeat !== undefined && s.repe
 const problem = (code: string, message: string, controls: string[] = ['PR-03']): HandlerProblem => ({ code, message, controls });
 const configOf = (view: Pick<HandlerView, 'config'>): Config => view.config;
 
+/**
+ * Whether the entry shows the field (family 6.1, ADR 0023): the one definition FIELD_SHOWN in @ebmr/rules, evaluated by
+ * its interpreter. The database's guards call the function generated from the same definition
+ * (recipe.rule_library_field_shown).
+ */
 function shown(f: FieldDef, values: Readonly<Record<string, unknown>>): boolean {
-  return f.showWhen === undefined || values[f.showWhen.field] === f.showWhen.equals;
+  return holds(FIELD_SHOWN.body, { field: f as unknown as Json, values: values as Json });
 }
 
 /** The value of a field as a calculation reads it. */

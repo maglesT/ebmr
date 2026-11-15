@@ -14,6 +14,7 @@ import type { TestServer } from '../support/harness.ts';
 import { asSetup } from '../blocks/compression/plant-support.ts';
 import { gmpContent, startGmpBatchWorld, type GmpBatchWorld } from '../support/gmp-world.ts';
 import { signAction } from '../support/signed-acts.ts';
+import { storedDifferences } from '../../../../packages/recipe-core/test/library/field-shown-differential.ts';
 
 type Json = Record<string, unknown>;
 let w: GmpBatchWorld;
@@ -251,5 +252,13 @@ describe('smart fields of library entries on GMP (S6; tablets 1803)', () => {
     const { d } = await runOnLibraryStep();
     const sent = await d.command('operator1', { type: 'RECORD_ENTRY', stepKey: 'p-lib@', entry: { kind: 'LIBRARY_ENTRY', entryKind: 'run', data: { w0: '6.5', w1: '6.4', cracked: false, lots: {} } } });
     expect(refusalOf(sent).code).toBe('EBMR-API-SERVER-FILLED');
+  });
+});
+
+describe('family 6.1 on the stored rows (ADR 0023, decision 5 (a))', () => {
+  it('[PR-03][PR-29] every field of every library entry this file stored: the guards\' visibility condition and recipe.rule_library_field_shown agree', async () => {
+    const { compared, differences } = await storedDifferences(w.gmp.db.admin);
+    expect(differences).toEqual([]);
+    expect(compared).toBeGreaterThan(0);
   });
 });

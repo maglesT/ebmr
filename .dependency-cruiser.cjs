@@ -50,10 +50,10 @@ module.exports = {
     },
     {
       name: 'recipe-core-allowed-deps',
-      comment: 'recipe-core may import only kernel and expr.',
+      comment: 'recipe-core may import only kernel, expr and the rules written once (ADR 0023: the engine evaluates them).',
       severity: 'error',
       from: { path: '^packages/recipe-core/' },
-      to: { path: '^(packages/(?!(recipe-core|kernel|expr)/)|apps/|tools/)' },
+      to: { path: '^(packages/(?!(recipe-core|kernel|expr|rules)/)|apps/|tools/)' },
     },
     {
       name: 'no-runtime-import-of-tools',

@@ -387,6 +387,9 @@ importers:
       '@ebmr/kernel':
         specifier: workspace:0.1.0
         version: link:../kernel
+      '@ebmr/rules':
+        specifier: workspace:0.2.0
+        version: link:../rules
       pg:
         specifier: 8.23.0
         version: 8.23.0

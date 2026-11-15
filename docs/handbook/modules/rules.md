@@ -6,7 +6,8 @@
 recipe-core engine, once in a PostgreSQL guard). A rule is a small typed tree (the vocabulary) whose every node has one
 meaning, stated in SQL terms. The TypeScript interpreter evaluates it; the generator writes it as plain, committed SQL
 (`recipe.rule_<name>`), and a conformance suite runs the same cases through PostgreSQL 16. Until a rule family is
-switched over (ADR 0023 decision 5) the hand-written copies stay in force: no guard calls a generated function yet.
+switched over (ADR 0023 decision 5) the hand-written copies stay in force. Switched over so far: family 6.1, visibility
+(see "Family switch-overs" below).
 Read this page before you add or change a rule there.
 
 ## Where the code is
@@ -26,7 +27,11 @@ Read this page before you add or change a rule there.
 
 ## Rules of the package
 
-- It imports only `@ebmr/expr` (its exact decimals); a boundary rule checks it.
+- It imports only `@ebmr/expr` (its exact decimals); a boundary rule checks it. recipe-core imports it (the engine
+  evaluates the definitions).
+- A decimal reaches an order comparison only as the decimal input policy allows (`src/policy.ts`). It is UNSETTLED
+  until family 6.3, and `test/policy.test.ts` fails while any catalogued definition uses `lt`, `lte`, `gt` or `gte`
+  (a JSON number has already been rounded to a double before the interpreter reads it).
 - A value is a JSON value or ABSENT (a key that is not there: SQL NULL); decimals are compared exactly, never as
   JavaScript numbers; nothing reads a clock, a sequence or a session.
 
@@ -67,3 +72,21 @@ a literal). Points it settles, each with its case:
 `pnpm mutation:rules` runs Stryker on `packages/rules/src` (the command-line wrapper aside) with the package's tests,
 the conformance suite included. Decision 0032's rule holds: no surviving mutant (break threshold 100); an equivalent
 mutant is disabled at its line with a comment saying why.
+
+## Family switch-overs
+
+| Family | Definition | Engine | Database | Harness |
+|---|---|---|---|---|
+| 6.1 visibility (`showWhen`) | `FIELD_SHOWN` | recipe-core `block-version.ts` `shown` calls `holds(FIELD_SHOWN.body, ...)` | the guards' visibility clause calls `recipe.rule_library_field_shown` (guard migration after recipe-core 1928) | [field-shown-differential.ts](../../../packages/recipe-core/test/library/field-shown-differential.ts) |
+
+The differential harness of a family keeps the hand-written copies as they were before the switch-over (the engine's
+function frozen in the harness; the guard's clause read from its migration's text) and runs them beside the generated
+copies:
+- on the seeded corpus (every field of every seed block, on its nominal entries and with each condition's field answered
+  every way) and the bypass tests' entries: zero differences;
+- on the stored rows of the database tests that record library entries (`storedDifferences`, in
+  `apps/tablets-server/test/library/library-batch-gmp.test.ts`);
+- outside the corpus, on fields no definition check admits, each difference is pinned with the copy that is right. For
+  6.1: a condition naming a number (the old copies read the key as text; the definition hides the field, which is
+  stricter and right), and `showWhen: null` (the old engine threw; now judged as no condition, which LIB-SHOW-WHEN
+  refuses before approval).
