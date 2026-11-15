@@ -1,6 +1,6 @@
 /**
  * The TypeScript backend's meaning of each node (ADR 0023): ABSENT is its own value, JSON null is a value, decimals are
- * exact, and a truth value is true only when it is JSON true. The conformance suite (a later PR) runs the same cases
+ * exact, and a truth value is true only when it is JSON true. The conformance suite (conformance.test.ts) runs such cases
  * through PostgreSQL 16.
  */
 import { describe, expect, it } from 'vitest';
@@ -19,6 +19,12 @@ describe('the vocabulary, interpreted', () => {
     expect(evaluate(path('v', 'missing'), I)).toBe(ABSENT);
     expect(evaluate(path('v', 's', 'deeper'), I)).toBe(ABSENT);
     expect(evaluate(path('nope', 'a'), I)).toBe(ABSENT);
+    // An input given as undefined is not there either (an optional argument left out).
+    expect(evaluate(path('u'), { ...I, u: undefined })).toBe(ABSENT);
+    expect(evaluate(path('u', 'a'), { ...I, u: undefined })).toBe(ABSENT);
+    // A root is an own key of the inputs: an inherited name is no input.
+    expect(evaluate(path('constructor'), I)).toBe(ABSENT);
+    expect(evaluate(path('toString', 'a'), I)).toBe(ABSENT);
     // A computed step: the key read from another input.
     expect(evaluate(path('v', path('key')), I)).toBe('1.0');
     expect(evaluate(path('v', path('nope')), I)).toBe(ABSENT);
