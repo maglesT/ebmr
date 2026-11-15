@@ -47,6 +47,7 @@ describe('CI runner labels', () => {
     // so the groups never wait in GitHub's queue); everything else on GitHub-hosted.
     expect(sizes).toEqual({
       checks: 'github',
+      'rules-mutation': 'github',
       'supply-chain': 'github',
       tests: 'github',
       golden: 8,

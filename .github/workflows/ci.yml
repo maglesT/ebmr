@@ -88,6 +88,8 @@ jobs:
       - run: pnpm lint
       - run: pnpm deps:check
       - run: pnpm pins:check
+      # ADR 0023: the latest committed block of every generated rule function equals the generator's output.
+      - run: pnpm rules:check
       - run: pnpm register:validate
       # The handbook's generated pages (code map, database catalogue, control map, error codes) are not committed: the
       # run writes them (failing on any handbook problem) and keeps them as an artifact.
@@ -104,6 +106,33 @@ jobs:
           retention-days: 14
       # A node built-in in the browser bundle fails the build (plan section 3).
       - run: pnpm build:web
+
+  # ADR 0023, decision 9: Stryker on packages/rules (the interpreter and the SQL generator), with decision 0032's rule of
+  # no surviving mutant (stryker.rules.config.mjs breaks below 100). Its tests include the conformance suite, so the job
+  # needs PostgreSQL 16 and the kernel's template database. About 3 minutes of mutants after the template build.
+  rules-mutation:
+    name: Mutation (packages/rules, no survivor)
+    needs: [changes]
+    # A pull request's gate runs it when packages/rules' tests are selected (tools/ci/src/select.ts); the full run always.
+    if: ${{ (github.event_name != 'workflow_dispatch' || inputs.e2e_groups == '') && needs.changes.outputs.rules_mutation == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Per-runner directories (self-hosted pod)
+        run: bash tools/ci/runner-env.sh
+      - name: Start PostgreSQL 16
+        run: bash tools/ci/start-postgres.sh start
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm mutation:rules
+      - name: Stop PostgreSQL
+        if: always()
+        run: bash tools/ci/start-postgres.sh stop
 
   # Phase 7 slice 7d (ASVS V10.3, V14.2; docs/security/pentest-checklist.md): the dependency audit of what ships (a
   # known high or critical advisory in a production dependency fails the job; the development tools' advisories are
@@ -356,6 +385,7 @@ jobs:
       unit_all: ${{ steps.plan.outputs.unit_all }}
       unit_paths: ${{ steps.plan.outputs.unit_paths }}
       golden: ${{ steps.plan.outputs.golden }}
+      rules_mutation: ${{ steps.plan.outputs.rules_mutation }}
       groups: ${{ steps.plan.outputs.groups }}
       all_groups: ${{ steps.plan.outputs.all_groups }}
       sql_functions: ${{ steps.plan.outputs.sql_functions }}
@@ -393,7 +423,7 @@ jobs:
             pnpm -s exec tsx tools/ci/src/select.ts --base "$BASE" --head "$HEAD" --github-output "$GITHUB_OUTPUT"
           else
             echo "mode=full" >> "$GITHUB_OUTPUT"
-            { echo unit_all=true; echo unit_paths=; echo golden=true; echo groups=; echo sql_functions=; } >> "$GITHUB_OUTPUT"
+            { echo unit_all=true; echo unit_paths=; echo golden=true; echo rules_mutation=true; echo groups=; echo sql_functions=; } >> "$GITHUB_OUTPUT"
           fi
 
   e2e-plan:
