@@ -129,11 +129,13 @@ D-0 to D-4, R-flow and R-rest; the capsules edition; the injectables plan and I-
   - INV-23 (b) built (lead ruling, 14 November): an aseptic fill (a FILLING step, no TERMINAL_STERILISATION step) needs
     EM during the operation and the counts after it; validator INJ-ASEPTIC-EM and the database at QA approval
     (injectables 3080, EBMR-RCP-439); GB-I-01 rebaselined with its INJ-EM step (the gap was real).
-  - INV-23 (c) built (lead rulings, 14 November; tablets 1915, EBMR-PLANT-090 to 094): a line fills an aseptic GMP batch
-    only while its last passing media fill plus the firm's QA-approved interval for the line (no default) is not past;
-    a lapse during the fill holds the step's sign-off until an ACTION exception raised at the step is dispositioned
-    under its deviation. Open: the E2E GMP halves of the aseptic and lyophilised vials (inj-aseptic-vial,
-    inj-lyo-vial) need a passing media fill on their line and its interval in their set-up; not run here.
+  - INV-23 (c) built (lead rulings, 14 and 15 November; tablets 1915, recipe-core 1916, EBMR-PLANT-090 to 094): a line
+    fills an aseptic GMP batch only while its last passing media fill plus the firm's QA-approved interval for the line
+    (no default) is not past. A lapse during the fill refuses no later entry; at the step's sign-off the server reads the
+    line's validity (plant.aps_sign_off_facts, stated in the command as PerformFacts) and the engine raises
+    LIB_APS_LAPSED (ACTION, deviation required, QA only), which holds the step until QA dispositions it under the
+    deviation; -094 is the database backstop. The E2E aseptic and lyo groups run the line's media fill first and set its
+    interval in the GMP set-up (inj-media-fill.spec.ts folded into inj-aseptic-vial.spec.ts and inj-lyo-vial.spec.ts).
   - INV-23, INV-36, INV-44: owner residuals (the exit list supersedes outline 11's); INV-37 by ST-68, INV-45 by ST-64.
   - Decision 0031: PR-26 clause 2 (transfer-route scan) and PR-28 clause 2 (EM excursion at certification) are owner
     questions, deferred to phase 8 (register: phase 8 = an open owner question, citing a decision record).

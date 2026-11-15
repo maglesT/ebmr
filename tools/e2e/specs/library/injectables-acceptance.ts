@@ -21,7 +21,9 @@
  * DEMO-ONLY data; every code is unique per run.
  */
 import { randomBytes, randomUUID } from 'node:crypto';
-import { expect, signIn, test } from '../../fixtures/index.ts';
+import { withCommand } from '@ebmr/kernel';
+import { passwordActor, terminalOf, type SeededPersona } from '@ebmr/test-kit';
+import { expect, signIn, test, type E2eWorld } from '../../fixtures/index.ts';
 import { officeSign } from '../../fixtures/slice6.ts';
 import { choose } from '../journey/support.ts';
 import { begin, cleanForBatch, closeFloor, closeStage, closeTyped, done, explained, field, floorKiosk, openContainer, releasePlant, statusStep, step, type Floor } from '../phase7/own-product-floor.ts';
@@ -37,6 +39,7 @@ import {
 import { registerTestLots, runSkeletonTestBatch, type OwnMaterial } from '../phase7/own-product-support.ts';
 import { addLibraryBlocks, approveBlocks, definePlantClasses, definePlantProduct, investigateAndClose, linkNewDeviation, loadCatalogue, productBlock, registerPlantUnits, runLibraryStep, stepIdOf, type PlantUnit, type ProductBlock } from './library-support.ts';
 import { skeletonRun } from './skeleton-floor.ts';
+import { because, withDb } from '../phase6/support.ts';
 
 
 export interface Injectable {
@@ -564,6 +567,50 @@ interface PackItem {
   returned: string;
 }
 
+
+/**
+ * INV-23 (c) (tablets 1915): the GMP filling lines of a product filled aseptically (no step with the role
+ * TERMINAL_STERILISATION, not a media fill): each unit an EQUIPMENT field of kind LINE names, outside a PACKAGING block.
+ * Such a line fills the batch only while its media fill is valid: a passing media fill on it, and the firm's APS
+ * interval for it, approved by QA. A product run of these groups follows the line's media fill (MEDIA_FILL, defined first
+ * in its spec file), and its GMP set-up sets the interval (`setApsInterval`).
+ */
+export function asepticFillingLines(t: Injectable): string[] {
+  const gmp = t.gmp;
+  if (!gmp || t.processSimulation || t.steps.some((b) => (b.def.roles ?? []).includes('TERMINAL_STERILISATION'))) return [];
+  const codes = new Set<string>();
+  for (const b of t.steps) {
+    if (b.def.category === 'PACKAGING') continue;
+    for (const f of b.def.sections.flatMap((x) => x.fields)) {
+      if (f.type !== 'EQUIPMENT' || f.kind !== 'LINE') continue;
+      const cls = b.use.equipmentClasses?.[f.classSlot];
+      const u = gmp.plant.find((x) => x.classCode === cls);
+      if (u) codes.add(u.code);
+    }
+  }
+  return [...codes].sort();
+}
+
+/**
+ * The line's APS interval as the firm sets it (no screen offers it; the database commands as each person, as the server
+ * tests do): the steward proposes it in days with its reason, QA (another person) approves it. Kept when one is already
+ * in force. The line must hold a passing media fill first; then its validity runs past now.
+ */
+async function setApsInterval(e2e: E2eWorld, steward: SeededPersona, qa: SeededPersona, line: string, days: number): Promise<{ validUntil: string }> {
+  return withDb(e2e, 'GMP', async (db, seed) => {
+    const one = async <T>(sql: string, params: unknown[]): Promise<T | null> => ((await db.admin.query<{ r: T | null }>(sql, params)).rows[0]?.r ?? null);
+    expect(await one<boolean>('select exists (select 1 from plant.line_batch_uses($1) u where u.good_aps) as r', [line]), `${line} has a passing media fill`).toBe(true);
+    if ((await one<number>('select plant.aps_interval_days(q.id) as r from plant.equipment q where q.code = $1', [line])) === null) {
+      const st = await passwordActor(db, steward, terminalOf(seed, steward.homeTerminal).fingerprint);
+      const proposed = await withCommand(db.app, because(st, `APS interval of ${line}`), async (c) => (await c.query<{ id: string }>('select plant.propose_aps_interval($1, $2, $3) as id', [line, days, 'Media fill of the line twice a year, per SOP-QA-031 (DEMO-ONLY)'])).rows[0]?.id ?? '');
+      const q = await passwordActor(db, qa, terminalOf(seed, qa.homeTerminal).fingerprint);
+      await withCommand(db.app, because(q, `APS interval of ${line}`), (c) => c.query('select plant.approve_aps_interval($1)', [proposed]));
+    }
+    const until = await one<string>('select plant.aps_us_text(plant.aps_valid_until_us($1, tab.now_micros()::bigint)) as r', [line]);
+    expect(await one<boolean>('select plant.aps_valid_until_us($1, tab.now_micros()::bigint) > tab.now_micros()::bigint as r', [line]), `${line}'s media fill is valid now`).toBe(true);
+    return { validUntil: until ?? '' };
+  });
+}
 /**
  * An injectables packaging order on the packaging line's kiosk (I-1c2 P4b), the master from the P3 skeleton plus the
  * library's cartoning and finished-pack examination:
@@ -855,6 +902,10 @@ export function defineInjectablesGmp(product: string | Injectable): void {
       await registerPlantUnits(st, base, gmp.plant);
       return { units: gmp.plant.map((u) => u.code).join(', ') };
     }, st);
+    for (const line of asepticFillingLines(t)) {
+      await evidence.step(`The filling line ${line} fills the aseptic batch only while its media fill is valid: the line's media fill passed; the steward proposes its APS interval, QA approves it`, 'The line\'s media fill is valid past now (INV-23; Schedule M Part II 5.5; 21 CFR 211.113(b))', async () =>
+        ({ line, ...(await setApsInterval(e2e, persona('GMP', 'steward'), persona('GMP', 'qaInvestigator'), line, 182)) }));
+    }
     await st.context().close();
     const op = await officePage('GMP', PC_PLAN);
     await signIn.office(op, e2e.seeds.GMP.bootstrap.admin as unknown as Parameters<typeof signIn.office>[1]);
