@@ -53,6 +53,19 @@ library to sandbox run, approval and IN authorisation, E2E). No injectables PR i
 - **Merging:** no merge queue. Merge each PR yourself on green, after a lead audit (ping the lead). Merge main in only
   on a conflict. Report each merge in 2 lines.
 
+### FREEZE (owner, 15 November 2026, about 06:43; relayed by the lead session_01PybpFvF4SWgYSyQDHAVFb6)
+
+ebmr is frozen for new features: keep the demo running and fix only real bugs; effort moves to a new product. Until the
+owner rules on the open PRs:
+- Do not merge **#261**, even on a green gate (head e642aede3480a8210377e0fbdbd279e4f67d4992, renumbered 1931). Report
+  the gate result to the lead.
+- Do not renumber or push **#271** (head ed9a5bdc, still 1928; it would be 1932).
+- Do not open PRs for **INV-23 (b)** (`inj/i6-inv23b-em-with-fill`, f9bde5d4 plus this note, main merged in; the
+  injectables tests pass, 8 files and 42 tests) or **(c)** (`inj/i6-inv23c-aps-interval`, c9ff0a2e, not yet merged with
+  main).
+- Real bug fixes are allowed, but send them to the lead before starting.
+The state of each item is in the handover below.
+
 ### Session 21 handover (15 November 2026, about 06:15; session 21 continues): the next injectables session continues here
 
 Session 21 was session_01PybpFuJqP4hQevvyU4YWWS. The lead is now session_01PybpFvF4SWgYSyQDHAVFb6 (it took over from session_01PybpFrP72XuwyG8S3H3NJS at 06:10); report with send_message.
