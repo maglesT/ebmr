@@ -68,6 +68,11 @@ const PHASE_7_RULES: Record<string, string> = {
   'record-viewer-no-node-core': 'apps/record-viewer/src/bad-node.ts',
 };
 
+// ADR 0023: the rules package imports only the expression language.
+const ADR_0023_RULES: Record<string, string> = {
+  'rules-imports-only-expr': 'packages/rules/src/bad-reach.ts',
+};
+
 describe('architecture boundaries (ADR 0001, 0011, 0015)', () => {
   it('[meta] every boundary rule fires on a deliberate violation', async () => {
     const rules = new Set((await violations()).map((v) => v.rule));
@@ -83,7 +88,7 @@ describe('architecture boundaries (ADR 0001, 0011, 0015)', () => {
       ).toBe(true);
     }
     // Every configured rule except no-circular (dependency-cruiser's own) is proven by a fixture.
-    const proven = new Set([...PHASE_1_RULES, ...Object.keys(PHASE_2_RULES), ...Object.keys(PHASE_6A_RULES), ...Object.keys(PHASE_7_RULES)]);
+    const proven = new Set([...PHASE_1_RULES, ...Object.keys(PHASE_2_RULES), ...Object.keys(PHASE_6A_RULES), ...Object.keys(PHASE_7_RULES), ...Object.keys(ADR_0023_RULES)]);
     for (const r of config.forbidden) if (r.name !== 'no-circular') expect(proven, r.name).toContain(r.name);
   });
 
@@ -95,6 +100,13 @@ describe('architecture boundaries (ADR 0001, 0011, 0015)', () => {
     expect(found.filter((v) => v.from === 'apps/tablets-server/src/cli/setup.ts')).toEqual([]);
     // tools/e2e may import tools/demo, but not an app.
     expect(found.filter((v) => v.rule === 'e2e-imports').map((v) => v.to)).toEqual(['apps/tablets-server/src/index.ts']);
+  });
+
+  it('[meta] the rules package (ADR 0023) may import the expression language and nothing else in the repository', async () => {
+    const found = await violations();
+    for (const [rule, from] of Object.entries(ADR_0023_RULES)) expect(found.some((v) => v.rule === rule && v.from === from), `${rule} should fire on ${from}`).toBe(true);
+    expect(found).toContainEqual({ rule: 'rules-imports-only-expr', from: 'packages/rules/src/bad-reach.ts', to: 'packages/kernel/src/index.ts' });
+    expect(found.filter((v) => v.from === 'packages/rules/src/index.ts')).toEqual([]);
   });
 
   it('[meta] each analytics rule of ADR 0020 fires on its own fixture; the runner may import the package', async () => {
