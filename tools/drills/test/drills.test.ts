@@ -249,5 +249,5 @@ describe('restore drill with its record (slice 7d)', () => {
     } finally {
       await dropDatabase(source);
     }
-  });
+  }, 90_000); // A full database copy, migration, restore and batch render: 20 s on a GitHub runner (main run 43633589463), over the 30 s default on a loaded one.
 });
