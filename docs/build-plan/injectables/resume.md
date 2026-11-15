@@ -110,6 +110,20 @@ Session 21 was session_01PybpFuJqP4hQevvyU4YWWS. The lead is session_01PybpFrP72
   - Tests: refusal with no interval; refusal for a lapsed APS; the sign-off exception; a database bypass case; the PACK
     step not guarded; a tablets packaging line accepted; and a process-simulation batch cannot be released as product
     (or cite the existing control test that proves it).
+- **State at 15 November, about 01:00:**
+  - **(b)** is done locally: inj-aseptic-em scores 100 % (11/11, one equivalent recorded), GB-I-01 is rebaselined
+    (lead OK), and INJ-EM sits right after INJ-FILL (lead OK). PR body: scratchpad pr-inv23b.md. Open it only after #261
+    merges, with at most 3 PRs open.
+  - **(c)** is built locally on `inj/i6-inv23c-aps-interval` (worktree /home/user/wt-inv23c), with (b) merged in.
+    - It adds tablets 1915, `plant.aps_interval` and its approval, the trigger `ad_plant_aps_interval`, and
+      EBMR-PLANT-090 to -094.
+    - It has 10 `[INV-23]` tests, and inj-aps-interval scores 100 % (80/80).
+    - **Open, waiting for the lead's answer:**
+      (1) the lapse exception is raised by the operator (-094 refuses the sign-off until it is there), not
+      automatically; option (B) adds the engine raise;
+      (2) the E2E aseptic GMP halves of library-inj-aseptic and library-inj-lyo need a passing APS and an interval in
+      their set-up, and must then be run by hand;
+      (3) only GMP_BATCH batches are guarded, to be confirmed.
 - **INV-36:** the mutation scores 100 % (30/30, 0 equivalent). The PR body is drafted in the session scratchpad;
   rewrite it from the commits if the scratchpad is lost.
 
