@@ -1042,6 +1042,15 @@ export const TARGETS: Target[] = [
     tests: [s('injectables/gas-filter-gate.test.ts')],
     threshold: 90,
   },
+  // ---- Injectables I-6, INV-36: a sterilising filter integrity step needs a passing pre-use and a passing post-use result,
+  // the post-use one recorded after the filtration, for release (Schedule M Part II 6.11.2.7; editions/injectables/sql
+  // 3060, which also redefines injectables.grel_edition_items, kept in inj-release-items; it reads a role and marks). ----
+  {
+    group: 'inj-sterile-filter',
+    functions: ['injectables.grel_sterile_filter'],
+    tests: [s('injectables/sterile-filter-gate.test.ts')],
+    threshold: 90,
+  },
   // ---- Injectables lean item 6: a library block with the role PACK_EXAMINATION completes a packaging record (recipe-core
   // 1892; editions/injectables/sql 3020 redefines injectables.grel_pack_examination, which stays in inj-release-items). ----
   {

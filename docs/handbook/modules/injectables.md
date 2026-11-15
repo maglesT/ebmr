@@ -46,6 +46,12 @@ The edition is data on the shared kernel (library blocks, formulations, masters)
   snapshot, not block codes (lead ruling on B5): the overlay is a field marked `gasOverlayApplied` holding the marked
   answer, the test a step whose block has the role `GAS_FILTER_INTEGRITY`, its result the NUMBER field marked
   `postUseIntegrity`; a firm's own blocks gate release the same way.
+- 3060: the release item `E.STERILE_FILTER` (INV-36, every market; Schedule M Part II 6.11.2.7): a batch with a step
+  whose block has the role `STERILE_FILTER_INTEGRITY` (the catalogue's INJ-STERILE-FILTER) is red until the step is
+  completed with a passing pre-use result (a NUMBER field marked `preUseIntegrity`) and a passing post-use result (marked
+  `postUseIntegrity`), each judged against the master's limit; a failing result, even once dispositioned, stays red, and
+  so does a post-use result recorded before the step's other entries (it must follow the filtration). No such step: NA.
+  The housing, the redundant and the serial filter trains are not built (Annex 1 "should" clauses; lead ruling).
 
 ## Pharma context: why a second edition
 
